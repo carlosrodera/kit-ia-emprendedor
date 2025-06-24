@@ -2,15 +2,15 @@
  * Sistema de logging para la extensión
  */
 
-import { LOG_CONFIG, ENV } from './config.js';
+import { DEV_CONFIG } from './config.js';
 
 class Logger {
   constructor(module = 'General') {
     this.module = module;
-    this.enabled = LOG_CONFIG.enabled;
-    this.level = LOG_CONFIG.level;
-    this.includeTimestamp = LOG_CONFIG.includeTimestamp;
-    this.includeStackTrace = LOG_CONFIG.includeStackTrace;
+    this.enabled = DEV_CONFIG?.enableLogging ?? true;
+    this.level = DEV_CONFIG?.logLevel ?? 'error';
+    this.includeTimestamp = true;
+    this.includeStackTrace = DEV_CONFIG?.showDebugInfo ?? false;
   }
 
   /**
