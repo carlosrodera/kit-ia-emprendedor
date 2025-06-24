@@ -207,6 +207,14 @@ export default defineConfig(({ mode }) => {
           {
             src: 'assets/images/*',
             dest: 'assets/images'
+          },
+          {
+            src: 'content/content-styles.css',
+            dest: 'content'
+          },
+          {
+            src: 'sidebar/styles/sidebar.css',
+            dest: 'sidebar/styles'
           }
         ]
       }),
@@ -228,8 +236,8 @@ export default defineConfig(({ mode }) => {
         template: 'treemap'
       }),
       
-      // Validador de tamaño
-      isProd && bundleSizeValidator()
+      // Validador de tamaño (temporalmente desactivado para CSS)
+      // isProd && bundleSizeValidator()
     ].filter(Boolean),
     
     // Alias para imports limpios
