@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kit IA Emprendedor</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <header class="popup-header">
+      <div class="logo">
+        <img src="../assets/icons/icon-32.png" alt="Kit IA">
+        <h1>Kit IA Emprendedor</h1>
+      </div>
+    </header>
+
+    <main class="popup-content">
+      <div id="loading-state" class="loading hidden">
+        <div class="spinner"></div>
+      </div>
+
+      <div id="auth-state" class="hidden">
+        <div class="welcome-message">
+          <p>¡Bienvenido! Inicia sesión para acceder a tus GPTs.</p>
+        </div>
+        <button id="login-btn" class="btn btn-primary">
+          <svg class="icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M8 0C3.58 0 0 3.58 0 8s3.58 8 8 8 8-3.58 8-8-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z" fill="currentColor"/>
+            <path d="M8 4.5v3.5h3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          Iniciar sesión
+        </button>
+      </div>
+
+      <div id="logged-state" class="hidden">
+        <div class="quick-stats">
+          <div class="stat-item">
+            <span class="stat-number" id="total-gpts">0</span>
+            <span class="stat-label">GPTs</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-number" id="favorite-count">0</span>
+            <span class="stat-label">Favoritos</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-number" id="prompt-count">0</span>
+            <span class="stat-label">Prompts</span>
+          </div>
+        </div>
+
+        <div class="quick-actions">
+          <button id="open-sidebar-btn" class="btn btn-primary">
+            <svg class="icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <rect x="1" y="3" width="14" height="10" rx="1" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M5.5 3v10M1 6h4.5M1 10h4.5" stroke="currentColor" stroke-width="1.5"/>
+            </svg>
+            Abrir Panel
+          </button>
+          
+          <button id="sync-btn" class="btn btn-secondary">
+            <svg class="icon rotating" width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M13.65 2.35A8 8 0 0 0 2.35 13.65M2.35 2.35A8 8 0 0 1 13.65 13.65" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            Sincronizar
+          </button>
+        </div>
+
+        <div class="user-info">
+          <img id="user-avatar" class="user-avatar" src="" alt="">
+          <span id="user-email" class="user-email"></span>
+          <button id="logout-btn" class="btn-link">Cerrar sesión</button>
+        </div>
+      </div>
+
+      <div id="error-state" class="error-message hidden">
+        <svg class="icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M8 5v3M8 11h.01" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <p id="error-message">Ha ocurrido un error</p>
+      </div>
+    </main>
+
+    <footer class="popup-footer">
+      <span class="version">v0.1.0</span>
+      <span class="separator">•</span>
+      <a href="#" id="help-link" class="footer-link">Ayuda</a>
+    </footer>
+  </div>
+
+  <script src="popup.js" type="module"></script>
+</body>
+</html>
