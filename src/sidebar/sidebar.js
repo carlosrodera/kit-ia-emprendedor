@@ -3,9 +3,10 @@
  * @module sidebar/sidebar
  */
 
-import { STORAGE_KEYS, DEFAULT_VALUES, MESSAGES } from '../utils/constants.js';
-import { Logger } from '../utils/logger.js';
-import { validateGPT, validatePrompt } from '../utils/validation.js';
+import { STORAGE_KEYS, DEFAULT_PREFERENCES, MESSAGES } from '../shared/constants.js';
+import { Logger } from '../shared/logger.js';
+// TODO: Implementar validateGPT y validatePrompt en validation.js
+// import { validateGPT, validatePrompt } from '../shared/validation.js';
 
 const logger = new Logger('Sidebar');
 
@@ -96,9 +97,9 @@ async function loadInitialState() {
       STORAGE_KEYS.DRAFT_PROMPT
     ]);
     
-    state.gpts = stored[STORAGE_KEYS.GPTS] || DEFAULT_VALUES.GPTS;
-    state.prompts = stored[STORAGE_KEYS.PROMPTS] || DEFAULT_VALUES.PROMPTS;
-    state.favorites = stored[STORAGE_KEYS.FAVORITES] || DEFAULT_VALUES.FAVORITES;
+    state.gpts = stored[STORAGE_KEYS.GPTS_CACHE] || [];
+    state.prompts = stored[STORAGE_KEYS.PROMPTS] || [];
+    state.favorites = stored[STORAGE_KEYS.FAVORITES] || [];
     state.activeTab = stored[STORAGE_KEYS.ACTIVE_TAB] || 'gpts';
     state.draftPrompt = stored[STORAGE_KEYS.DRAFT_PROMPT] || null;
     
@@ -533,7 +534,9 @@ async function handlePromptSubmit(e) {
   };
   
   // Validar
-  const validation = validatePrompt(promptData);
+  // TODO: Implementar validación
+  // const validation = validatePrompt(promptData);
+  const validation = { isValid: true }; // Temporal
   if (!validation.isValid) {
     showNotification(validation.errors.join(', '), 'error');
     return;

@@ -216,6 +216,9 @@ export function createLogger(module) {
   return new Logger(module);
 }
 
+// Exportar la clase Logger
+export { Logger };
+
 // Logger por defecto
 export const logger = new Logger('App');
 
@@ -225,5 +228,6 @@ export const storageLogger = new Logger('Storage');
 export const apiLogger = new Logger('API');
 export const uiLogger = new Logger('UI');
 export const syncLogger = new Logger('Sync');
+export const serviceWorkerLogger = new Logger('ServiceWorker');
 
 export default logger;

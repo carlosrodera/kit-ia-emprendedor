@@ -1,0 +1,113 @@
+/**
+ * Estilos globales inyectados por el content script
+ * Solo para elementos críticos que no pueden ser estilizados via JS
+ */
+
+/* Asegurar que nuestros elementos tengan la máxima prioridad */
+#kitia-sidebar-container,
+#kitia-floating-button {
+  all: initial;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
+/* Animaciones para el sidebar */
+@keyframes kitia-slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes kitia-slide-out {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+/* Transiciones suaves para el body cuando se ajusta el margen */
+body {
+  transition: margin-right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Fix para scrollbar cuando el sidebar está abierto */
+html.kitia-sidebar-open {
+  overflow-x: hidden;
+}
+
+/* Asegurar que el resize handle sea visible en hover */
+#kitia-resize-handle:hover {
+  background-color: rgba(59, 130, 246, 0.5) !important;
+}
+
+/* Prevenir selección de texto durante el resize */
+body.kitia-resizing {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  cursor: ew-resize !important;
+}
+
+/* Media queries para responsive */
+@media (max-width: 768px) {
+  #kitia-sidebar-container {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  
+  #kitia-floating-button {
+    bottom: 10px !important;
+    right: 10px !important;
+    width: 45px !important;
+    height: 45px !important;
+  }
+  
+  body.kitia-sidebar-open {
+    margin-right: 0 !important;
+    transform: translateX(-80%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+/* Print styles - ocultar elementos en impresión */
+@media print {
+  #kitia-sidebar-container,
+  #kitia-floating-button {
+    display: none !important;
+  }
+  
+  body {
+    margin-right: 0 !important;
+  }
+}
+
+/* Accesibilidad - focus visible */
+#kitia-floating-button:focus-visible {
+  outline: 2px solid #3B82F6;
+  outline-offset: 2px;
+}
+
+/* Tema oscuro automático */
+@media (prefers-color-scheme: dark) {
+  #kitia-sidebar-iframe {
+    color-scheme: dark;
+  }
+}
+
+/* Reducir movimiento para usuarios que lo prefieren */
+@media (prefers-reduced-motion: reduce) {
+  #kitia-sidebar-container,
+  #kitia-sidebar-iframe,
+  #kitia-floating-button,
+  body {
+    transition: none !important;
+    animation: none !important;
+  }
+}

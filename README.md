@@ -14,6 +14,11 @@ Extensión de Chrome lite para gestionar GPTs oficiales del Kit IA Emprendedor. 
 - ✅ Gestión de prompts locales
 - ✅ Sistema de notificaciones
 - ✅ Sincronización entre pestañas
+- ✅ Sidebar inyectable en cualquier página
+- ✅ Botón flotante para toggle rápido
+- ✅ Atajo de teclado (Alt+Shift+K)
+- ✅ Sidebar redimensionable
+- ✅ Persistencia de estado
 
 ### Arquitectura
 - **Manifest V3** compliant

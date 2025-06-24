@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Sidebar - Kit IA Emprendedor</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      padding: 20px;
+      max-width: 800px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+    
+    h1 {
+      color: #333;
+    }
+    
+    .test-section {
+      background: #f5f5f5;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+    
+    .test-button {
+      background: #3B82F6;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin: 5px;
+      font-size: 16px;
+    }
+    
+    .test-button:hover {
+      background: #2563EB;
+    }
+    
+    .fixed-element {
+      position: fixed;
+      top: 50px;
+      right: 20px;
+      background: #10B981;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 6px;
+    }
+    
+    .long-content {
+      height: 2000px;
+      background: linear-gradient(to bottom, #e0e0e0, #f0f0f0);
+      padding: 20px;
+      margin: 20px 0;
+    }
+    
+    code {
+      background: #e5e5e5;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <h1>🧪 Test del Sidebar - Kit IA Emprendedor</h1>
+  
+  <div class="test-section">
+    <h2>📋 Instrucciones de Prueba</h2>
+    <ol>
+      <li>Instala la extensión en Chrome (modo desarrollador)</li>
+      <li>Abre esta página en el navegador</li>
+      <li>Usa el botón flotante azul en la esquina inferior derecha</li>
+      <li>O presiona <code>Alt+Shift+K</code> para toggle del sidebar</li>
+      <li>O haz clic en el icono de la extensión y luego "Abrir Panel"</li>
+    </ol>
+  </div>
+  
+  <div class="test-section">
+    <h2>🔍 Funcionalidades a Probar</h2>
+    <ul>
+      <li>✅ Botón flotante aparece y funciona</li>
+      <li>✅ Sidebar se abre/cierra con animación suave</li>
+      <li>✅ El contenido de la página se ajusta al abrir</li>
+      <li>✅ Elementos fixed se mueven correctamente</li>
+      <li>✅ Resize del sidebar funciona</li>
+      <li>✅ Estado persiste al recargar (si está habilitado)</li>
+      <li>✅ Atajo de teclado funciona</li>
+      <li>✅ No hay conflictos con el CSS de la página</li>
+    </ul>
+  </div>
+  
+  <div class="fixed-element">
+    Elemento Fixed
+  </div>
+  
+  <div class="test-section">
+    <h2>🎯 Acciones de Prueba</h2>
+    <button class="test-button" onclick="alert('Click normal funciona')">
+      Test Click Normal
+    </button>
+    <button class="test-button" onclick="console.log('Console log test')">
+      Test Console Log
+    </button>
+    <button class="test-button" onclick="document.body.style.background = '#f0f0f0'">
+      Cambiar Background
+    </button>
+  </div>
+  
+  <div class="long-content">
+    <h3>Contenido largo para probar scroll</h3>
+    <p>Este contenido es largo para verificar que el scroll funciona correctamente cuando el sidebar está abierto.</p>
+    <p>El sidebar debe mantenerse fijo mientras scrolleas.</p>
+  </div>
+  
+  <script>
+    // Log para verificar que los scripts de la página funcionan
+    console.log('Test page loaded successfully');
+    
+    // Detectar cuando el sidebar se abre/cierra
+    const observer = new MutationObserver((mutations) => {
+      const sidebar = document.getElementById('kitia-sidebar-container');
+      if (sidebar) {
+        console.log('Sidebar detected in page');
+      }
+    });
+    
+    observer.observe(document.body, { childList: true, subtree: true });
+  </script>
+</body>
+</html>

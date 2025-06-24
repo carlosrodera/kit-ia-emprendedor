@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kit IA Emprendedor - Autenticando...</title>
+  <link rel="stylesheet" href="./callback.css">
+</head>
+<body>
+  <div class="callback-container">
+    <div class="callback-card">
+      <div class="logo">
+        <img src="../assets/icons/icon-128.svg" alt="Kit IA Emprendedor" width="64" height="64">
+      </div>
+      
+      <div class="loading">
+        <svg class="spinner" viewBox="0 0 50 50">
+          <circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle>
+        </svg>
+      </div>
+      
+      <h2>Autenticando...</h2>
+      <p>Por favor espera mientras procesamos tu inicio de sesión</p>
+      
+      <div class="error-message" id="error-message" style="display: none;">
+        <h3>Error de autenticación</h3>
+        <p id="error-text"></p>
+        <button type="button" class="btn-retry" onclick="window.location.href='login.html'">
+          Volver a intentar
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <script type="module" src="./callback.js"></script>
+</body>
+</html>

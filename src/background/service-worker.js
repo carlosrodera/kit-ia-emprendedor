@@ -864,6 +864,29 @@ chrome.notifications.onClicked.addListener((notificationId) => {
   chrome.action.openPopup();
 });
 
+// Listener para comandos de teclado
+chrome.commands.onCommand.addListener(async (command) => {
+  logger.debug('Command received:', command);
+  
+  if (command === 'toggle-sidebar') {
+    try {
+      // Obtener la pestaña activa
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      
+      if (tab && tab.id) {
+        // Enviar mensaje al content script
+        await chrome.tabs.sendMessage(tab.id, {
+          type: MESSAGES.TOGGLE_SIDEBAR
+        });
+        
+        logger.info('Toggle sidebar command sent to tab:', tab.id);
+      }
+    } catch (error) {
+      logger.error('Error handling toggle sidebar command:', error);
+    }
+  }
+});
+
 // Listener para alarmas (para tareas periódicas)
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   logger.debug('Alarm triggered:', alarm.name);

@@ -7,7 +7,8 @@
   
   "permissions": [
     "storage",
-    "tabs"
+    "tabs",
+    "activeTab"
   ],
   
   "host_permissions": [
@@ -23,7 +24,7 @@
     {
       "matches": ["<all_urls>"],
       "js": ["content/content-script.js"],
-      "css": [],
+      "css": ["content/content-styles.css"],
       "run_at": "document_idle",
       "all_frames": false
     }
@@ -51,9 +52,12 @@
     {
       "resources": [
         "sidebar/index.html",
+        "sidebar/styles/sidebar.css",
+        "sidebar/sidebar.js",
         "auth/login.html",
         "auth/callback.html",
-        "assets/*"
+        "assets/*",
+        "content/content-styles.css"
       ],
       "matches": ["<all_urls>"]
     }
@@ -61,6 +65,16 @@
   
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self';"
+  },
+  
+  "commands": {
+    "toggle-sidebar": {
+      "suggested_key": {
+        "default": "Alt+Shift+K",
+        "mac": "Alt+Shift+K"
+      },
+      "description": "Mostrar/ocultar el panel de Kit IA Emprendedor"
+    }
   },
   
   "minimum_chrome_version": "120"
