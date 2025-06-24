@@ -1,0 +1,74 @@
+{
+  "name": "kit-ia-emprendedor-extension",
+  "version": "0.1.0",
+  "description": "Chrome Extension lite para gestionar GPTs oficiales del Kit IA Emprendedor",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "build:prod": "NODE_ENV=production vite build",
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage",
+    "test:e2e": "playwright test",
+    "lint": "eslint src --ext .js",
+    "lint:fix": "eslint src --ext .js --fix",
+    "format": "prettier --write \"src/**/*.{js,json,css,html}\"",
+    "format:check": "prettier --check \"src/**/*.{js,json,css,html}\"",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist",
+    "package": "npm run build:prod && node scripts/package.js",
+    "precommit": "npm run lint && npm run format:check && npm run test"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.3",
+    "dompurify": "^3.0.8"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.41.0",
+    "@types/chrome": "^0.0.259",
+    "@types/dompurify": "^3.0.5",
+    "@vitest/coverage-v8": "^1.2.1",
+    "@vitest/ui": "^1.2.1",
+    "eslint": "^8.56.0",
+    "eslint-config-standard": "^17.1.0",
+    "eslint-plugin-import": "^2.29.1",
+    "eslint-plugin-n": "^16.6.2",
+    "eslint-plugin-promise": "^6.1.1",
+    "happy-dom": "^13.3.1",
+    "husky": "^8.0.3",
+    "lint-staged": "^15.2.0",
+    "prettier": "^3.2.4",
+    "typescript": "^5.3.3",
+    "vite": "^5.0.11",
+    "vite-plugin-copy": "^0.1.6",
+    "vitest": "^1.2.1"
+  },
+  "lint-staged": {
+    "*.js": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,css,html,md}": [
+      "prettier --write"
+    ]
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/carlosrodera/kit-ia-emprendedor-extension.git"
+  },
+  "keywords": [
+    "chrome-extension",
+    "gpt",
+    "productivity",
+    "kit-ia-emprendedor"
+  ],
+  "author": "Carlos Rodera",
+  "license": "UNLICENSED"
+}
