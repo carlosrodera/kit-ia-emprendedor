@@ -393,7 +393,7 @@
       
       if (response?.success) {
         renderContent();
-        showToast(isFavorite ? 'Eliminado de favoritos' : 'Añadido a favoritos');
+        showToast(isFavorite ? 'Eliminado de favoritos' : 'Añadido a favoritos', 'success');
       } else {
         console.error('Error in response:', response?.error);
       }
@@ -408,7 +408,7 @@
     const gpt = state.gpts.find(g => g.id === gptId);
     
     if (!gpt || !gpt.url) {
-      showToast('URL del GPT no disponible');
+      showToast('URL del GPT no disponible', 'error');
       return;
     }
     
@@ -467,10 +467,10 @@
       case 'copy':
         try {
           await navigator.clipboard.writeText(prompt.content);
-          showToast('Prompt copiado al portapapeles');
+          showToast('Prompt copiado al portapapeles', 'success');
         } catch (error) {
           fallbackCopyToClipboard(prompt.content);
-          showToast('Prompt copiado al portapapeles');
+          showToast('Prompt copiado al portapapeles', 'success');
         }
         break;
         
@@ -555,7 +555,7 @@
     const content = modal.querySelector('#prompt-content').value.trim();
     
     if (!title || !content) {
-      showToast('Por favor completa todos los campos');
+      showToast('Por favor completa todos los campos', 'warning');
       return;
     }
     
@@ -574,19 +574,126 @@
           renderContent();
         }
         
-        showToast('Prompt guardado exitosamente');
+        showToast('Prompt guardado exitosamente', 'success');
       } else {
-        showToast('Error al guardar el prompt');
+        showToast('Error al guardar el prompt', 'error');
       }
     } catch (error) {
       console.error('Error saving prompt:', error);
-      showToast('Error al guardar el prompt');
+      showToast('Error al guardar el prompt', 'error');
     }
   }
 
   function editPrompt(prompt) {
-    // TODO: Mostrar modal para editar prompt
-    console.log('Editar prompt:', prompt);
+    const modalOverlay = createEditModal(prompt);
+    document.body.appendChild(modalOverlay);
+    
+    // Focus en el campo de título después de un breve delay
+    setTimeout(() => {
+      const titleInput = modalOverlay.querySelector('#prompt-title');
+      if (titleInput) titleInput.focus();
+    }, 100);
+  }
+  
+  function createEditModal(prompt) {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+      <div class="modal">
+        <div class="modal-header">
+          <h3>Editar Prompt</h3>
+          <button class="modal-close" id="modal-close-btn">
+            <svg viewBox="0 0 24 24" fill="none" width="20" height="20">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="prompt-title">Título del Prompt</label>
+            <input type="text" id="prompt-title" placeholder="Ej: Asistente de Marketing" maxlength="100" value="${prompt.title || ''}">
+          </div>
+          <div class="form-group">
+            <label for="prompt-content">Contenido del Prompt</label>
+            <textarea id="prompt-content" rows="10" placeholder="Escribe tu prompt aquí..." maxlength="20000">${prompt.content || ''}</textarea>
+            <small class="char-counter">${(prompt.content || '').length}/20000 caracteres</small>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn secondary" id="modal-cancel-btn">Cancelar</button>
+          <button class="btn primary" id="modal-save-btn">Actualizar Prompt</button>
+        </div>
+      </div>
+    `;
+    
+    // Event listeners
+    const closeBtn = modal.querySelector('#modal-close-btn');
+    const cancelBtn = modal.querySelector('#modal-cancel-btn');
+    const saveBtn = modal.querySelector('#modal-save-btn');
+    
+    closeBtn.addEventListener('click', () => modal.remove());
+    cancelBtn.addEventListener('click', () => modal.remove());
+    saveBtn.addEventListener('click', () => updatePrompt(prompt, modal));
+    
+    // Character counter
+    const contentTextarea = modal.querySelector('#prompt-content');
+    const charCounter = modal.querySelector('.char-counter');
+    contentTextarea.addEventListener('input', () => {
+      charCounter.textContent = `${contentTextarea.value.length}/20000 caracteres`;
+    });
+    
+    // ESC key to close
+    modal.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') modal.remove();
+    });
+    
+    return modal;
+  }
+  
+  async function updatePrompt(originalPrompt, modal) {
+    const title = modal.querySelector('#prompt-title').value.trim();
+    const content = modal.querySelector('#prompt-content').value.trim();
+    
+    if (!title || !content) {
+      showToast('Por favor completa todos los campos', 'warning');
+      return;
+    }
+    
+    try {
+      const index = state.prompts.findIndex(p => p.id === originalPrompt.id);
+      if (index > -1) {
+        // Actualizar en el estado local
+        state.prompts[index] = {
+          ...state.prompts[index],
+          title,
+          content,
+          updatedAt: Date.now()
+        };
+        
+        // Enviar mensaje al service worker
+        const response = await chrome.runtime.sendMessage({
+          type: 'UPDATE_PROMPT',
+          data: {
+            id: originalPrompt.id,
+            title,
+            content
+          }
+        });
+        
+        if (response?.success) {
+          modal.remove();
+          if (state.currentTab === 'prompts') {
+            renderContent();
+          }
+          showToast('Prompt actualizado exitosamente', 'success');
+        } else {
+          showToast('Error al actualizar el prompt', 'error');
+        }
+      }
+    } catch (error) {
+      console.error('Error updating prompt:', error);
+      showToast('Error al actualizar el prompt', 'error');
+    }
   }
 
   async function deletePrompt(promptId) {
@@ -599,7 +706,7 @@
       if (response?.success) {
         state.prompts = state.prompts.filter(p => p.id !== promptId);
         renderContent();
-        showToast('Prompt eliminado');
+        showToast('Prompt eliminado', 'success');
       }
     } catch (error) {
       console.error('Error eliminando prompt:', error);
@@ -626,39 +733,114 @@
     document.body.removeChild(textArea);
   }
 
-  function showToast(message) {
-    // Crear toast temporal
-    const toast = document.createElement('div');
-    toast.className = 'toast';
-    toast.textContent = message;
-    toast.style.cssText = `
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
+  // Sistema de notificaciones mejorado
+  let notificationId = 0;
+  const activeNotifications = new Map();
+  
+  function initNotifications() {
+    if (!document.getElementById('notifications-container')) {
+      const container = document.createElement('div');
+      container.id = 'notifications-container';
+      container.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 10000;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        pointer-events: none;
+        max-width: 400px;
+      `;
+      document.body.appendChild(container);
+    }
+  }
+  
+  function showToast(message, type = 'info', duration = 3000) {
+    initNotifications();
+    const container = document.getElementById('notifications-container');
+    const id = ++notificationId;
+    
+    // Crear notificación
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.id = `notification-${id}`;
+    
+    // Iconos según tipo
+    const icons = {
+      success: '<svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>',
+      error: '<svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/></svg>',
+      warning: '<svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>',
+      info: '<svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>'
+    };
+    
+    // Estilos
+    notification.style.cssText = `
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
       background: var(--bg-secondary);
-      color: var(--text-primary);
-      padding: 8px 16px;
-      border-radius: 6px;
       border: 1px solid var(--border-color);
-      font-size: 14px;
-      z-index: 1000;
-      animation: slideIn 0.3s ease;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      transform: translateX(120%);
+      transition: all 0.3s ease;
+      pointer-events: auto;
+      min-width: 280px;
+      max-width: 100%;
     `;
     
-    document.body.appendChild(toast);
+    // Contenido
+    notification.innerHTML = `
+      <div class="notification-icon" style="flex-shrink: 0; width: 20px; height: 20px; color: ${type === 'success' ? '#10B981' : type === 'error' ? '#EF4444' : type === 'warning' ? '#F59E0B' : '#4F46E5'}">
+        ${icons[type]}
+      </div>
+      <div class="notification-content" style="flex: 1; font-size: 14px; line-height: 1.4; color: var(--text-primary);">
+        ${message}
+      </div>
+      <button class="notification-close" style="flex-shrink: 0; width: 20px; height: 20px; padding: 0; background: none; border: none; cursor: pointer; color: var(--text-secondary); opacity: 0.7;">
+        <svg viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+        </svg>
+      </button>
+    `;
     
-    // Remover después de 3 segundos
+    // Agregar al contenedor
+    container.appendChild(notification);
+    activeNotifications.set(id, notification);
+    
+    // Animar entrada
+    requestAnimationFrame(() => {
+      notification.style.transform = 'translateX(0)';
+    });
+    
+    // Event listener para cerrar
+    notification.querySelector('.notification-close').addEventListener('click', () => {
+      hideNotification(id);
+    });
+    
+    // Auto-cerrar después del tiempo especificado
+    if (duration > 0) {
+      setTimeout(() => hideNotification(id), duration);
+    }
+    
+    return id;
+  }
+  
+  function hideNotification(id) {
+    const notification = activeNotifications.get(id);
+    if (!notification) return;
+    
+    // Animar salida
+    notification.style.transform = 'translateX(120%)';
+    notification.style.opacity = '0';
+    
+    // Remover después de la animación
     setTimeout(() => {
-      if (toast.parentNode) {
-        toast.style.animation = 'slideOut 0.3s ease';
-        setTimeout(() => {
-          if (toast.parentNode) {
-            document.body.removeChild(toast);
-          }
-        }, 300);
-      }
-    }, 3000);
+      notification.remove();
+      activeNotifications.delete(id);
+    }, 300);
   }
 
   function showError(message) {

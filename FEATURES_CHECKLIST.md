@@ -86,6 +86,14 @@ Chrome Extension LITE que permite a los usuarios del Kit IA Emprendedor acceder 
   - [ ] Ordenamiento (fecha, alfabético)
 - [ ] Funcionalidades:
   - [ ] Copiar prompt al portapapeles
+  - [x] **Multi-selección de prompts** ✅ (25/06/2025)
+    - [x] Checkbox en cada prompt (visible al hover)
+    - [x] Seleccionar todo/ninguno
+    - [x] Contador de seleccionados
+    - [x] Copiar múltiples prompts
+    - [x] Exportar seleccionados como JSON
+    - [x] Eliminar múltiples prompts
+    - [x] Feedback visual para seleccionados
   - [ ] Plantillas predefinidas
   - [ ] Variables en prompts {{variable}}
   - [ ] Vista previa del prompt

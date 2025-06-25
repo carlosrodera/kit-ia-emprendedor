@@ -1,0 +1,155 @@
+/* Sistema de Notificaciones - Kit IA Emprendedor */
+
+.kitia-notifications-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+  max-width: 400px;
+}
+
+.kitia-notification {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--kitia-bg-secondary);
+  border: 1px solid var(--kitia-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transform: translateX(120%);
+  transition: all 0.3s ease;
+  pointer-events: auto;
+  min-width: 280px;
+  max-width: 100%;
+}
+
+.kitia-notification-show {
+  transform: translateX(0);
+}
+
+.kitia-notification-hide {
+  transform: translateX(120%);
+  opacity: 0;
+}
+
+/* Icono de notificación */
+.kitia-notification-icon {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+}
+
+.kitia-notification-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Contenido de notificación */
+.kitia-notification-content {
+  flex: 1;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--kitia-text-primary);
+}
+
+/* Botón cerrar */
+.kitia-notification-close {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--kitia-text-secondary);
+  transition: color 0.2s;
+  opacity: 0.7;
+}
+
+.kitia-notification-close:hover {
+  color: var(--kitia-text-primary);
+  opacity: 1;
+}
+
+.kitia-notification-close svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Tipos de notificación */
+.kitia-notification-success {
+  border-color: var(--kitia-success);
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.kitia-notification-success .kitia-notification-icon {
+  color: var(--kitia-success);
+}
+
+.kitia-notification-error {
+  border-color: var(--kitia-error);
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.kitia-notification-error .kitia-notification-icon {
+  color: var(--kitia-error);
+}
+
+.kitia-notification-warning {
+  border-color: #F59E0B;
+  background: rgba(245, 158, 11, 0.1);
+}
+
+.kitia-notification-warning .kitia-notification-icon {
+  color: #F59E0B;
+}
+
+.kitia-notification-info {
+  border-color: var(--kitia-primary);
+  background: rgba(79, 70, 229, 0.1);
+}
+
+.kitia-notification-info .kitia-notification-icon {
+  color: var(--kitia-primary);
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .kitia-notifications-container {
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    max-width: none;
+  }
+  
+  .kitia-notification {
+    min-width: auto;
+  }
+}
+
+/* Animación de entrada alternativa para móvil */
+@media (max-width: 480px) {
+  .kitia-notification {
+    transform: translateY(120%);
+  }
+  
+  .kitia-notification-show {
+    transform: translateY(0);
+  }
+  
+  .kitia-notification-hide {
+    transform: translateY(120%);
+  }
+}
+
+/* Dark mode specific adjustments */
+@media (prefers-color-scheme: dark) {
+  .kitia-notification {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  }
+}

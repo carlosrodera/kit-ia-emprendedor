@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Multi-Select - Kit IA Emprendedor</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    h1 {
+      color: #4F46E5;
+      margin-bottom: 20px;
+    }
+    .test-section {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+    }
+    h2 {
+      font-size: 18px;
+      margin-bottom: 15px;
+      color: #333;
+    }
+    .feature-list {
+      list-style: none;
+      padding: 0;
+    }
+    .feature-list li {
+      padding: 10px 0;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .feature-list li:last-child {
+      border-bottom: none;
+    }
+    .status {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .status.complete {
+      background: #D1FAE5;
+      color: #065F46;
+    }
+    .status.pending {
+      background: #FEF3C7;
+      color: #92400E;
+    }
+    .code-block {
+      background: #f7f7f7;
+      padding: 15px;
+      border-radius: 4px;
+      overflow-x: auto;
+      font-family: 'Monaco', 'Consolas', monospace;
+      font-size: 13px;
+      line-height: 1.5;
+      margin-top: 10px;
+    }
+    .test-note {
+      background: #EEF2FF;
+      padding: 15px;
+      border-radius: 6px;
+      border-left: 4px solid #4F46E5;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🚀 Multi-Select para Prompts - Kit IA Emprendedor</h1>
+
+  <div class="test-section">
+    <h2>✅ Funcionalidades Implementadas</h2>
+    <ul class="feature-list">
+      <li>
+        <span class="status complete">Completado</span>
+        <span>Checkbox en cada tarjeta de prompt (aparece al hover)</span>
+      </li>
+      <li>
+        <span class="status complete">Completado</span>
+        <span>Toggle de seleccionar todo/nada en la barra de herramientas</span>
+      </li>
+      <li>
+        <span class="status complete">Completado</span>
+        <span>Contador mostrando "X seleccionados"</span>
+      </li>
+      <li>
+        <span class="status complete">Completado</span>
+        <span>Acciones masivas: Copiar todos, Exportar, Eliminar seleccionados</span>
+      </li>
+      <li>
+        <span class="status complete">Completado</span>
+        <span>Feedback visual para elementos seleccionados</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="test-section">
+    <h2>🎨 Características de Diseño</h2>
+    <ul class="feature-list">
+      <li>
+        <span>• Checkboxes ocultos por defecto, visibles al hover</span>
+      </li>
+      <li>
+        <span>• Fondo azul claro para prompts seleccionados</span>
+      </li>
+      <li>
+        <span>• Barra de herramientas con animación slide-down</span>
+      </li>
+      <li>
+        <span>• Botones con iconos SVG profesionales</span>
+      </li>
+      <li>
+        <span>• Diseño responsive para móviles</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="test-section">
+    <h2>⚡ Funcionalidades Clave</h2>
+    
+    <h3>1. Selección Individual</h3>
+    <div class="code-block">
+// Click en checkbox o card con Ctrl/Cmd
+handlePromptSelection(e) {
+  if (e.target.checked) {
+    state.selectedPrompts.add(promptId);
+  } else {
+    state.selectedPrompts.delete(promptId);
+  }
+}
+    </div>
+
+    <h3>2. Copiar Seleccionados</h3>
+    <div class="code-block">
+// Formato: ## Título\n\nContenido\nTags: tag1, tag2
+const content = selectedPrompts.map(prompt => {
+  return `## ${prompt.title}\n\n${prompt.content}`;
+}).join('\n\n---\n\n');
+    </div>
+
+    <h3>3. Exportar como JSON</h3>
+    <div class="code-block">
+// Archivo: kit-ia-prompts-YYYY-MM-DD.json
+{
+  "version": "1.0",
+  "exportDate": "2025-06-25T...",
+  "prompts": [...]
+}
+    </div>
+  </div>
+
+  <div class="test-note">
+    <strong>📝 Nota de Testing:</strong><br>
+    Para probar la funcionalidad:
+    <ol>
+      <li>Abre la extensión y ve a la pestaña "Prompts"</li>
+      <li>Pasa el mouse sobre un prompt para ver el checkbox</li>
+      <li>Selecciona varios prompts</li>
+      <li>Usa las acciones masivas en la barra de herramientas</li>
+      <li>Prueba en diferentes tamaños de pantalla</li>
+    </ol>
+  </div>
+
+  <div class="test-section">
+    <h2>🔧 Archivos Modificados</h2>
+    <ul>
+      <li><code>/src/sidebar/sidebar.js</code> - Lógica de multi-selección</li>
+      <li><code>/src/sidebar/styles/sidebar.css</code> - Estilos para checkboxes y toolbar</li>
+    </ul>
+  </div>
+</body>
+</html>

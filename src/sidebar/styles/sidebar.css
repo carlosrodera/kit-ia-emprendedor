@@ -2,6 +2,8 @@
    KIT IA EMPRENDEDOR - SIDEBAR STYLES
    ======================================== */
 
+@import './notifications.css';
+
 /* ========================================
    CSS VARIABLES & THEMING
    ======================================== */
@@ -34,6 +36,14 @@
   --kitia-error-light: #FEE2E2;
   --kitia-info: #3B82F6;
   --kitia-info-light: #DBEAFE;
+  
+  /* Dark Mode Colors */
+  --kitia-bg-primary: #0f0f0f;
+  --kitia-bg-secondary: #1a1a1a;
+  --kitia-bg-hover: #262626;
+  --kitia-text-primary: #e3e3e3;
+  --kitia-text-secondary: #a0a0a0;
+  --kitia-border: #2d2d2d;
   
   /* Typography */
   --kitia-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -301,6 +311,102 @@
 }
 
 /* ========================================
+   TOOLBAR
+   ======================================== */
+.kitia-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--kitia-spacing-3) var(--kitia-spacing-4);
+  border-bottom: 1px solid var(--kitia-gray-200);
+  background: var(--kitia-white);
+  gap: var(--kitia-spacing-3);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.kitia-toolbar-left {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--kitia-spacing-3);
+}
+
+.kitia-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: var(--kitia-spacing-3);
+}
+
+/* Category Filter Dropdown */
+.kitia-category-filter {
+  min-width: 180px;
+  padding: var(--kitia-spacing-2) var(--kitia-spacing-3);
+  padding-right: var(--kitia-spacing-8);
+  background: var(--kitia-gray-50);
+  border: 1px solid var(--kitia-gray-200);
+  border-radius: var(--kitia-radius-md);
+  font-size: var(--kitia-font-size-sm);
+  color: var(--kitia-gray-700);
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236B7280' d='M5.998 7.5L2.5 4l.708-.707L6 6.086l2.792-2.793L9.5 4z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right var(--kitia-spacing-2) center;
+  transition: all var(--kitia-transition-fast);
+}
+
+.kitia-category-filter:hover {
+  background-color: var(--kitia-white);
+  border-color: var(--kitia-gray-300);
+}
+
+.kitia-category-filter:focus {
+  outline: none;
+  background-color: var(--kitia-white);
+  border-color: var(--kitia-primary);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+/* View Toggle Buttons */
+.kitia-view-toggle {
+  display: flex;
+  background: var(--kitia-gray-100);
+  border-radius: var(--kitia-radius-md);
+  padding: 2px;
+}
+
+.kitia-view-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: var(--kitia-radius-sm);
+  color: var(--kitia-gray-500);
+  cursor: pointer;
+  transition: all var(--kitia-transition-fast);
+}
+
+.kitia-view-btn:hover {
+  color: var(--kitia-gray-700);
+}
+
+.kitia-view-btn-active {
+  background: var(--kitia-white);
+  color: var(--kitia-gray-900);
+  box-shadow: var(--kitia-shadow-xs);
+}
+
+.kitia-view-btn:focus {
+  outline: 2px solid var(--kitia-primary);
+  outline-offset: -2px;
+}
+
+/* ========================================
    CONTENT AREA
    ======================================== */
 .kitia-sidebar__content {
@@ -335,6 +441,21 @@
   display: flex;
   flex-direction: column;
   gap: var(--kitia-spacing-3);
+  padding-top: var(--kitia-spacing-4);
+}
+
+/* Grid View */
+.kitia-view-grid .kitia-gpt-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--kitia-spacing-4);
+}
+
+/* List View */
+.kitia-view-list .kitia-gpt-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--kitia-spacing-2);
 }
 
 .kitia-gpt-card {
@@ -344,6 +465,7 @@
   padding: var(--kitia-spacing-4);
   transition: all var(--kitia-transition-fast);
   cursor: pointer;
+  position: relative;
 }
 
 .kitia-gpt-card:hover {
@@ -356,11 +478,80 @@
   transform: translateY(0);
 }
 
+/* Category Badge on Card */
+.kitia-gpt-card__badge {
+  position: absolute;
+  top: var(--kitia-spacing-3);
+  right: var(--kitia-spacing-3);
+  padding: var(--kitia-spacing-1) var(--kitia-spacing-2);
+  background: var(--kitia-gray-100);
+  border-radius: var(--kitia-radius-full);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--kitia-gray-600);
+}
+
+/* Category-specific badge colors */
+.kitia-gpt-card__badge--productivity {
+  background: rgba(59, 130, 246, 0.1);
+  color: #2563EB;
+}
+
+.kitia-gpt-card__badge--creative {
+  background: rgba(236, 72, 153, 0.1);
+  color: #DB2777;
+}
+
+.kitia-gpt-card__badge--development {
+  background: rgba(239, 68, 68, 0.1);
+  color: #DC2626;
+}
+
+.kitia-gpt-card__badge--writing {
+  background: rgba(16, 185, 129, 0.1);
+  color: #059669;
+}
+
+.kitia-gpt-card__badge--research {
+  background: rgba(139, 92, 246, 0.1);
+  color: #7C3AED;
+}
+
+.kitia-gpt-card__badge--education {
+  background: rgba(245, 158, 11, 0.1);
+  color: #D97706;
+}
+
+.kitia-gpt-card__badge--business {
+  background: rgba(99, 102, 241, 0.1);
+  color: #4F46E5;
+}
+
+/* List view adjustments */
+.kitia-view-list .kitia-gpt-card {
+  display: flex;
+  align-items: center;
+  padding: var(--kitia-spacing-3);
+}
+
+.kitia-view-list .kitia-gpt-card__badge {
+  position: static;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
 .kitia-gpt-card__header {
   display: flex;
   align-items: flex-start;
   gap: var(--kitia-spacing-3);
   margin-bottom: var(--kitia-spacing-2);
+}
+
+.kitia-view-list .kitia-gpt-card__header {
+  margin-bottom: 0;
+  flex: 1;
 }
 
 .kitia-gpt-card__icon {
@@ -393,6 +584,11 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  padding-right: var(--kitia-spacing-8); /* Space for badge in grid view */
+}
+
+.kitia-view-list .kitia-gpt-card__title {
+  padding-right: 0;
 }
 
 .kitia-gpt-card__category {
@@ -460,6 +656,61 @@
   cursor: not-allowed;
 }
 
+/* Icon Buttons */
+.kitia-btn-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: var(--kitia-radius-md);
+  color: var(--kitia-gray-500);
+  cursor: pointer;
+  transition: all var(--kitia-transition-fast);
+}
+
+.kitia-btn-icon:hover {
+  background: var(--kitia-gray-100);
+  color: var(--kitia-gray-700);
+}
+
+.kitia-btn-icon:focus {
+  outline: 2px solid var(--kitia-primary);
+  outline-offset: 2px;
+}
+
+/* Favorite Button */
+.favorite-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: var(--kitia-radius-md);
+  color: var(--kitia-gray-400);
+  cursor: pointer;
+  transition: all var(--kitia-transition-fast);
+  flex-shrink: 0;
+}
+
+.favorite-btn:hover {
+  color: var(--kitia-warning);
+  background: rgba(245, 158, 11, 0.1);
+}
+
+.favorite-btn.active {
+  color: var(--kitia-warning);
+}
+
+.favorite-btn:focus {
+  outline: 2px solid var(--kitia-primary);
+  outline-offset: 2px;
+}
+
 /* ========================================
    CATEGORY BADGES
    ======================================== */
@@ -498,6 +749,23 @@
 .kitia-category-badge--education {
   background: var(--kitia-error-light);
   color: var(--kitia-error);
+}
+
+/* ========================================
+   SECTION TITLES
+   ======================================== */
+.kitia-section-title {
+  font-size: var(--kitia-font-size-sm);
+  font-weight: 600;
+  color: var(--kitia-gray-700);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: var(--kitia-spacing-6) 0 var(--kitia-spacing-3) 0;
+  padding: 0 var(--kitia-spacing-4);
+}
+
+.kitia-section-title:first-child {
+  margin-top: var(--kitia-spacing-4);
 }
 
 /* ========================================
@@ -959,6 +1227,32 @@
     width: 100%;
     justify-content: center;
   }
+  
+  /* Toolbar mobile adjustments */
+  .kitia-toolbar {
+    flex-wrap: wrap;
+    gap: var(--kitia-spacing-2);
+    padding: var(--kitia-spacing-2);
+  }
+  
+  .kitia-toolbar-left {
+    width: 100%;
+  }
+  
+  .kitia-category-filter {
+    width: 100%;
+    min-width: unset;
+  }
+  
+  .kitia-toolbar-right {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  
+  /* Single column on mobile */
+  .kitia-view-grid .kitia-gpt-list {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Tablet and Desktop */
@@ -980,5 +1274,264 @@
 @media print {
   .kitia-sidebar {
     display: none;
+  }
+}
+
+/* ========================================
+   FOOTER STYLES
+   ======================================== */
+.kitia-footer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--kitia-white);
+  border-top: 1px solid var(--kitia-gray-200);
+  padding: var(--kitia-spacing-3) var(--kitia-spacing-4);
+  z-index: 1;
+}
+
+.kitia-footer-info {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--kitia-spacing-2);
+  font-size: var(--kitia-font-size-sm);
+  color: var(--kitia-gray-600);
+  margin-bottom: var(--kitia-spacing-2);
+}
+
+.kitia-footer-credits {
+  text-align: center;
+  font-size: 10px;
+  color: #666;
+  padding-top: var(--kitia-spacing-2);
+}
+
+.kitia-credits-link {
+  color: #666;
+  text-decoration: none;
+  transition: color var(--kitia-transition-fast);
+}
+
+.kitia-credits-link:hover {
+  color: var(--kitia-primary);
+  text-decoration: underline;
+}
+
+.kitia-link {
+  color: var(--kitia-gray-600);
+  text-decoration: none;
+  transition: color var(--kitia-transition-fast);
+}
+
+.kitia-link:hover {
+  color: var(--kitia-primary);
+}
+
+.kitia-separator {
+  color: var(--kitia-gray-300);
+}
+
+/* Adjust content area to account for footer */
+.kitia-content {
+  padding-bottom: calc(var(--kitia-spacing-8) + 60px); /* Extra space for footer */
+}
+
+/* ========================================
+   MULTI-SELECT FUNCTIONALITY
+   ======================================== */
+
+/* Prompt Card with Selection */
+.prompt-card {
+  position: relative;
+  padding: var(--kitia-spacing-4);
+  background: var(--kitia-white);
+  border: 1px solid var(--kitia-gray-200);
+  border-radius: var(--kitia-radius-lg);
+  transition: all var(--kitia-transition-fast);
+  cursor: pointer;
+  display: flex;
+  gap: var(--kitia-spacing-3);
+}
+
+.prompt-card:hover {
+  border-color: var(--kitia-gray-300);
+  box-shadow: var(--kitia-shadow-sm);
+}
+
+.prompt-card.selected {
+  background: var(--kitia-primary-light);
+  border-color: var(--kitia-primary);
+}
+
+/* Checkbox Container */
+.prompt-select-checkbox {
+  flex-shrink: 0;
+  padding-top: var(--kitia-spacing-1);
+  opacity: 0;
+  transition: opacity var(--kitia-transition-fast);
+}
+
+.prompt-card:hover .prompt-select-checkbox,
+.prompt-card.selected .prompt-select-checkbox,
+.multi-select-mode .prompt-select-checkbox {
+  opacity: 1;
+}
+
+/* Checkbox Styling */
+.prompt-checkbox {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--kitia-primary);
+}
+
+/* Prompt Content */
+.prompt-content {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Multi-Select Toolbar */
+.multi-select-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--kitia-spacing-3) var(--kitia-spacing-4);
+  background: var(--kitia-gray-50);
+  border-bottom: 1px solid var(--kitia-gray-200);
+  gap: var(--kitia-spacing-4);
+  animation: kitia-slideDown var(--kitia-transition-base) ease-out;
+}
+
+@keyframes kitia-slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Toolbar Left Section */
+.toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: var(--kitia-spacing-3);
+}
+
+/* Select All Button */
+.select-all-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--kitia-spacing-2);
+  padding: var(--kitia-spacing-2) var(--kitia-spacing-3);
+  background: transparent;
+  border: 1px solid var(--kitia-gray-300);
+  border-radius: var(--kitia-radius-md);
+  color: var(--kitia-gray-700);
+  font-size: var(--kitia-font-size-sm);
+  cursor: pointer;
+  transition: all var(--kitia-transition-fast);
+}
+
+.select-all-btn:hover {
+  background: var(--kitia-white);
+  border-color: var(--kitia-gray-400);
+}
+
+/* Selected Count */
+.selected-count {
+  color: var(--kitia-gray-600);
+  font-size: var(--kitia-font-size-sm);
+  font-weight: 500;
+}
+
+/* Toolbar Actions */
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--kitia-spacing-2);
+}
+
+/* Toolbar Buttons */
+.btn-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--kitia-spacing-2);
+  padding: var(--kitia-spacing-2) var(--kitia-spacing-3);
+  border: none;
+  border-radius: var(--kitia-radius-md);
+  font-size: var(--kitia-font-size-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--kitia-transition-fast);
+}
+
+.btn-toolbar.copy-all {
+  background: var(--kitia-primary);
+  color: var(--kitia-white);
+}
+
+.btn-toolbar.copy-all:hover {
+  background: var(--kitia-primary-hover);
+}
+
+.btn-toolbar.export-all {
+  background: var(--kitia-white);
+  color: var(--kitia-gray-700);
+  border: 1px solid var(--kitia-gray-300);
+}
+
+.btn-toolbar.export-all:hover {
+  background: var(--kitia-gray-50);
+  border-color: var(--kitia-gray-400);
+}
+
+.btn-toolbar.delete-all {
+  background: var(--kitia-error);
+  color: var(--kitia-white);
+}
+
+.btn-toolbar.delete-all:hover {
+  background: #DC2626;
+}
+
+/* Prompt Card Adjustments for Multi-Select Mode */
+.multi-select-mode .prompt-card {
+  padding-left: var(--kitia-spacing-3);
+}
+
+.multi-select-mode .prompt-card:hover {
+  background: var(--kitia-gray-50);
+}
+
+.multi-select-mode .prompt-card.selected:hover {
+  background: var(--kitia-primary-light);
+}
+
+/* Responsive Adjustments */
+@media (max-width: 480px) {
+  .multi-select-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--kitia-spacing-3);
+  }
+  
+  .toolbar-left,
+  .toolbar-actions {
+    width: 100%;
+  }
+  
+  .toolbar-actions {
+    justify-content: stretch;
+  }
+  
+  .btn-toolbar {
+    flex: 1;
+    justify-content: center;
   }
 }

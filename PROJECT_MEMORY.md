@@ -55,10 +55,14 @@ Extensión Chrome lite que:
 - [x] Arquitectura definida
 - [x] Checklist de desarrollo creado
 - [x] Estructura de proyecto documentada
+- [x] URLs de GPTs oficiales corregidas (25/06/2025)
+  - Scholar GPT: g-kZ0eYXlJe-scholar-gpt
+  - Creative Writing: g-DWjSCKn8z-creative-writing-coach
 
 ### En Progreso 🔄
 - [ ] Setup inicial del proyecto
 - [ ] Configuración de herramientas
+- [ ] Resolver error de build con Vite
 
 ### Pendiente ⏳
 - [ ] Implementación

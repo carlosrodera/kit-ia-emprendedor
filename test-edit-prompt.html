@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Edit Prompt</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 4px;
+            background: #4F46E5;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #4338CA;
+        }
+        .log {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Edit Prompt Functionality</h1>
+    
+    <div class="test-section">
+        <h2>Instructions:</h2>
+        <ol>
+            <li>Load the extension in Chrome (chrome://extensions/)</li>
+            <li>Open this test page</li>
+            <li>Click "Open Extension Sidebar"</li>
+            <li>Navigate to the "Prompts" tab</li>
+            <li>Create a test prompt if none exists</li>
+            <li>Click the edit button on any prompt</li>
+            <li>The edit modal should appear with the prompt data</li>
+        </ol>
+    </div>
+    
+    <div class="test-section">
+        <h2>Quick Test Actions:</h2>
+        <button onclick="openSidebar()">Open Extension Sidebar</button>
+        <button onclick="createTestPrompt()">Create Test Prompt</button>
+        <button onclick="checkPrompts()">Check Stored Prompts</button>
+        <button onclick="clearLog()">Clear Log</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test Log:</h2>
+        <div id="log" class="log">Test log will appear here...</div>
+    </div>
+    
+    <script>
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.textContent += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        function clearLog() {
+            document.getElementById('log').textContent = '';
+            log('Log cleared');
+        }
+        
+        async function openSidebar() {
+            try {
+                log('Opening extension sidebar...');
+                // Trigger the extension's sidebar toggle
+                window.postMessage({ type: 'TOGGLE_SIDEBAR' }, '*');
+                log('Sidebar toggle message sent');
+            } catch (error) {
+                log(`Error: ${error.message}`);
+            }
+        }
+        
+        async function createTestPrompt() {
+            try {
+                log('Creating test prompt...');
+                const testPrompt = {
+                    title: `Test Prompt ${Date.now()}`,
+                    content: 'This is a test prompt content for testing the edit functionality. You can edit this prompt to verify the edit feature works correctly.'
+                };
+                
+                // Send message to extension
+                const response = await chrome.runtime.sendMessage({
+                    type: 'SAVE_PROMPT',
+                    data: testPrompt
+                });
+                
+                if (response.success) {
+                    log(`Test prompt created successfully: ${response.data.title}`);
+                } else {
+                    log(`Error creating prompt: ${response.error}`);
+                }
+            } catch (error) {
+                log(`Error: ${error.message}`);
+                log('Note: This function only works when the extension is loaded');
+            }
+        }
+        
+        async function checkPrompts() {
+            try {
+                log('Checking stored prompts...');
+                const response = await chrome.runtime.sendMessage({
+                    type: 'GET_PROMPTS'
+                });
+                
+                if (response.success) {
+                    log(`Found ${response.data.length} prompts:`);
+                    response.data.forEach((prompt, index) => {
+                        log(`  ${index + 1}. ${prompt.title} (ID: ${prompt.id})`);
+                    });
+                } else {
+                    log(`Error getting prompts: ${response.error}`);
+                }
+            } catch (error) {
+                log(`Error: ${error.message}`);
+                log('Note: This function only works when the extension is loaded');
+            }
+        }
+        
+        // Initial log
+        log('Test page loaded. Follow the instructions above.');
+    </script>
+</body>
+</html>

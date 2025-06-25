@@ -68,7 +68,7 @@
       icon: '📚',
       category: 'Investigación',
       tags: ['académico', 'papers', 'citas'],
-      url: 'https://chat.openai.com/g/g-kZ0XnzM5f-scholar-gpt',
+      url: 'https://chat.openai.com/g/g-kZ0eYXlJe-scholar-gpt',
       official: true
     },
     {
@@ -78,7 +78,7 @@
       icon: '✍️',
       category: 'Escritura',
       tags: ['historias', 'novelas', 'creatividad'],
-      url: 'https://chat.openai.com/g/g-yELmr9FJt-creative-writing-coach',
+      url: 'https://chat.openai.com/g/g-DWjSCKn8z-creative-writing-coach',
       official: true
     },
     {
@@ -184,6 +184,9 @@
         
       case 'DELETE_PROMPT':
         return deletePrompt(data?.id);
+        
+      case 'UPDATE_PROMPT':
+        return updatePrompt(data);
         
       default:
         throw new Error(`Unknown message type: ${type}`);
@@ -528,6 +531,43 @@
       };
     } catch (error) {
       logger.error('Error deleting prompt:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  async function updatePrompt(promptData) {
+    try {
+      if (!promptData || !promptData.id || !promptData.title || !promptData.content) {
+        throw new Error('ID, title and content are required');
+      }
+      
+      const stored = await chrome.storage.local.get(['prompts']);
+      const prompts = stored.prompts || [];
+      const index = prompts.findIndex(p => p.id === promptData.id);
+      
+      if (index === -1) {
+        throw new Error('Prompt not found');
+      }
+      
+      // Actualizar el prompt manteniendo los campos existentes
+      prompts[index] = {
+        ...prompts[index],
+        title: promptData.title,
+        content: promptData.content,
+        updatedAt: new Date().toISOString()
+      };
+      
+      await chrome.storage.local.set({ prompts });
+      
+      return {
+        success: true,
+        data: prompts[index]
+      };
+    } catch (error) {
+      logger.error('Error updating prompt:', error);
       return {
         success: false,
         error: error.message
