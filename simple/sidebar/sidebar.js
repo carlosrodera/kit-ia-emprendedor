@@ -7,6 +7,7 @@
     currentTab: 'all',
     currentView: 'grid',
     currentCategory: 'all',
+    currentTags: [],
     gpts: [],
     favorites: [],
     recentGpts: [],
@@ -14,7 +15,9 @@
     searchQuery: '',
     isMinimized: false,
     allCategories: [],
-    allTags: []
+    allTags: [],
+    filterDropdownOpen: false,
+    notifications: []
   };
 
   // Elementos DOM
@@ -31,7 +34,13 @@
       content: document.getElementById('sidebar-content'),
       tabs: document.querySelectorAll('.tab'),
       viewBtns: document.querySelectorAll('.view-btn'),
-      resizeHandle: document.getElementById('resize-handle')
+      resizeHandle: document.getElementById('resize-handle'),
+      filterToggle: document.getElementById('filter-toggle'),
+      filterDropdown: document.getElementById('filter-dropdown'),
+      filterContent: document.getElementById('filter-content'),
+      activeFiltersCount: document.getElementById('active-filters-count'),
+      notificationsBtn: document.getElementById('notifications-btn'),
+      notificationsBadge: document.getElementById('notifications-badge')
     };
 
     // Event listeners
@@ -69,6 +78,16 @@
     elements.viewBtns.forEach(btn => {
       SecurityUtils.addSafeEventListener(btn, 'click', handleViewToggle);
     });
+    
+    // Filter toggle
+    if (elements.filterToggle) {
+      SecurityUtils.addSafeEventListener(elements.filterToggle, 'click', toggleFilterDropdown);
+    }
+    
+    // Notifications
+    if (elements.notificationsBtn) {
+      SecurityUtils.addSafeEventListener(elements.notificationsBtn, 'click', toggleNotifications);
+    }
   }
 
   function closeSidebar() {
@@ -172,6 +191,13 @@
       if (promptsResponse?.success) {
         state.prompts = promptsResponse.data || [];
       }
+      
+      // Añadir notificaciones de bienvenida
+      if (state.notifications.length === 0) {
+        addNotification('Bienvenido a Kit IA Emprendedor v0.4.3');
+        addNotification('Nuevo sistema de filtros disponible');
+        updateNotificationsBadge();
+      }
 
       renderContent();
     } catch (error) {
@@ -205,9 +231,6 @@
       case 'prompts':
         renderPrompts();
         return;
-      case 'categories':
-        renderCategoriesAndTags();
-        return;
     }
 
     // Aplicar búsqueda
@@ -223,6 +246,13 @@
     // Filtrar por categoría
     if (state.currentCategory !== 'all') {
       items = items.filter(item => item.category === state.currentCategory);
+    }
+    
+    // Filtrar por tags
+    if (state.currentTags.length > 0) {
+      items = items.filter(item => 
+        item.tags && state.currentTags.every(tag => item.tags.includes(tag))
+      );
     }
 
     // Renderizar GPTs
@@ -286,12 +316,13 @@
     });
     header.appendChild(title);
     
-    if (gpt.official) {
-      const badge = SecurityUtils.createElement('span', { 
-        className: 'official-badge',
-        textContent: 'Oficial'
+    // Mostrar categoría en lugar de badge oficial
+    if (gpt.category) {
+      const categoryBadge = SecurityUtils.createElement('span', { 
+        className: 'category-badge',
+        textContent: gpt.category
       });
-      header.appendChild(badge);
+      header.appendChild(categoryBadge);
     }
     
     // Descripción
@@ -421,12 +452,13 @@
     });
     header.appendChild(name);
     
-    if (gpt.official) {
-      const badge = SecurityUtils.createElement('span', { 
-        className: 'official-badge-small',
-        textContent: 'Oficial'
+    // Mostrar categoría en lugar de badge oficial
+    if (gpt.category) {
+      const categoryBadge = SecurityUtils.createElement('span', { 
+        className: 'category-badge',
+        textContent: gpt.category
       });
-      header.appendChild(badge);
+      header.appendChild(categoryBadge);
     }
     
     // Descripción
@@ -868,9 +900,11 @@
         if (isFavorite) {
           state.favorites = state.favorites.filter(id => id !== gptId);
           showNotification('Eliminado de favoritos', 'success');
+          addNotification('GPT eliminado de favoritos');
         } else {
           state.favorites.push(gptId);
           showNotification('Añadido a favoritos', 'success');
+          addNotification('GPT añadido a favoritos');
         }
         
         // Re-renderizar si estamos en la tab de favoritos
@@ -950,6 +984,7 @@
         // Añadir a recientes
         addToRecent(gpt);
         showNotification(`Abriendo ${gpt.name}`, 'success');
+        addNotification(`GPT "${gpt.name}" abierto`);
         
         // Cerrar sidebar si no es nueva pestaña
         if (!newTab) {
@@ -1023,6 +1058,7 @@
       
       if (success) {
         showNotification('Prompt copiado al portapapeles', 'success');
+        addNotification(`Prompt "${prompt.title}" copiado`);
       } else {
         showNotification('Error al copiar prompt', 'error');
       }
@@ -1060,6 +1096,11 @@
     }
   }
 
+  // Usar showToast en lugar de showNotification
+  function showNotification(message, type = 'info', duration = 3000) {
+    return showToast(message, type, duration);
+  }
+  
   // Sistema de notificaciones seguro
   const notificationSystem = {
     container: null,
@@ -1300,6 +1341,7 @@
         state.prompts = state.prompts.filter(p => p.id !== promptId);
         renderContent(); // Re-renderizar
         showNotification('Prompt eliminado', 'success');
+        addNotification('Prompt eliminado correctamente');
       } else {
         showNotification('Error al eliminar prompt', 'error');
       }
@@ -2691,8 +2733,341 @@ if (!document.getElementById('kit-ia-notifications-styles')) {
   }
 
   function setupResize() {
-    // Implementar resize si es necesario
-    // Por ahora, solo un placeholder
+    if (!elements.resizeHandle) return;
+    
+    let isResizing = false;
+    let startX, startWidth;
+    
+    SecurityUtils.addSafeEventListener(elements.resizeHandle, 'mousedown', (e) => {
+      isResizing = true;
+      startX = e.clientX;
+      
+      const sidebar = document.getElementById('kit-ia-sidebar');
+      if (sidebar) {
+        startWidth = parseInt(window.getComputedStyle(sidebar).width, 10);
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+        e.preventDefault();
+      }
+    });
+    
+    function handleMouseMove(e) {
+      if (!isResizing) return;
+      
+      const sidebar = document.getElementById('kit-ia-sidebar');
+      if (sidebar) {
+        const width = startWidth + (startX - e.clientX);
+        const minWidth = 320;
+        const maxWidth = 600;
+        const newWidth = Math.max(minWidth, Math.min(maxWidth, width));
+        
+        sidebar.style.width = newWidth + 'px';
+      }
+    }
+    
+    function handleMouseUp() {
+      isResizing = false;
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    }
+  }
+  
+  // Toggle filter dropdown
+  function toggleFilterDropdown() {
+    state.filterDropdownOpen = !state.filterDropdownOpen;
+    
+    if (elements.filterToggle) {
+      elements.filterToggle.classList.toggle('active', state.filterDropdownOpen);
+    }
+    
+    if (elements.filterDropdown) {
+      elements.filterDropdown.classList.toggle('active', state.filterDropdownOpen);
+    }
+    
+    if (state.filterDropdownOpen) {
+      renderFilters();
+    }
+  }
+  
+  // Render filters in dropdown
+  function renderFilters() {
+    if (!elements.filterContent) return;
+    
+    elements.filterContent.innerHTML = '';
+    
+    // Sección de categorías
+    const categoriesSection = SecurityUtils.createElement('div', { className: 'filter-section' });
+    const catTitle = SecurityUtils.createElement('h4', { 
+      className: 'filter-section-title',
+      textContent: 'CATEGORÍAS'
+    });
+    categoriesSection.appendChild(catTitle);
+    
+    const categoriesList = SecurityUtils.createElement('div', { className: 'filter-list' });
+    
+    // Opción "Todas"
+    const allOption = createFilterOption('category', 'all', 'Todas las categorías', state.gpts.length);
+    categoriesList.appendChild(allOption);
+    
+    // Categorías individuales
+    state.allCategories.forEach(category => {
+      const count = state.gpts.filter(gpt => gpt.category === category).length;
+      const option = createFilterOption('category', category, category, count);
+      categoriesList.appendChild(option);
+    });
+    
+    categoriesSection.appendChild(categoriesList);
+    elements.filterContent.appendChild(categoriesSection);
+    
+    // Sección de etiquetas
+    if (state.allTags.length > 0) {
+      const tagsSection = SecurityUtils.createElement('div', { className: 'filter-section' });
+      const tagsTitle = SecurityUtils.createElement('h4', { 
+        className: 'filter-section-title',
+        textContent: 'ETIQUETAS'
+      });
+      tagsSection.appendChild(tagsTitle);
+      
+      const tagsList = SecurityUtils.createElement('div', { className: 'filter-list' });
+      
+      state.allTags.forEach(tag => {
+        const count = state.gpts.filter(gpt => gpt.tags && gpt.tags.includes(tag)).length;
+        const option = createFilterOption('tag', tag, tag, count);
+        tagsList.appendChild(option);
+      });
+      
+      tagsSection.appendChild(tagsList);
+      elements.filterContent.appendChild(tagsSection);
+    }
+    
+    setupFilterListeners();
+  }
+  
+  function createFilterOption(type, value, label, count) {
+    const isActive = (type === 'category' && state.currentCategory === value) ||
+                    (type === 'tag' && state.currentTags.includes(value));
+    
+    const option = SecurityUtils.createElement('div', { 
+      className: `filter-option ${isActive ? 'active' : ''}`,
+      attributes: { 
+        'data-filter-type': type,
+        'data-filter-value': value
+      }
+    });
+    
+    const labelEl = SecurityUtils.createElement('span', { 
+      className: 'filter-label',
+      textContent: label
+    });
+    
+    const countEl = SecurityUtils.createElement('span', { 
+      className: 'filter-count',
+      textContent: `(${count})`
+    });
+    
+    option.appendChild(labelEl);
+    option.appendChild(countEl);
+    
+    return option;
+  }
+  
+  function setupFilterListeners() {
+    const filterOptions = document.querySelectorAll('.filter-option');
+    filterOptions.forEach(option => {
+      SecurityUtils.addSafeEventListener(option, 'click', handleFilterClick);
+    });
+  }
+  
+  function handleFilterClick(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const filterType = e.currentTarget.dataset.filterType;
+    const filterValue = e.currentTarget.dataset.filterValue;
+    
+    if (filterType === 'category') {
+      state.currentCategory = filterValue;
+    } else if (filterType === 'tag') {
+      const index = state.currentTags.indexOf(filterValue);
+      if (index > -1) {
+        state.currentTags.splice(index, 1);
+      } else {
+        state.currentTags.push(filterValue);
+      }
+    }
+    
+    // Actualizar contador de filtros activos
+    updateActiveFiltersCount();
+    
+    // Re-renderizar
+    renderFilters();
+    renderContent();
+  }
+  
+  function updateActiveFiltersCount() {
+    let count = 0;
+    if (state.currentCategory !== 'all') count++;
+    count += state.currentTags.length;
+    
+    if (elements.activeFiltersCount) {
+      elements.activeFiltersCount.textContent = count.toString();
+      elements.activeFiltersCount.style.display = count > 0 ? 'inline-block' : 'none';
+    }
+  }
+  
+  // Toggle notifications
+  function toggleNotifications() {
+    const existingDropdown = document.getElementById('notifications-dropdown');
+    
+    if (existingDropdown) {
+      existingDropdown.remove();
+      return;
+    }
+    
+    // Crear dropdown de notificaciones
+    const dropdown = SecurityUtils.createElement('div', {
+      id: 'notifications-dropdown',
+      className: 'notifications-dropdown active'
+    });
+    
+    // Header
+    const header = SecurityUtils.createElement('div', { className: 'notifications-header' });
+    const title = SecurityUtils.createElement('h4', { 
+      className: 'notifications-title',
+      textContent: 'Notificaciones'
+    });
+    
+    const clearBtn = SecurityUtils.createElement('button', {
+      className: 'notifications-clear',
+      textContent: 'Limpiar todo'
+    });
+    
+    SecurityUtils.addSafeEventListener(clearBtn, 'click', () => {
+      state.notifications = [];
+      updateNotificationsBadge();
+      toggleNotifications();
+    });
+    
+    header.appendChild(title);
+    header.appendChild(clearBtn);
+    dropdown.appendChild(header);
+    
+    // Lista de notificaciones
+    const list = SecurityUtils.createElement('div', { className: 'notifications-list' });
+    
+    if (state.notifications.length === 0) {
+      const empty = SecurityUtils.createElement('div', { 
+        className: 'empty-notifications',
+        textContent: 'No hay notificaciones nuevas'
+      });
+      list.appendChild(empty);
+    } else {
+      state.notifications.forEach(notif => {
+        const item = SecurityUtils.createElement('div', { className: 'notification-item' });
+        const content = SecurityUtils.createElement('div', { 
+          className: 'notification-content',
+          textContent: notif.message
+        });
+        const time = SecurityUtils.createElement('div', { 
+          className: 'notification-time',
+          textContent: formatTime(notif.timestamp)
+        });
+        
+        item.appendChild(content);
+        item.appendChild(time);
+        list.appendChild(item);
+      });
+    }
+    
+    dropdown.appendChild(list);
+    
+    // Posicionar dropdown
+    if (elements.notificationsBtn) {
+      const rect = elements.notificationsBtn.getBoundingClientRect();
+      dropdown.style.position = 'fixed';
+      dropdown.style.top = (rect.bottom + 8) + 'px';
+      dropdown.style.right = '20px';
+      document.body.appendChild(dropdown);
+      
+      // Cerrar al hacer clic fuera
+      setTimeout(() => {
+        SecurityUtils.addSafeEventListener(document, 'click', function closeDropdown(e) {
+          if (!dropdown.contains(e.target) && !elements.notificationsBtn.contains(e.target)) {
+            dropdown.remove();
+            document.removeEventListener('click', closeDropdown);
+          }
+        });
+      }, 100);
+    }
+  }
+  
+  function updateNotificationsBadge() {
+    if (elements.notificationsBadge) {
+      const count = state.notifications.length;
+      elements.notificationsBadge.textContent = count.toString();
+      elements.notificationsBadge.style.display = count > 0 ? 'inline-block' : 'none';
+    }
+  }
+  
+  function addNotification(message) {
+    state.notifications.unshift({
+      id: Date.now(),
+      message: message,
+      timestamp: new Date()
+    });
+    
+    // Mantener máximo 10 notificaciones
+    state.notifications = state.notifications.slice(0, 10);
+    
+    updateNotificationsBadge();
+  }
+  
+  function formatTime(date) {
+    const now = new Date();
+    const diff = now - date;
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+    
+    if (minutes < 1) return 'Ahora mismo';
+    if (minutes < 60) return `Hace ${minutes} minutos`;
+    if (hours < 24) return `Hace ${hours} horas`;
+    return `Hace ${days} días`;
+  }
+  
+  // Sistema de toast más simple
+  function showToast(message, type = 'info', duration = 3000) {
+    const toast = SecurityUtils.createElement('div', {
+      className: `toast toast-${type}`,
+      textContent: message,
+      attributes: {
+        style: `
+          position: fixed;
+          bottom: 20px;
+          right: 20px;
+          background: ${type === 'success' ? '#10B981' : type === 'error' ? '#EF4444' : type === 'warning' ? '#F59E0B' : '#4F46E5'};
+          color: white;
+          padding: 12px 20px;
+          border-radius: 8px;
+          font-size: 14px;
+          z-index: 10000;
+          animation: slideIn 0.3s ease;
+        `
+      }
+    });
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+      toast.style.animation = 'slideOut 0.3s ease';
+      setTimeout(() => toast.remove(), 300);
+    }, duration);
+  }
+  
+  // Eliminar renderCategoriesAndTags ya que no se usa
+  function renderCategoriesAndTags() {
+    // Esta función ya no se necesita
+    // Los filtros ahora están en el dropdown
   }
 
   // Agregar footer de forma segura
