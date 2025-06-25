@@ -267,12 +267,46 @@
       flex: 1;
       padding: 16px;
       overflow-y: auto;
+      min-height: 0; /* Permite que el flex item se contraiga */
     }
     
     .placeholder-message {
       color: var(--text-secondary);
       text-align: center;
       margin-top: 48px;
+    }
+    
+    /* Footer */
+    .sidebar-footer {
+      padding: 12px 20px;
+      background: var(--bg-secondary);
+      border-top: 1px solid var(--border-color);
+      flex-shrink: 0;
+    }
+    
+    .footer-content {
+      text-align: center;
+    }
+    
+    .footer-text {
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+    
+    .footer-credits {
+      font-size: 10px;
+      color: var(--text-secondary);
+    }
+    
+    .footer-link {
+      color: var(--accent-color);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    
+    .footer-link:hover {
+      color: var(--accent-hover);
     }
     
     /* Responsive adjustments */
@@ -295,6 +329,46 @@
       
       .sidebar-title {
         font-size: 14px;
+      }
+      
+      .footer-text {
+        font-size: 10px;
+      }
+      
+      .footer-credits {
+        font-size: 9px;
+      }
+    }
+    
+    /* Improved responsive design */
+    @media (max-width: 350px) {
+      .sidebar-header {
+        padding: 10px 12px;
+      }
+      
+      .search-container {
+        padding: 6px 12px;
+      }
+      
+      .toolbar {
+        padding: 4px 12px;
+      }
+      
+      .sidebar-content {
+        padding: 8px;
+      }
+      
+      .sidebar-footer {
+        padding: 8px 12px;
+      }
+      
+      .sidebar-title {
+        font-size: 13px;
+      }
+      
+      .tab {
+        padding: 4px 6px;
+        font-size: 10px;
       }
     }
   </style>
@@ -336,6 +410,7 @@
       <button class="tab active" data-tab="all">Todos</button>
       <button class="tab" data-tab="favorites">Favoritos</button>
       <button class="tab" data-tab="recent">Recientes</button>
+      <button class="tab" data-tab="categories">Categorías</button>
       <button class="tab" data-tab="prompts">Mis Prompts</button>
     </div>
     
@@ -364,8 +439,16 @@
         </p>
       </div>
     </main>
+    
+    <footer class="sidebar-footer">
+      <div class="footer-content">
+        <p class="footer-text">Kit IA Emprendedor v0.4.2</p>
+        <p class="footer-credits">Creado por <a href="#" class="footer-link">Carlos Rodera</a></p>
+      </div>
+    </footer>
   </div>
   <script src="../utils/device-fingerprint.js"></script>
+  <script src="../utils/security.js"></script>
   <script src="sidebar.js"></script>
 </body>
 </html>

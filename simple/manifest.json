@@ -1,14 +1,15 @@
 {
   "manifest_version": 3,
   "name": "Kit IA Emprendedor",
-  "version": "0.3.0",
+  "version": "0.4.2",
   "description": "Tu asistente personal para acceder rápidamente a los mejores GPTs oficiales",
   "author": "Carlos Rodera",
   
   "permissions": [
     "activeTab",
     "storage",
-    "scripting"
+    "scripting",
+    "clipboardWrite"
   ],
   
   "host_permissions": [
@@ -54,6 +55,10 @@
       "matches": ["<all_urls>"]
     }
   ],
+  
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self';"
+  },
   
   "commands": {
     "toggle-sidebar": {
