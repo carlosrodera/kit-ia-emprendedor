@@ -35,8 +35,8 @@
     // Event listeners
     setupEventListeners();
     
-    // Cargar datos iniciales
-    loadInitialData();
+    // Verificar dispositivo antes de cargar datos
+    checkDeviceAuthorization();
     
     // Configurar resize
     setupResize();
@@ -1458,6 +1458,230 @@
         }
       }
     `;
+    document.head.appendChild(style);
+  }
+  
+  // Función para verificar autorización del dispositivo
+  async function checkDeviceAuthorization() {
+    try {
+      // Verificar autenticación y dispositivo
+      const response = await chrome.runtime.sendMessage({ type: 'CHECK_AUTH' });
+      
+      if (!response || !response.success) {
+        showError('Error al verificar autenticación');
+        return;
+      }
+      
+      const { isAuthenticated, deviceAuthorized, deviceInfo } = response.data;
+      
+      if (!isAuthenticated) {
+        showLoginPrompt();
+        return;
+      }
+      
+      if (!deviceAuthorized && deviceInfo) {
+        // Mostrar modal de gestión de dispositivos
+        showDeviceLimitModal(deviceInfo);
+        return;
+      }
+      
+      // Todo OK, cargar datos
+      loadInitialData();
+    } catch (error) {
+      console.error('Error checking device:', error);
+      showError('Error al verificar dispositivo');
+    }
+  }
+  
+  // Función para mostrar mensaje de login
+  function showLoginPrompt() {
+    elements.content.innerHTML = `
+      <div class="login-prompt">
+        <div class="login-icon">
+          <svg viewBox="0 0 24 24" width="64" height="64" fill="none">
+            <path d="M12 14C14.2091 14 16 12.2091 16 10C16 7.79086 14.2091 6 12 6C9.79086 6 8 7.79086 8 10C8 12.2091 9.79086 14 12 14Z" 
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M20 21C20 19.1435 19.2625 17.363 17.9497 16.0503C16.637 14.7375 14.8565 14 13 14H11C9.14348 14 7.36301 14.7375 6.05025 16.0503C4.7375 17.363 4 19.1435 4 21" 
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <h2>Inicia Sesión</h2>
+        <p>Para acceder a tus GPTs y prompts guardados</p>
+        <button class="btn-login" id="login-btn">
+          🔑 Iniciar Sesión
+        </button>
+      </div>
+    `;
+    
+    const loginBtn = document.getElementById('login-btn');
+    if (loginBtn) {
+      loginBtn.addEventListener('click', () => {
+        // TODO: Implementar login real
+        showToast('Login en desarrollo', 'info');
+      });
+    }
+  }
+  
+  // Función para mostrar modal de límite de dispositivos
+  function showDeviceLimitModal(deviceInfo) {
+    // Limpiar contenido
+    elements.content.innerHTML = '';
+    
+    // Crear mensaje de bloqueo
+    const blockMessage = document.createElement('div');
+    blockMessage.className = 'device-limit-block';
+    blockMessage.innerHTML = `
+      <div class="device-limit-icon">
+        <svg viewBox="0 0 24 24" width="64" height="64" fill="none">
+          <path d="M12 9V13M12 17H12.01M5 19H19C20.1046 19 21 18.1046 21 17V7C21 5.89543 20.1046 5 19 5H5C3.89543 5 3 5.89543 3 7V17C3 18.1046 3.89543 19 5 19Z" 
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <h2 class="device-limit-title">Límite de Dispositivos Alcanzado</h2>
+      <p class="device-limit-desc">
+        Has alcanzado el límite de <strong>${deviceInfo.limit} dispositivos</strong> para tu plan ${deviceInfo.plan || 'Free'}.
+      </p>
+      <p class="device-limit-desc">
+        Para usar la extensión en este dispositivo, debes desactivarla en otro o actualizar tu plan.
+      </p>
+      <div class="device-limit-actions">
+        <button class="btn-manage-devices" id="manage-devices-btn">
+          📱 Gestionar Dispositivos
+        </button>
+        <button class="btn-upgrade-plan" id="upgrade-plan-btn">
+          🚀 Ver Planes
+        </button>
+      </div>
+    `;
+    
+    elements.content.appendChild(blockMessage);
+    
+    // Agregar estilos
+    addDeviceLimitStyles();
+    
+    // Event listeners
+    const manageBtn = document.getElementById('manage-devices-btn');
+    const upgradeBtn = document.getElementById('upgrade-plan-btn');
+    
+    if (manageBtn) {
+      manageBtn.addEventListener('click', () => {
+        // Cargar y mostrar el gestor de dispositivos
+        loadDeviceManager(deviceInfo);
+      });
+    }
+    
+    if (upgradeBtn) {
+      upgradeBtn.addEventListener('click', () => {
+        window.open('https://kit-ia-pro.com/pricing', '_blank');
+      });
+    }
+  }
+  
+  // Cargar el gestor de dispositivos
+  async function loadDeviceManager(deviceInfo) {
+    // Cargar el script del device manager si no está cargado
+    if (!window.DeviceManager) {
+      const script = document.createElement('script');
+      script.src = '../components/device-manager.js';
+      script.onload = () => {
+        window.DeviceManager.showDeviceModal(deviceInfo);
+      };
+      document.head.appendChild(script);
+    } else {
+      window.DeviceManager.showDeviceModal(deviceInfo);
+    }
+  }
+  
+  // Agregar estilos para el bloqueo por dispositivos
+  function addDeviceLimitStyles() {
+    if (document.getElementById('device-limit-styles')) return;
+    
+    const style = document.createElement('style');
+    style.id = 'device-limit-styles';
+    style.textContent = `
+      .login-prompt,
+      .device-limit-block {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 40px 20px;
+        min-height: 400px;
+      }
+      
+      .login-icon,
+      .device-limit-icon {
+        color: var(--text-secondary);
+        margin-bottom: 24px;
+        opacity: 0.8;
+      }
+      
+      .device-limit-icon {
+        color: var(--error-color);
+      }
+      
+      .login-prompt h2,
+      .device-limit-title {
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0 0 16px 0;
+      }
+      
+      .login-prompt p,
+      .device-limit-desc {
+        color: var(--text-secondary);
+        margin: 0 0 12px 0;
+        max-width: 400px;
+        line-height: 1.5;
+      }
+      
+      .btn-login,
+      .device-limit-actions {
+        margin-top: 24px;
+      }
+      
+      .device-limit-actions {
+        display: flex;
+        gap: 12px;
+      }
+      
+      .btn-login,
+      .btn-manage-devices,
+      .btn-upgrade-plan {
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: none;
+      }
+      
+      .btn-login,
+      .btn-upgrade-plan {
+        background: var(--accent-color);
+        color: white;
+      }
+      
+      .btn-login:hover,
+      .btn-upgrade-plan:hover {
+        background: var(--accent-hover);
+        transform: translateY(-1px);
+      }
+      
+      .btn-manage-devices {
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
+      }
+      
+      .btn-manage-devices:hover {
+        background: var(--bg-hover);
+      }
+    `;
+    
     document.head.appendChild(style);
   }
 

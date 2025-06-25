@@ -6,7 +6,9 @@
   const state = {
     isAuthenticated: false,
     user: null,
-    gpts: []
+    gpts: [],
+    deviceAuthorized: false,
+    deviceInfo: null
   };
 
   // GPTs oficiales con URLs reales y categorías
@@ -188,6 +190,15 @@
       case 'UPDATE_PROMPT':
         return updatePrompt(data);
         
+      case 'CHECK_DEVICE':
+        return checkDevice();
+        
+      case 'GET_USER_DEVICES':
+        return getUserDevices();
+        
+      case 'REMOVE_DEVICE':
+        return removeDevice(data?.deviceId);
+        
       default:
         throw new Error(`Unknown message type: ${type}`);
     }
@@ -202,12 +213,17 @@
         state.isAuthenticated = true;
         state.user = stored.user;
         
+        // Verificar autorización del dispositivo
+        const deviceCheck = await checkDevice();
+        
         return {
           success: true,
           data: {
             isAuthenticated: true,
             user: state.user,
-            hasSubscription: true
+            hasSubscription: true,
+            deviceAuthorized: deviceCheck.data?.authorized || false,
+            deviceInfo: deviceCheck.data
           }
         };
       }
@@ -217,7 +233,8 @@
         data: {
           isAuthenticated: false,
           user: null,
-          hasSubscription: false
+          hasSubscription: false,
+          deviceAuthorized: true // No necesita verificación si no está autenticado
         }
       };
     } catch (error) {
@@ -568,6 +585,116 @@
       };
     } catch (error) {
       logger.error('Error updating prompt:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  // Funciones de dispositivo
+  async function checkDevice() {
+    try {
+      // Simular verificación de dispositivo por ahora
+      // En producción, esto se conectaría con Supabase
+      const stored = await chrome.storage.local.get(['user', 'registeredDevices']);
+      
+      if (!stored.user) {
+        return {
+          success: true,
+          data: {
+            authorized: true,
+            reason: 'NO_AUTH'
+          }
+        };
+      }
+      
+      // Por ahora, siempre autorizar (demo mode)
+      // TODO: Implementar verificación real con Supabase
+      const mockDeviceInfo = {
+        authorized: true,
+        deviceId: 'demo-device-001',
+        deviceCount: 1,
+        limit: 2,
+        plan: 'free'
+      };
+      
+      state.deviceAuthorized = mockDeviceInfo.authorized;
+      state.deviceInfo = mockDeviceInfo;
+      
+      return {
+        success: true,
+        data: mockDeviceInfo
+      };
+    } catch (error) {
+      logger.error('Error checking device:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+  
+  async function getUserDevices() {
+    try {
+      const stored = await chrome.storage.local.get(['user', 'registeredDevices']);
+      
+      if (!stored.user) {
+        return {
+          success: false,
+          error: 'No user authenticated'
+        };
+      }
+      
+      // Mock de dispositivos para demo
+      const mockDevices = [
+        {
+          deviceId: 'demo-device-001',
+          deviceName: 'macOS - Chrome',
+          registeredAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+          lastActive: new Date().toISOString(),
+          isCurrent: true
+        },
+        {
+          deviceId: 'demo-device-002',
+          deviceName: 'Windows - Chrome',
+          registeredAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+          lastActive: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+          isCurrent: false
+        }
+      ];
+      
+      return {
+        success: true,
+        data: mockDevices
+      };
+    } catch (error) {
+      logger.error('Error getting user devices:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+  
+  async function removeDevice(deviceId) {
+    try {
+      if (!deviceId) {
+        throw new Error('Device ID is required');
+      }
+      
+      // Mock de eliminación para demo
+      logger.info('Device removed:', deviceId);
+      
+      return {
+        success: true,
+        data: {
+          removed: true,
+          deviceId
+        }
+      };
+    } catch (error) {
+      logger.error('Error removing device:', error);
       return {
         success: false,
         error: error.message
