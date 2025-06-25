@@ -1437,15 +1437,6 @@ if (!document.getElementById('kit-ia-notifications-styles')) {
   `;
   document.head.appendChild(style);
 }
-    
-    items.forEach(gpt => {
-      const card = createGPTListItem(gpt);
-      container.appendChild(card);
-    });
-    
-    elements.content.appendChild(container);
-    setupCardListeners();
-  }
 
   function createGPTCard(gpt) {
     const isFavorite = state.favorites.includes(gpt.id);

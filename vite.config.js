@@ -50,15 +50,17 @@ export default defineConfig(({ mode }) => {
           // Popup JS
           'popup': resolve(__dirname, 'src/popup/popup.js'),
           
+          // Side Panel JS
+          'sidepanel-js': resolve(__dirname, 'src/sidepanel/sidepanel.js'),
+          
           // HTML pages
           'popup-html': resolve(__dirname, 'src/popup/popup.html'),
-          'sidebar': resolve(__dirname, 'src/sidebar/index.html'),
+          'sidepanel-html': resolve(__dirname, 'src/sidepanel/index.html'),
           'auth-login': resolve(__dirname, 'src/auth/login.html'),
           'auth-callback': resolve(__dirname, 'src/auth/callback.html')
         },
         output: {
           // Para content scripts y service worker - IIFE format
-          format: 'iife',
           entryFileNames: (chunkInfo) => {
             if (chunkInfo.name === 'service-worker') {
               return 'background/[name].js';
@@ -68,6 +70,9 @@ export default defineConfig(({ mode }) => {
             }
             if (chunkInfo.name === 'popup') {
               return 'popup/[name].js';
+            }
+            if (chunkInfo.name === 'sidepanel-js') {
+              return 'sidepanel/sidepanel.js';
             }
             return '[name]/[name].js';
           },
@@ -132,8 +137,8 @@ export default defineConfig(({ mode }) => {
             dest: 'content'
           },
           {
-            src: 'sidebar/styles/sidebar.css',
-            dest: 'sidebar/styles'
+            src: 'sidepanel/sidepanel.css',
+            dest: 'sidepanel'
           }
         ]
       }),
