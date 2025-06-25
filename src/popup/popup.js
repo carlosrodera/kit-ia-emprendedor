@@ -1,9 +1,14 @@
-import { logger } from '../shared/logger.js';
-import { MESSAGES } from '../shared/constants.js';
+// Popup script para Kit IA Emprendedor
+// Este archivo NO usa imports ES6 para compatibilidad con Chrome Extensions
 
-class PopupManager {
-  constructor() {
-    this.elements = {
+(function() {
+  'use strict';
+
+  // Inicialización del popup
+  document.addEventListener('DOMContentLoaded', async () => {
+    console.log('Popup initialized');
+    
+    const elements = {
       loadingState: document.getElementById('loading-state'),
       authState: document.getElementById('auth-state'),
       loggedState: document.getElementById('logged-state'),
@@ -21,252 +26,182 @@ class PopupManager {
       errorMessage: document.getElementById('error-message')
     };
 
-    this.state = {
-      isAuthenticated: false,
-      user: null,
-      stats: {
-        totalGpts: 0,
-        favoriteCount: 0,
-        promptCount: 0
-      }
-    };
+    // Mostrar estado de carga inicialmente
+    showState('loading');
 
-    this.init();
-  }
-
-  async init() {
+    // Verificar autenticación
     try {
-      logger.info('Popup: Initializing');
-      this.showLoading();
-      this.attachEventListeners();
-      await this.checkAuthStatus();
-      await this.loadStats();
-      this.render();
-    } catch (error) {
-      logger.error('Popup: Initialization error', error);
-      this.showError('Error al inicializar la extensión');
-    }
-  }
-
-  attachEventListeners() {
-    this.elements.loginBtn?.addEventListener('click', () => this.handleLogin());
-    this.elements.logoutBtn?.addEventListener('click', () => this.handleLogout());
-    this.elements.openSidebarBtn?.addEventListener('click', () => this.handleOpenSidebar());
-    this.elements.syncBtn?.addEventListener('click', () => this.handleSync());
-    this.elements.helpLink?.addEventListener('click', (e) => this.handleHelp(e));
-  }
-
-  async checkAuthStatus() {
-    try {
-      const response = await chrome.runtime.sendMessage({ 
-        type: MESSAGES.CHECK_AUTH 
-      });
-
-      if (response?.success) {
-        this.state.isAuthenticated = response.data.isAuthenticated;
-        this.state.user = response.data.user;
-        logger.info('Popup: Auth status', { isAuthenticated: this.state.isAuthenticated });
+      const response = await chrome.runtime.sendMessage({ type: 'CHECK_AUTH' });
+      console.log('Auth response:', response);
+      
+      if (response?.success && response.data?.isAuthenticated) {
+        // Usuario autenticado
+        showState('logged');
+        updateUserInfo(response.data.user);
+        await loadStats();
       } else {
-        throw new Error(response?.error || 'Auth check failed');
+        // No autenticado
+        showState('auth');
       }
     } catch (error) {
-      logger.error('Popup: Auth check error', error);
-      this.state.isAuthenticated = false;
-      this.state.user = null;
+      console.error('Error checking auth:', error);
+      showState('auth');
     }
-  }
 
-  async loadStats() {
-    if (!this.state.isAuthenticated) return;
+    // Event listeners
+    elements.loginBtn?.addEventListener('click', handleLogin);
+    elements.logoutBtn?.addEventListener('click', handleLogout);
+    elements.openSidebarBtn?.addEventListener('click', handleOpenSidebar);
+    elements.syncBtn?.addEventListener('click', handleSync);
+    elements.helpLink?.addEventListener('click', handleHelp);
 
-    try {
-      const [gptStats, promptStats] = await Promise.all([
-        chrome.runtime.sendMessage({ type: MESSAGES.GET_GPT_STATS }),
-        chrome.storage.local.get(['prompts', 'favorites'])
-      ]);
+    function showState(state) {
+      // Ocultar todos los estados
+      elements.loadingState?.classList.add('hidden');
+      elements.authState?.classList.add('hidden');
+      elements.loggedState?.classList.add('hidden');
+      elements.errorState?.classList.add('hidden');
 
-      if (gptStats?.success) {
-        this.state.stats.totalGpts = gptStats.data.total || 0;
+      // Mostrar el estado solicitado
+      switch (state) {
+        case 'loading':
+          elements.loadingState?.classList.remove('hidden');
+          break;
+        case 'auth':
+          elements.authState?.classList.remove('hidden');
+          break;
+        case 'logged':
+          elements.loggedState?.classList.remove('hidden');
+          break;
+        case 'error':
+          elements.errorState?.classList.remove('hidden');
+          break;
       }
-
-      this.state.stats.favoriteCount = promptStats.favorites?.length || 0;
-      this.state.stats.promptCount = promptStats.prompts?.length || 0;
-
-      logger.info('Popup: Stats loaded', this.state.stats);
-    } catch (error) {
-      logger.error('Popup: Stats loading error', error);
     }
-  }
 
-  render() {
-    this.hideAllStates();
-
-    if (this.state.isAuthenticated) {
-      this.showLoggedState();
-    } else {
-      this.showAuthState();
-    }
-  }
-
-  showLoading() {
-    this.hideAllStates();
-    this.elements.loadingState.classList.remove('hidden');
-  }
-
-  showAuthState() {
-    this.hideAllStates();
-    this.elements.authState.classList.remove('hidden');
-  }
-
-  showLoggedState() {
-    this.hideAllStates();
-    this.elements.loggedState.classList.remove('hidden');
-    this.updateUserInfo();
-    this.updateStats();
-  }
-
-  showError(message) {
-    this.hideAllStates();
-    this.elements.errorState.classList.remove('hidden');
-    this.elements.errorMessage.textContent = message;
-  }
-
-  hideAllStates() {
-    Object.values(this.elements).forEach(el => {
-      if (el && el.id?.includes('state')) {
-        el.classList.add('hidden');
-      }
-    });
-  }
-
-  updateUserInfo() {
-    if (this.state.user) {
-      this.elements.userEmail.textContent = this.state.user.email || '';
+    function updateUserInfo(user) {
+      if (!user) return;
       
-      if (this.state.user.avatar_url) {
-        this.elements.userAvatar.src = this.state.user.avatar_url;
-        this.elements.userAvatar.alt = this.state.user.email || 'User avatar';
-      } else {
-        this.elements.userAvatar.style.display = 'none';
+      if (elements.userEmail) {
+        elements.userEmail.textContent = user.email || '';
+      }
+      
+      if (elements.userAvatar && user.avatar_url) {
+        elements.userAvatar.src = user.avatar_url;
+        elements.userAvatar.alt = user.email || 'User avatar';
       }
     }
-  }
 
-  updateStats() {
-    this.elements.totalGpts.textContent = this.state.stats.totalGpts;
-    this.elements.favoriteCount.textContent = this.state.stats.favoriteCount;
-    this.elements.promptCount.textContent = this.state.stats.promptCount;
-  }
+    async function loadStats() {
+      try {
+        // Cargar estadísticas de GPTs
+        const gptResponse = await chrome.runtime.sendMessage({ type: 'GET_GPT_STATS' });
+        if (gptResponse?.success) {
+          elements.totalGpts.textContent = gptResponse.data.total || 0;
+        }
 
-  async handleLogin() {
-    try {
-      logger.info('Popup: Login requested');
-      this.elements.loginBtn.disabled = true;
-      
-      const response = await chrome.runtime.sendMessage({ 
-        type: MESSAGES.LOGIN 
-      });
-
-      if (!response?.success) {
-        throw new Error(response?.error || 'Login failed');
+        // Cargar estadísticas locales
+        const localData = await chrome.storage.local.get(['prompts', 'favorites']);
+        elements.promptCount.textContent = localData.prompts?.length || 0;
+        elements.favoriteCount.textContent = localData.favorites?.length || 0;
+      } catch (error) {
+        console.error('Error loading stats:', error);
       }
-
-      // El service worker manejará la redirección
-      window.close();
-    } catch (error) {
-      logger.error('Popup: Login error', error);
-      this.showError('Error al iniciar sesión');
-      this.elements.loginBtn.disabled = false;
     }
-  }
 
-  async handleLogout() {
-    try {
-      logger.info('Popup: Logout requested');
-      this.elements.logoutBtn.disabled = true;
-
-      const response = await chrome.runtime.sendMessage({ 
-        type: MESSAGES.LOGOUT 
-      });
-
-      if (response?.success) {
-        this.state.isAuthenticated = false;
-        this.state.user = null;
-        this.render();
-      } else {
-        throw new Error(response?.error || 'Logout failed');
-      }
-    } catch (error) {
-      logger.error('Popup: Logout error', error);
-      this.showError('Error al cerrar sesión');
-    } finally {
-      this.elements.logoutBtn.disabled = false;
-    }
-  }
-
-  async handleOpenSidebar() {
-    try {
-      logger.info('Popup: Open sidebar requested');
-      
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      
-      await chrome.tabs.sendMessage(tab.id, { 
-        type: MESSAGES.TOGGLE_SIDEBAR,
-        data: { show: true }
-      });
-
-      window.close();
-    } catch (error) {
-      logger.error('Popup: Open sidebar error', error);
-      this.showError('Error al abrir el panel');
-    }
-  }
-
-  async handleSync() {
-    try {
-      logger.info('Popup: Sync requested');
-      this.elements.syncBtn.disabled = true;
-      this.elements.syncBtn.querySelector('.icon').classList.add('rotating');
-
-      const response = await chrome.runtime.sendMessage({ 
-        type: MESSAGES.SYNC_GPTS 
-      });
-
-      if (response?.success) {
-        await this.loadStats();
-        this.updateStats();
+    async function handleLogin() {
+      try {
+        elements.loginBtn.disabled = true;
         
-        // Mostrar feedback visual
-        this.elements.syncBtn.textContent = '✓ Sincronizado';
-        setTimeout(() => {
-          this.elements.syncBtn.innerHTML = `
-            <svg class="icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M13.65 2.35A8 8 0 0 0 2.35 13.65M2.35 2.35A8 8 0 0 1 13.65 13.65" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-            </svg>
-            Sincronizar
-          `;
-        }, 2000);
-      } else {
-        throw new Error(response?.error || 'Sync failed');
+        const response = await chrome.runtime.sendMessage({ type: 'LOGIN' });
+        if (!response?.success) {
+          throw new Error(response?.error || 'Login failed');
+        }
+        
+        // El service worker manejará la redirección
+        window.close();
+      } catch (error) {
+        console.error('Login error:', error);
+        showError('Error al iniciar sesión');
+        elements.loginBtn.disabled = false;
       }
-    } catch (error) {
-      logger.error('Popup: Sync error', error);
-      this.showError('Error al sincronizar');
-    } finally {
-      this.elements.syncBtn.disabled = false;
-      this.elements.syncBtn.querySelector('.icon')?.classList.remove('rotating');
     }
-  }
 
-  handleHelp(e) {
-    e.preventDefault();
-    chrome.tabs.create({ 
-      url: 'https://github.com/carlosrodera/kit-ia-emprendedor-extension/wiki' 
-    });
-  }
-}
+    async function handleLogout() {
+      try {
+        elements.logoutBtn.disabled = true;
+        
+        const response = await chrome.runtime.sendMessage({ type: 'LOGOUT' });
+        if (response?.success) {
+          showState('auth');
+        } else {
+          throw new Error(response?.error || 'Logout failed');
+        }
+      } catch (error) {
+        console.error('Logout error:', error);
+        showError('Error al cerrar sesión');
+      } finally {
+        elements.logoutBtn.disabled = false;
+      }
+    }
 
-// Inicializar cuando el DOM esté listo
-document.addEventListener('DOMContentLoaded', () => {
-  new PopupManager();
-});
+    async function handleOpenSidebar() {
+      try {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        
+        await chrome.tabs.sendMessage(tab.id, { 
+          type: 'TOGGLE_SIDEBAR',
+          data: { show: true }
+        });
+
+        window.close();
+      } catch (error) {
+        console.error('Open sidebar error:', error);
+        showError('Error al abrir el panel');
+      }
+    }
+
+    async function handleSync() {
+      try {
+        elements.syncBtn.disabled = true;
+        
+        const response = await chrome.runtime.sendMessage({ type: 'SYNC_GPTS' });
+        
+        if (response?.success) {
+          await loadStats();
+          
+          // Mostrar feedback visual
+          elements.syncBtn.textContent = '✓ Sincronizado';
+          setTimeout(() => {
+            elements.syncBtn.innerHTML = `
+              <svg class="icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M13.65 2.35A8 8 0 0 0 2.35 13.65M2.35 2.35A8 8 0 0 1 13.65 13.65" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+              Sincronizar
+            `;
+          }, 2000);
+        } else {
+          throw new Error(response?.error || 'Sync failed');
+        }
+      } catch (error) {
+        console.error('Sync error:', error);
+        showError('Error al sincronizar');
+      } finally {
+        elements.syncBtn.disabled = false;
+      }
+    }
+
+    function handleHelp(e) {
+      e.preventDefault();
+      chrome.tabs.create({ 
+        url: 'https://github.com/carlosrodera/kit-ia-emprendedor-extension/wiki' 
+      });
+    }
+
+    function showError(message) {
+      elements.errorMessage.textContent = message;
+      showState('error');
+    }
+  });
+
+})();

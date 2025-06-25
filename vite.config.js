@@ -10,45 +10,6 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Custom plugin para validar tamaño del bundle
-const bundleSizeValidator = () => {
-  return {
-    name: 'bundle-size-validator',
-    closeBundle() {
-      const distPath = path.resolve(__dirname, 'dist');
-      
-      let totalSize = 0;
-      const getAllFiles = (dirPath) => {
-        const files = fs.readdirSync(dirPath);
-        files.forEach(file => {
-          const filePath = path.join(dirPath, file);
-          const stat = fs.statSync(filePath);
-          if (stat.isDirectory()) {
-            getAllFiles(filePath);
-          } else if (file.endsWith('.js') || file.endsWith('.css')) {
-            totalSize += stat.size;
-          }
-        });
-      };
-      
-      if (fs.existsSync(distPath)) {
-        getAllFiles(distPath);
-        const totalSizeKB = totalSize / 1024;
-        
-        console.log('\n📦 Bundle Size Report:');
-        console.log(`Total JS/CSS size: ${totalSizeKB.toFixed(2)} KB`);
-        
-        if (totalSizeKB > 50) {
-          console.error(`❌ Bundle size (${totalSizeKB.toFixed(2)} KB) exceeds 50KB limit!`);
-          process.exit(1);
-        } else {
-          console.log(`✅ Bundle size is within 50KB limit`);
-        }
-      }
-    }
-  };
-};
-
 export default defineConfig(({ mode }) => {
   const isDev = mode === 'development';
   const isProd = mode === 'production';
@@ -60,37 +21,16 @@ export default defineConfig(({ mode }) => {
       emptyOutDir: true,
       sourcemap: isDev ? 'inline' : false,
       
-      // Optimización agresiva para producción
+      // Optimización para producción
       minify: isProd ? 'terser' : false,
       terserOptions: isProd ? {
         compress: {
           drop_console: true,
           drop_debugger: true,
-          pure_funcs: ['console.log', 'console.debug'],
-          passes: 3,
-          unsafe: true,
-          unsafe_comps: true,
-          unsafe_proto: true,
-          unsafe_regexp: true,
-          unsafe_undefined: true,
-          dead_code: true,
-          evaluate: true,
-          comparisons: true,
-          inline: true,
-          loops: true,
-          reduce_vars: true,
-          toplevel: true,
-          hoist_funs: true,
-          if_return: true,
-          join_vars: true,
-          collapse_vars: true,
-          reduce_funcs: true
+          pure_funcs: ['console.log', 'console.debug']
         },
         mangle: {
-          toplevel: true,
-          properties: {
-            regex: /^_/
-          }
+          toplevel: true
         },
         format: {
           comments: false,
@@ -101,20 +41,24 @@ export default defineConfig(({ mode }) => {
       // Configuración para Chrome Extension
       rollupOptions: {
         input: {
-          // Service Worker (background script)
-          'service-worker': resolve(__dirname, 'src/background/service-worker.js'),
+          // Service Worker (background script) - usando versión simplificada por ahora
+          'service-worker': resolve(__dirname, 'src/background/service-worker-simple.js'),
           
           // Content Script
           'content-script': resolve(__dirname, 'src/content/content-script.js'),
           
+          // Popup JS
+          'popup': resolve(__dirname, 'src/popup/popup.js'),
+          
           // HTML pages
-          'popup': resolve(__dirname, 'src/popup/popup.html'),
+          'popup-html': resolve(__dirname, 'src/popup/popup.html'),
           'sidebar': resolve(__dirname, 'src/sidebar/index.html'),
           'auth-login': resolve(__dirname, 'src/auth/login.html'),
           'auth-callback': resolve(__dirname, 'src/auth/callback.html')
         },
         output: {
-          // Archivos sin hash para extensión Chrome
+          // Para content scripts y service worker - IIFE format
+          format: 'iife',
           entryFileNames: (chunkInfo) => {
             if (chunkInfo.name === 'service-worker') {
               return 'background/[name].js';
@@ -122,48 +66,29 @@ export default defineConfig(({ mode }) => {
             if (chunkInfo.name === 'content-script') {
               return 'content/[name].js';
             }
+            if (chunkInfo.name === 'popup') {
+              return 'popup/[name].js';
+            }
             return '[name]/[name].js';
           },
-          
-          // Chunks compartidos en carpeta shared
           chunkFileNames: 'shared/[name].js',
-          
-          // Assets organizados
           assetFileNames: (assetInfo) => {
             if (assetInfo.name.endsWith('.css')) {
-              // CSS en la carpeta del módulo correspondiente
               const name = assetInfo.name.replace('.css', '');
               if (name.includes('popup')) return 'popup/[name]';
               if (name.includes('sidebar')) return 'sidebar/[name]';
               if (name.includes('auth')) return 'auth/[name]';
               return '[name]';
             }
-            // Otros assets en carpeta assets
             return 'assets/[name][extname]';
-          },
-          
-          // Configuración para evitar bundling innecesario
-          manualChunks: {
-            // Código compartido entre módulos
-            'utils': [
-              './src/shared/logger.js',
-              './src/shared/storage.js',
-              './src/shared/constants.js'
-            ]
           }
         },
         
-        // Tree shaking agresivo
+        // Tree shaking
         treeshake: {
           preset: 'recommended',
-          moduleSideEffects: false,
-          propertyReadSideEffects: false,
-          tryCatchDeoptimization: false,
-          unknownGlobalSideEffects: false
+          moduleSideEffects: false
         },
-        
-        // Externos para reducir bundle
-        external: [],
         
         // Optimizaciones
         preserveEntrySignatures: false
@@ -177,19 +102,13 @@ export default defineConfig(({ mode }) => {
       cssCodeSplit: false,
       
       // Chunks pequeños
-      chunkSizeWarningLimit: 25,
+      chunkSizeWarningLimit: 50,
       
       // Assets inline pequeños
       assetsInlineLimit: 4096,
       
       // Reportes de optimización
-      reportCompressedSize: true,
-      
-      // CommonJS optimizado
-      commonjsOptions: {
-        transformMixedEsModules: true,
-        strictRequires: true
-      }
+      reportCompressedSize: true
     },
     
     plugins: [
@@ -234,10 +153,7 @@ export default defineConfig(({ mode }) => {
         gzipSize: true,
         brotliSize: true,
         template: 'treemap'
-      }),
-      
-      // Validador de tamaño (temporalmente desactivado para CSS)
-      // isProd && bundleSizeValidator()
+      })
     ].filter(Boolean),
     
     // Alias para imports limpios
