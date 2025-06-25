@@ -8,6 +8,7 @@ import { logger } from '@shared/logger.js';
 // DOM elements
 const errorMessage = document.getElementById('error-message');
 const errorText = document.getElementById('error-text');
+const retryButton = document.getElementById('retry-button');
 
 /**
  * Show error message in UI
@@ -57,6 +58,13 @@ async function handleCallback() {
     logger.error('OAuth callback failed', error);
     showErrorMessage(error.message || 'Error durante la autenticación');
   }
+}
+
+// Setup event listeners
+if (retryButton) {
+  retryButton.addEventListener('click', () => {
+    window.location.href = 'login.html';
+  });
 }
 
 // Handle callback on page load

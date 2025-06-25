@@ -385,14 +385,14 @@ class NotificationManager {
         const button = document.createElement('button');
         button.className = `kitia-notification-action ${action.primary ? 'kitia-notification-action-primary' : ''}`;
         button.textContent = this.sanitizeText(action.label);
-        button.onclick = () => {
+        button.addEventListener('click', () => {
           if (action.callback) {
             action.callback();
           }
           if (action.dismiss !== false) {
             this.dismiss(notification.id);
           }
-        };
+        });
         actions.appendChild(button);
       });
 
@@ -406,7 +406,7 @@ class NotificationManager {
     closeBtn.className = 'kitia-notification-close';
     closeBtn.setAttribute('aria-label', 'Cerrar notificación');
     closeBtn.innerHTML = '×';
-    closeBtn.onclick = () => this.dismiss(notification.id);
+    closeBtn.addEventListener('click', () => this.dismiss(notification.id));
     element.appendChild(closeBtn);
 
     // Barra de progreso para auto-dismiss

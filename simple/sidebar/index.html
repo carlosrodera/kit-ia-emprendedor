@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kit IA Emprendedor - Sidebar</title>
+  <style>
+    :root {
+      --bg-primary: #0f0f0f;
+      --bg-secondary: #1a1a1a;
+      --bg-hover: #262626;
+      --text-primary: #e3e3e3;
+      --text-secondary: #a0a0a0;
+      --border-color: #2d2d2d;
+      --accent-color: #4F46E5;
+      --accent-hover: #6366F1;
+      --success-color: #10B981;
+      --error-color: #EF4444;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      height: 100vh;
+      overflow: hidden;
+      font-size: 14px;
+    }
+    
+    /* Scrollbar personalizada */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: var(--bg-secondary);
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+      border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+      background: #404040;
+    }
+    
+    .sidebar-container {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      position: relative;
+    }
+    
+    /* Resize handle */
+    .resize-handle {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 4px;
+      height: 100%;
+      background: transparent;
+      cursor: ew-resize;
+      z-index: 10;
+    }
+    
+    .resize-handle:hover,
+    .resize-handle.dragging {
+      background: var(--accent-color);
+    }
+    
+    .sidebar-header {
+      padding: 16px 20px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+    }
+    
+    .logo {
+      width: 28px;
+      height: 28px;
+      background: var(--accent-color);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    
+    .logo svg {
+      width: 16px;
+      height: 16px;
+      color: white;
+    }
+    
+    .sidebar-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .icon-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 6px;
+      color: var(--text-secondary);
+      border-radius: 6px;
+      transition: all 0.2s;
+    }
+    
+    .icon-btn:hover {
+      color: var(--text-primary);
+      background: var(--bg-hover);
+    }
+    
+    .icon-btn svg {
+      width: 18px;
+      height: 18px;
+    }
+    
+    /* Search bar */
+    .search-container {
+      padding: 12px 20px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .search-input {
+      width: 100%;
+      padding: 8px 12px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      color: var(--text-primary);
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    
+    .search-input:focus {
+      outline: none;
+      border-color: var(--accent-color);
+    }
+    
+    .search-input::placeholder {
+      color: var(--text-secondary);
+    }
+    
+    /* Tabs */
+    .tabs-container {
+      display: flex;
+      padding: 0 12px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      gap: 2px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    
+    .tabs-container::-webkit-scrollbar {
+      display: none;
+    }
+    
+    .tab {
+      padding: 8px 12px;
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      position: relative;
+      transition: all 0.2s;
+      white-space: nowrap;
+      flex-shrink: 0;
+      min-width: fit-content;
+    }
+    
+    @media (max-width: 400px) {
+      .tab {
+        padding: 6px 8px;
+        font-size: 11px;
+      }
+    }
+    
+    .tab:hover {
+      color: var(--text-primary);
+    }
+    
+    .tab.active {
+      color: var(--text-primary);
+    }
+    
+    .tab.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--accent-color);
+    }
+    
+    .toolbar {
+      padding: 8px 20px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+    }
+    
+    .view-toggle {
+      display: flex;
+      background: var(--bg-primary);
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      overflow: hidden;
+    }
+    
+    .view-btn {
+      background: none;
+      border: none;
+      padding: 6px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .view-btn:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+    
+    .view-btn.active {
+      background: var(--accent-color);
+      color: white;
+    }
+    
+    .sidebar-content {
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+    }
+    
+    .placeholder-message {
+      color: var(--text-secondary);
+      text-align: center;
+      margin-top: 48px;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 400px) {
+      .sidebar-header {
+        padding: 12px 16px;
+      }
+      
+      .search-container {
+        padding: 8px 16px;
+      }
+      
+      .toolbar {
+        padding: 6px 16px;
+      }
+      
+      .sidebar-content {
+        padding: 12px;
+      }
+      
+      .sidebar-title {
+        font-size: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar-container">
+    <div class="resize-handle" id="resize-handle"></div>
+    
+    <header class="sidebar-header">
+      <div class="header-left">
+        <div class="logo">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <h1 class="sidebar-title">Kit IA Emprendedor</h1>
+      </div>
+      <div class="header-actions">
+        <button class="icon-btn" id="minimize-btn" title="Minimizar">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <button class="icon-btn" id="close-sidebar-btn" title="Cerrar">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+    
+    <div class="search-container">
+      <input type="text" class="search-input" placeholder="Buscar GPTs..." id="search-input">
+    </div>
+    
+    <div class="tabs-container">
+      <button class="tab active" data-tab="all">Todos</button>
+      <button class="tab" data-tab="favorites">Favoritos</button>
+      <button class="tab" data-tab="recent">Recientes</button>
+      <button class="tab" data-tab="prompts">Mis Prompts</button>
+    </div>
+    
+    <div class="toolbar">
+      <div class="view-toggle">
+        <button class="view-btn active" data-view="grid" title="Vista tarjetas">
+          <svg viewBox="0 0 24 24" fill="none" width="16" height="16">
+            <rect x="3" y="3" width="7" height="7" stroke="currentColor" stroke-width="2"/>
+            <rect x="14" y="3" width="7" height="7" stroke="currentColor" stroke-width="2"/>
+            <rect x="3" y="14" width="7" height="7" stroke="currentColor" stroke-width="2"/>
+            <rect x="14" y="14" width="7" height="7" stroke="currentColor" stroke-width="2"/>
+          </svg>
+        </button>
+        <button class="view-btn" data-view="list" title="Vista lista">
+          <svg viewBox="0 0 24 24" fill="none" width="16" height="16">
+            <path d="M3 12H21M3 6H21M3 18H21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+    
+    <main class="sidebar-content" id="sidebar-content">
+      <div class="loading-state">
+        <p class="placeholder-message">
+          Cargando GPTs...
+        </p>
+      </div>
+    </main>
+  </div>
+  <script src="sidebar.js"></script>
+</body>
+</html>

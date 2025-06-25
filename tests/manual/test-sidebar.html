@@ -98,13 +98,13 @@
   
   <div class="test-section">
     <h2>🎯 Acciones de Prueba</h2>
-    <button class="test-button" onclick="alert('Click normal funciona')">
+    <button class="test-button" id="test-click-normal">
       Test Click Normal
     </button>
-    <button class="test-button" onclick="console.log('Console log test')">
+    <button class="test-button" id="test-console-log">
       Test Console Log
     </button>
-    <button class="test-button" onclick="document.body.style.background = '#f0f0f0'">
+    <button class="test-button" id="test-change-bg">
       Cambiar Background
     </button>
   </div>
@@ -128,6 +128,19 @@
     });
     
     observer.observe(document.body, { childList: true, subtree: true });
+    
+    // Event listeners para los botones de prueba
+    document.getElementById('test-click-normal').addEventListener('click', () => {
+      alert('Click normal funciona');
+    });
+    
+    document.getElementById('test-console-log').addEventListener('click', () => {
+      console.log('Console log test');
+    });
+    
+    document.getElementById('test-change-bg').addEventListener('click', () => {
+      document.body.style.background = '#f0f0f0';
+    });
   </script>
 </body>
 </html>
