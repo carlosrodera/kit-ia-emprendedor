@@ -4,377 +4,474 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Kit IA Emprendedor - Sidebar</title>
-  <link rel="stylesheet" href="styles/sidebar.css">
+  <link rel="stylesheet" href="sidebar-styles.css">
+  <style>
+    :root {
+      --bg-primary: #0f0f0f;
+      --bg-secondary: #1a1a1a;
+      --bg-hover: #262626;
+      --text-primary: #e3e3e3;
+      --text-secondary: #a0a0a0;
+      --border-color: #2d2d2d;
+      --accent-color: #4F46E5;
+      --accent-hover: #6366F1;
+      --success-color: #10B981;
+      --error-color: #EF4444;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      height: 100vh;
+      overflow: hidden;
+      font-size: 14px;
+    }
+    
+    /* Scrollbar personalizada */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: var(--bg-secondary);
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+      border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+      background: #404040;
+    }
+    
+    .sidebar-container {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      position: relative;
+    }
+    
+    /* Resize handle */
+    .resize-handle {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 4px;
+      height: 100%;
+      background: transparent;
+      cursor: ew-resize;
+      z-index: 10;
+    }
+    
+    .resize-handle:hover,
+    .resize-handle.dragging {
+      background: var(--accent-color);
+    }
+    
+    .sidebar-header {
+      padding: 16px 20px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+    }
+    
+    .logo {
+      width: 28px;
+      height: 28px;
+      background: var(--accent-color);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    
+    .logo svg {
+      width: 16px;
+      height: 16px;
+      color: white;
+    }
+    
+    .sidebar-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .icon-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 6px;
+      color: var(--text-secondary);
+      border-radius: 6px;
+      transition: all 0.2s;
+    }
+    
+    .icon-btn:hover {
+      color: var(--text-primary);
+      background: var(--bg-hover);
+    }
+    
+    .icon-btn svg {
+      width: 18px;
+      height: 18px;
+    }
+    
+    /* Search bar */
+    .search-container {
+      padding: 12px 20px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .search-input {
+      width: 100%;
+      padding: 8px 12px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      color: var(--text-primary);
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    
+    .search-input:focus {
+      outline: none;
+      border-color: var(--accent-color);
+    }
+    
+    .search-input::placeholder {
+      color: var(--text-secondary);
+    }
+    
+    /* Tabs */
+    .tabs-container {
+      display: flex;
+      padding: 0 12px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      gap: 2px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    
+    .tabs-container::-webkit-scrollbar {
+      display: none;
+    }
+    
+    .tab {
+      padding: 8px 12px;
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      position: relative;
+      transition: all 0.2s;
+      white-space: nowrap;
+      flex-shrink: 0;
+      min-width: fit-content;
+    }
+    
+    @media (max-width: 400px) {
+      .tab {
+        padding: 6px 8px;
+        font-size: 11px;
+      }
+    }
+    
+    .tab:hover {
+      color: var(--text-primary);
+    }
+    
+    .tab.active {
+      color: var(--text-primary);
+    }
+    
+    .tab.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--accent-color);
+    }
+    
+    .toolbar {
+      padding: 8px 20px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+    }
+    
+    .view-toggle {
+      display: flex;
+      background: var(--bg-primary);
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      overflow: hidden;
+    }
+    
+    .view-btn {
+      background: none;
+      border: none;
+      padding: 6px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .view-btn:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+    
+    .view-btn.active {
+      background: var(--accent-color);
+      color: white;
+    }
+    
+    .sidebar-content {
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+      min-height: 0; /* Permite que el flex item se contraiga */
+    }
+    
+    .placeholder-message {
+      color: var(--text-secondary);
+      text-align: center;
+      margin-top: 48px;
+    }
+    
+    /* Footer */
+    .sidebar-footer {
+      padding: 12px 20px;
+      background: var(--bg-secondary);
+      border-top: 1px solid var(--border-color);
+      flex-shrink: 0;
+    }
+    
+    .footer-content {
+      text-align: center;
+    }
+    
+    .footer-text {
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+    
+    .footer-credits {
+      font-size: 10px;
+      color: var(--text-secondary);
+    }
+    
+    .footer-link {
+      color: var(--accent-color);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    
+    .footer-link:hover {
+      color: var(--accent-hover);
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 400px) {
+      .sidebar-header {
+        padding: 12px 16px;
+      }
+      
+      .search-container {
+        padding: 8px 16px;
+      }
+      
+      .toolbar {
+        padding: 6px 16px;
+      }
+      
+      .sidebar-content {
+        padding: 12px;
+      }
+      
+      .sidebar-title {
+        font-size: 14px;
+      }
+      
+      .footer-text {
+        font-size: 10px;
+      }
+      
+      .footer-credits {
+        font-size: 9px;
+      }
+    }
+    
+    /* Improved responsive design */
+    @media (max-width: 350px) {
+      .sidebar-header {
+        padding: 10px 12px;
+      }
+      
+      .search-container {
+        padding: 6px 12px;
+      }
+      
+      .toolbar {
+        padding: 4px 12px;
+      }
+      
+      .sidebar-content {
+        padding: 8px;
+      }
+      
+      .sidebar-footer {
+        padding: 8px 12px;
+      }
+      
+      .sidebar-title {
+        font-size: 13px;
+      }
+      
+      .tab {
+        padding: 4px 6px;
+        font-size: 10px;
+      }
+    }
+  </style>
 </head>
 <body>
-  <div class="kitia-sidebar" id="kitia-sidebar">
-    <!-- Header -->
-    <header class="kitia-header" role="banner">
-      <div class="kitia-header-brand">
-        <img src="../assets/icons/icon-48.png" alt="Kit IA Emprendedor Logo" class="kitia-logo" width="32" height="32">
-        <h1 class="kitia-title">Kit IA Emprendedor</h1>
+  <div class="sidebar-container">
+    <div class="resize-handle" id="resize-handle"></div>
+    
+    <header class="sidebar-header">
+      <div class="header-left">
+        <div class="logo">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <h1 class="sidebar-title">Kit IA Emprendedor</h1>
       </div>
-      <div class="kitia-header-controls">
-        <button 
-          type="button" 
-          class="kitia-btn-icon kitia-btn-minimize" 
-          id="kitia-minimize-btn"
-          aria-label="Minimizar sidebar"
-          title="Minimizar">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M4 8h8v1H4z"/>
+      <div class="header-actions">
+        <button class="icon-btn notifications-icon" id="notifications-btn" title="Notificaciones">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M10 5C10 3.89543 10.8954 3 12 3C13.1046 3 14 3.89543 14 5C17.3137 5 20 7.68629 20 11V16L22 18V19H2V18L4 16V11C4 7.68629 6.68629 5 10 5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            <path d="M9 19V20C9 21.6569 10.3431 23 12 23C13.6569 23 15 21.6569 15 20V19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <span class="notifications-badge" id="notifications-badge" style="display: none;">0</span>
+        </button>
+        <button class="icon-btn" id="minimize-btn" title="Minimizar">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           </svg>
         </button>
-        <button 
-          type="button" 
-          class="kitia-btn-icon kitia-btn-close" 
-          id="kitia-close-btn"
-          aria-label="Cerrar sidebar"
-          title="Cerrar">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+        <button class="icon-btn" id="close-sidebar-btn" title="Cerrar">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           </svg>
         </button>
       </div>
     </header>
-
-    <!-- Search Bar -->
-    <div class="kitia-search-container" role="search">
-      <input 
-        type="search" 
-        class="kitia-search-input" 
-        id="kitia-search-input"
-        placeholder="Buscar GPTs, prompts..."
-        aria-label="Buscar GPTs y prompts"
-        autocomplete="off">
-      <svg class="kitia-search-icon" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-        <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
-      </svg>
+    
+    <div class="search-container">
+      <input type="text" class="search-input" placeholder="Buscar GPTs..." id="search-input">
     </div>
-
-    <!-- Navigation Tabs -->
-    <nav class="kitia-tabs" role="tablist" aria-label="Navegación principal">
-      <button 
-        type="button"
-        class="kitia-tab kitia-tab-active" 
-        id="kitia-tab-gpts"
-        role="tab"
-        aria-selected="true"
-        aria-controls="kitia-panel-gpts"
-        data-tab="gpts">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-          <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0zM8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13zM8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
-        </svg>
-        <span>GPTs</span>
-      </button>
-      <button 
-        type="button"
-        class="kitia-tab" 
-        id="kitia-tab-prompts"
-        role="tab"
-        aria-selected="false"
-        aria-controls="kitia-panel-prompts"
-        data-tab="prompts">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-          <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5V2zm2-1a1 1 0 0 0-1 1v12.566l4.723-2.482a.5.5 0 0 1 .554 0L13 14.566V2a1 1 0 0 0-1-1H4z"/>
-        </svg>
-        <span>Prompts</span>
-      </button>
-      <button 
-        type="button"
-        class="kitia-tab" 
-        id="kitia-tab-favorites"
-        role="tab"
-        aria-selected="false"
-        aria-controls="kitia-panel-favorites"
-        data-tab="favorites">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-          <path d="M3.612 15.443c-.386.198-.824-.149-.746-.592l.83-4.73L.173 6.765c-.329-.314-.158-.888.283-.95l4.898-.696L7.538.792c.197-.39.73-.39.927 0l2.184 4.327 4.898.696c.441.062.612.636.282.95l-3.522 3.356.83 4.73c.078.443-.36.79-.746.592L8 13.187l-4.389 2.256z"/>
-        </svg>
-        <span>Favoritos</span>
-        <span class="kitia-badge" id="kitia-favorites-count">0</span>
-      </button>
-      <button 
-        type="button"
-        class="kitia-tab" 
-        id="kitia-tab-notifications"
-        role="tab"
-        aria-selected="false"
-        aria-controls="kitia-panel-notifications"
-        data-tab="notifications">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-          <path d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2zm.995-14.901a1 1 0 1 0-1.99 0A5.002 5.002 0 0 0 3 6c0 1.098-.5 6-2 7h14c-1.5-1-2-5.902-2-7 0-2.42-1.72-4.44-4.005-4.901z"/>
-        </svg>
-        <span>Notificaciones</span>
-        <span class="kitia-badge kitia-badge-alert" id="kitia-notifications-count" hidden>0</span>
-      </button>
-    </nav>
-
-    <!-- Content Area -->
-    <main class="kitia-content" role="main">
-      <!-- GPTs Panel -->
-      <div class="kitia-panel kitia-panel-active" id="kitia-panel-gpts" role="tabpanel" aria-labelledby="kitia-tab-gpts">
-        <!-- Toolbar with category filter and view toggle -->
-        <div class="kitia-toolbar" id="kitia-toolbar">
-          <div class="kitia-toolbar-left">
-            <select class="kitia-category-filter" id="kitia-category-filter" aria-label="Filtrar por categoría">
-              <option value="all">Todas las categorías</option>
-              <option value="productivity">Productividad</option>
-              <option value="creative">Creatividad</option>
-              <option value="development">Desarrollo</option>
-              <option value="writing">Escritura</option>
-              <option value="research">Investigación</option>
-              <option value="education">Educación</option>
-              <option value="business">Negocios</option>
-            </select>
-          </div>
-          <div class="kitia-toolbar-right">
-            <div class="kitia-view-toggle" role="group" aria-label="Cambiar vista">
-              <button 
-                type="button" 
-                class="kitia-view-btn kitia-view-btn-active" 
-                id="kitia-view-grid"
-                data-view="grid"
-                aria-label="Vista de cuadrícula"
-                title="Vista de cuadrícula">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                  <path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3zM2.5 2a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3zm6.5.5A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5v-3zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3zM1 10.5A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5v-3zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3zm6.5.5A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 13.5v-3zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3z"/>
-                </svg>
-              </button>
-              <button 
-                type="button" 
-                class="kitia-view-btn" 
-                id="kitia-view-list"
-                data-view="list"
-                aria-label="Vista de lista"
-                title="Vista de lista">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                  <path fill-rule="evenodd" d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5z"/>
-                </svg>
-              </button>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Skeleton Loader -->
-        <div class="kitia-skeleton-container" id="kitia-gpts-skeleton">
-          <div class="kitia-skeleton-item">
-            <div class="kitia-skeleton-avatar"></div>
-            <div class="kitia-skeleton-content">
-              <div class="kitia-skeleton-title"></div>
-              <div class="kitia-skeleton-text"></div>
-            </div>
-          </div>
-          <div class="kitia-skeleton-item">
-            <div class="kitia-skeleton-avatar"></div>
-            <div class="kitia-skeleton-content">
-              <div class="kitia-skeleton-title"></div>
-              <div class="kitia-skeleton-text"></div>
-            </div>
-          </div>
-          <div class="kitia-skeleton-item">
-            <div class="kitia-skeleton-avatar"></div>
-            <div class="kitia-skeleton-content">
-              <div class="kitia-skeleton-title"></div>
-              <div class="kitia-skeleton-text"></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- GPTs List (will be populated by JS) -->
-        <div class="kitia-list" id="kitia-gpts-list" hidden></div>
-
-        <!-- Empty State -->
-        <div class="kitia-empty-state" id="kitia-gpts-empty" hidden>
-          <svg width="48" height="48" viewBox="0 0 16 16" fill="currentColor" opacity="0.3">
-            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
-            <path d="M7.002 11a1 1 0 1 1 2 0 1 1 0 0 1-2 0zM7.1 4.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 4.995z"/>
+    
+    <div class="tabs-container">
+      <button class="tab active" data-tab="all">Todos</button>
+      <button class="tab" data-tab="favorites">Favoritos</button>
+      <button class="tab" data-tab="prompts">Mis Prompts</button>
+    </div>
+    
+    <div class="toolbar">
+      <div class="view-toggle">
+        <button class="view-btn active" data-view="grid" title="Vista tarjetas">
+          <svg viewBox="0 0 24 24" fill="none" width="16" height="16">
+            <rect x="3" y="3" width="7" height="7" stroke="currentColor" stroke-width="2"/>
+            <rect x="14" y="3" width="7" height="7" stroke="currentColor" stroke-width="2"/>
+            <rect x="3" y="14" width="7" height="7" stroke="currentColor" stroke-width="2"/>
+            <rect x="14" y="14" width="7" height="7" stroke="currentColor" stroke-width="2"/>
           </svg>
-          <p>No se encontraron GPTs oficiales</p>
+        </button>
+        <button class="view-btn" data-view="list" title="Vista lista">
+          <svg viewBox="0 0 24 24" fill="none" width="16" height="16">
+            <path d="M3 12H21M3 6H21M3 18H21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+    
+    <!-- Zona de Filtros -->
+    <div class="filter-zone" id="filter-zone">
+      <button class="filter-toggle" id="filter-toggle">
+        <div class="filter-toggle-content">
+          <svg class="filter-toggle-icon" viewBox="0 0 24 24" fill="none" width="16" height="16">
+            <path d="M19 9L12 16L5 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span>Filtros</span>
+          <span class="filter-count" id="active-filters-count" style="display: none;">0</span>
+        </div>
+        <span style="font-size: 12px; color: var(--text-secondary);">Categorías y Etiquetas</span>
+      </button>
+      <div class="filter-dropdown" id="filter-dropdown">
+        <div class="filter-content" id="filter-content">
+          <!-- Los filtros se cargarán dinámicamente -->
         </div>
       </div>
-
-      <!-- Prompts Panel -->
-      <div class="kitia-panel" id="kitia-panel-prompts" role="tabpanel" aria-labelledby="kitia-tab-prompts" hidden>
-        <!-- Prompts Header -->
-        <div class="kitia-panel-header">
-          <button type="button" class="kitia-btn kitia-btn-primary" id="kitia-create-prompt-btn">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2z"/>
-            </svg>
-            Crear Prompt
-          </button>
-        </div>
-
-        <!-- Local Storage Notice -->
-        <div class="kitia-notice kitia-notice-info">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
-            <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
-          </svg>
-          <p>Los prompts se guardan localmente en tu navegador</p>
-        </div>
-
-        <!-- Prompts List (will be populated by JS) -->
-        <div class="kitia-list" id="kitia-prompts-list"></div>
-
-        <!-- Empty State -->
-        <div class="kitia-empty-state" id="kitia-prompts-empty">
-          <svg width="48" height="48" viewBox="0 0 16 16" fill="currentColor" opacity="0.3">
-            <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5V2zm2-1a1 1 0 0 0-1 1v12.566l4.723-2.482a.5.5 0 0 1 .554 0L13 14.566V2a1 1 0 0 0-1-1H4z"/>
-          </svg>
-          <p>No tienes prompts guardados</p>
-          <button type="button" class="kitia-btn kitia-btn-secondary" id="kitia-create-first-prompt-btn">
-            Crear tu primer prompt
-          </button>
-        </div>
-      </div>
-
-      <!-- Favorites Panel -->
-      <div class="kitia-panel" id="kitia-panel-favorites" role="tabpanel" aria-labelledby="kitia-tab-favorites" hidden>
-        <!-- Favorites List (will be populated by JS) -->
-        <div class="kitia-list" id="kitia-favorites-list"></div>
-
-        <!-- Empty State -->
-        <div class="kitia-empty-state" id="kitia-favorites-empty">
-          <svg width="48" height="48" viewBox="0 0 16 16" fill="currentColor" opacity="0.3">
-            <path d="M3.612 15.443c-.386.198-.824-.149-.746-.592l.83-4.73L.173 6.765c-.329-.314-.158-.888.283-.95l4.898-.696L7.538.792c.197-.39.73-.39.927 0l2.184 4.327 4.898.696c.441.062.612.636.282.95l-3.522 3.356.83 4.73c.078.443-.36.79-.746.592L8 13.187l-4.389 2.256z"/>
-          </svg>
-          <p>No tienes favoritos guardados</p>
-          <p class="kitia-text-secondary">Marca GPTs y prompts como favoritos para acceder rápidamente</p>
-        </div>
-      </div>
-
-      <!-- Notifications Panel -->
-      <div class="kitia-panel" id="kitia-panel-notifications" role="tabpanel" aria-labelledby="kitia-tab-notifications" hidden>
-        <!-- Notifications List (will be populated by JS) -->
-        <div class="kitia-list" id="kitia-notifications-list"></div>
-
-        <!-- Empty State -->
-        <div class="kitia-empty-state" id="kitia-notifications-empty">
-          <svg width="48" height="48" viewBox="0 0 16 16" fill="currentColor" opacity="0.3">
-            <path d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2zm.995-14.901a1 1 0 1 0-1.99 0A5.002 5.002 0 0 0 3 6c0 1.098-.5 6-2 7h14c-1.5-1-2-5.902-2-7 0-2.42-1.72-4.44-4.005-4.901z"/>
-          </svg>
-          <p>No tienes notificaciones</p>
-          <p class="kitia-text-secondary">Recibirás notificaciones sobre nuevos GPTs y actualizaciones</p>
-        </div>
+    </div>
+    
+    <main class="sidebar-content" id="sidebar-content">
+      <div class="loading-state">
+        <p class="placeholder-message">
+          Cargando GPTs...
+        </p>
       </div>
     </main>
-
-    <!-- Footer -->
-    <footer class="kitia-footer" role="contentinfo">
-      <div class="kitia-footer-info">
-        <span class="kitia-version">v1.0.0 LITE</span>
-        <span class="kitia-separator">•</span>
-        <a href="#" class="kitia-link" id="kitia-help-link">Ayuda</a>
-        <span class="kitia-separator">•</span>
-        <a href="#" class="kitia-link" id="kitia-feedback-link">Feedback</a>
-      </div>
-      <div class="kitia-footer-credits">
-        <span>Made with ☕ by <a href="https://carlosrodera.com" class="kitia-credits-link" target="_blank" rel="noopener noreferrer">Carlos Rodera</a></span>
+    
+    <footer class="sidebar-footer">
+      <div class="footer-content">
+        <p class="footer-text">Kit IA Emprendedor v0.4.3</p>
+        <p class="footer-credits">Creado por <a href="#" class="footer-link">Carlos Rodera</a></p>
       </div>
     </footer>
   </div>
-
-  <!-- Create/Edit Prompt Modal -->
-  <div class="kitia-modal" id="kitia-prompt-modal" role="dialog" aria-modal="true" aria-labelledby="kitia-prompt-modal-title" hidden>
-    <div class="kitia-modal-backdrop" id="kitia-prompt-modal-backdrop"></div>
-    <div class="kitia-modal-content">
-      <div class="kitia-modal-header">
-        <h2 class="kitia-modal-title" id="kitia-prompt-modal-title">Crear Prompt</h2>
-        <button 
-          type="button" 
-          class="kitia-btn-icon kitia-modal-close" 
-          id="kitia-prompt-modal-close"
-          aria-label="Cerrar modal">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
-          </svg>
-        </button>
-      </div>
-      <form class="kitia-modal-body" id="kitia-prompt-form">
-        <div class="kitia-form-group">
-          <label for="kitia-prompt-title" class="kitia-label">Título del Prompt</label>
-          <input 
-            type="text" 
-            class="kitia-input" 
-            id="kitia-prompt-title"
-            name="title"
-            required
-            maxlength="100"
-            placeholder="Ej: Generador de ideas de negocio">
-        </div>
-        <div class="kitia-form-group">
-          <label for="kitia-prompt-category" class="kitia-label">Categoría</label>
-          <select class="kitia-select" id="kitia-prompt-category" name="category" required>
-            <option value="">Selecciona una categoría</option>
-            <option value="marketing">Marketing</option>
-            <option value="ventas">Ventas</option>
-            <option value="productividad">Productividad</option>
-            <option value="creatividad">Creatividad</option>
-            <option value="analisis">Análisis</option>
-            <option value="otros">Otros</option>
-          </select>
-        </div>
-        <div class="kitia-form-group">
-          <label for="kitia-prompt-content" class="kitia-label">Contenido del Prompt</label>
-          <textarea 
-            class="kitia-textarea" 
-            id="kitia-prompt-content"
-            name="content"
-            required
-            rows="6"
-            maxlength="5000"
-            placeholder="Escribe tu prompt aquí..."></textarea>
-          <div class="kitia-character-count">
-            <span id="kitia-prompt-char-count">0</span> / 5000
-          </div>
-        </div>
-        <div class="kitia-form-group">
-          <label for="kitia-prompt-tags" class="kitia-label">
-            Etiquetas
-            <span class="kitia-label-optional">(opcional)</span>
-          </label>
-          <input 
-            type="text" 
-            class="kitia-input" 
-            id="kitia-prompt-tags"
-            name="tags"
-            placeholder="Ej: ideas, negocios, estrategia (separadas por comas)">
-        </div>
-      </form>
-      <div class="kitia-modal-footer">
-        <button type="button" class="kitia-btn kitia-btn-secondary" id="kitia-prompt-cancel">
-          Cancelar
-        </button>
-        <button type="submit" class="kitia-btn kitia-btn-primary" id="kitia-prompt-save" form="kitia-prompt-form">
-          Guardar Prompt
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Confirmation Modal -->
-  <div class="kitia-modal kitia-modal-small" id="kitia-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="kitia-confirm-title" hidden>
-    <div class="kitia-modal-backdrop" id="kitia-confirm-backdrop"></div>
-    <div class="kitia-modal-content">
-      <div class="kitia-modal-header">
-        <h2 class="kitia-modal-title" id="kitia-confirm-title">Confirmar acción</h2>
-      </div>
-      <div class="kitia-modal-body">
-        <p id="kitia-confirm-message">¿Estás seguro de realizar esta acción?</p>
-      </div>
-      <div class="kitia-modal-footer">
-        <button type="button" class="kitia-btn kitia-btn-secondary" id="kitia-confirm-cancel">
-          Cancelar
-        </button>
-        <button type="button" class="kitia-btn kitia-btn-danger" id="kitia-confirm-action">
-          Confirmar
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <script type="module" src="sidebar.js"></script>
+  <script type="module" src="./sidebar.js"></script>
 </body>
 </html>

@@ -1,6 +1,4 @@
 // Content Script para Kit IA Emprendedor
-// Este archivo NO usa imports ES6 para compatibilidad con Chrome Extensions
-
 (function() {
   'use strict';
 
@@ -72,7 +70,7 @@
     
     button.style.cssText = `
       position: fixed;
-      bottom: 20px;
+      bottom: 100px;
       right: 20px;
       width: 50px;
       height: 50px;
@@ -128,14 +126,20 @@
       sidebarState.isOpen = false;
       document.body.style.marginRight = '0';
 
-      // Actualizar botón
+      // Actualizar botón y asegurar que permanezca visible
       if (sidebarState.floatingButton) {
         sidebarState.floatingButton.style.backgroundColor = '#4F46E5';
+        sidebarState.floatingButton.style.display = 'flex'; // Asegurar que permanezca visible
         sidebarState.floatingButton.innerHTML = `
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M3 12H21M3 6H21M3 18H21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           </svg>
         `;
+      }
+      
+      // Si no existe el botón flotante, recrearlo
+      if (!sidebarState.floatingButton || !document.body.contains(sidebarState.floatingButton)) {
+        createFloatingButton();
       }
     }
 
@@ -165,6 +169,30 @@
       case 'OPEN_URL':
         if (data && data.url) {
           window.open(data.url, '_blank');
+        }
+        break;
+      case 'NAVIGATE_URL':
+        if (data && data.url) {
+          window.location.href = data.url;
+        }
+        break;
+      case 'RESIZE_SIDEBAR':
+        if (data && data.width && sidebarState.container) {
+          const newWidth = Math.min(Math.max(data.width, SIDEBAR_CONFIG.MIN_WIDTH), SIDEBAR_CONFIG.MAX_WIDTH);
+          sidebarState.container.style.width = newWidth + 'px';
+          
+          // Solo actualizar margin si el sidebar está abierto
+          if (sidebarState.isOpen && window.innerWidth > 768) {
+            document.body.style.marginRight = newWidth + 'px';
+          }
+          
+          // Actualizar configuración
+          SIDEBAR_CONFIG.WIDTH = newWidth;
+        }
+        break;
+      case 'INSERT_PROMPT':
+        if (data && data.prompt) {
+          insertPromptInTextarea(data.prompt);
         }
         break;
     }
@@ -206,6 +234,46 @@
       toggleSidebar();
     }
   });
+
+  // Función para insertar prompt en ChatGPT
+  function insertPromptInTextarea(prompt) {
+    // Buscar el textarea de ChatGPT
+    const textarea = document.querySelector('#prompt-textarea') || 
+                    document.querySelector('textarea[placeholder*="Message"]') || 
+                    document.querySelector('textarea[data-id="root"]') ||
+                    document.querySelector('[contenteditable="true"]');
+    
+    if (textarea) {
+      // Si es un textarea normal
+      if (textarea.tagName === 'TEXTAREA') {
+        textarea.value = prompt;
+        textarea.dispatchEvent(new Event('input', { bubbles: true }));
+        textarea.focus();
+      } 
+      // Si es un div contenteditable (como ChatGPT)
+      else if (textarea.contentEditable === 'true') {
+        textarea.textContent = prompt;
+        
+        // Disparar eventos para que ChatGPT detecte el cambio
+        textarea.dispatchEvent(new Event('input', { bubbles: true }));
+        textarea.dispatchEvent(new Event('focus', { bubbles: true }));
+        
+        // Poner el cursor al final
+        const range = document.createRange();
+        const selection = window.getSelection();
+        range.selectNodeContents(textarea);
+        range.collapse(false);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        
+        textarea.focus();
+      }
+      
+      console.log('Prompt insertado en ChatGPT');
+    } else {
+      console.warn('No se encontró el textarea de ChatGPT');
+    }
+  }
 
   // Cleanup al descargar
   window.addEventListener('unload', () => {

@@ -1,59 +1,55 @@
 {
   "manifest_version": 3,
   "name": "Kit IA Emprendedor",
-  "version": "0.1.0",
-  "description": "Gestiona tus GPTs oficiales del Kit IA Emprendedor de forma rápida y eficiente",
+  "version": "0.4.3",
+  "description": "Tu asistente personal para acceder rápidamente a los mejores GPTs oficiales",
   "author": "Carlos Rodera",
   
   "permissions": [
+    "activeTab",
     "storage",
-    "tabs",
-    "activeTab"
+    "scripting",
+    "clipboardWrite"
   ],
   
   "host_permissions": [
-    "https://*.supabase.co/*"
+    "http://*/*",
+    "https://*/*"
   ],
   
   "background": {
     "service_worker": "background/service-worker.js"
   },
   
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "assets/icon-16.png",
+      "32": "assets/icon-32.png",
+      "48": "assets/icon-48.png",
+      "128": "assets/icon-128.png"
+    }
+  },
+  
+  "icons": {
+    "16": "assets/icon-16.png",
+    "32": "assets/icon-32.png",
+    "48": "assets/icon-48.png",
+    "128": "assets/icon-128.png"
+  },
+  
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
       "js": ["content/content-script.js"],
-      "run_at": "document_idle",
-      "all_frames": false
+      "run_at": "document_idle"
     }
   ],
-  
-  "action": {
-    "default_popup": "popup/popup.html",
-    "default_icon": {
-      "16": "assets/icons/icon-16.png",
-      "32": "assets/icons/icon-32.png",
-      "48": "assets/icons/icon-48.png",
-      "128": "assets/icons/icon-128.png"
-    },
-    "default_title": "Kit IA Emprendedor"
-  },
-  
-  "icons": {
-    "16": "assets/icons/icon-16.png",
-    "32": "assets/icons/icon-32.png",
-    "48": "assets/icons/icon-48.png",
-    "128": "assets/icons/icon-128.png"
-  },
   
   "web_accessible_resources": [
     {
       "resources": [
-        "sidebar/index.html",
-        "sidebar/styles/sidebar.css",
-        "sidebar/sidebar.js",
-        "auth/login.html",
-        "auth/callback.html",
+        "sidebar/*",
         "assets/*"
       ],
       "matches": ["<all_urls>"]
@@ -61,18 +57,16 @@
   ],
   
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self';"
+    "extension_pages": "script-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self';"
   },
   
   "commands": {
     "toggle-sidebar": {
       "suggested_key": {
-        "default": "Alt+Shift+K",
-        "mac": "Alt+Shift+K"
+        "default": "Ctrl+Shift+K",
+        "mac": "Command+Shift+K"
       },
-      "description": "Mostrar/ocultar el panel de Kit IA Emprendedor"
+      "description": "Abrir/cerrar el panel de GPTs"
     }
-  },
-  
-  "minimum_chrome_version": "120"
+  }
 }

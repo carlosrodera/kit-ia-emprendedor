@@ -1,1382 +1,3110 @@
-/**
- * Sidebar Principal JavaScript
- * @module sidebar/sidebar
- */
+// Sidebar JavaScript seguro para Kit IA Emprendedor
+(function() {
+  'use strict';
 
-import { STORAGE_KEYS, DEFAULT_PREFERENCES, MESSAGES } from '../shared/constants.js';
-import { Logger } from '../shared/logger.js';
-import { getNotificationSystem, notify } from './components/notifications.js';
-// TODO: Implementar validateGPT y validatePrompt en validation.js
-// import { validateGPT, validatePrompt } from '../shared/validation.js';
+  // Estado del sidebar
+  const state = {
+    currentTab: 'all',
+    currentView: 'grid',
+    currentCategory: 'all',
+    currentTags: [],
+    gpts: [],
+    favorites: [],
+    recentGpts: [],
+    prompts: [],
+    searchQuery: '',
+    isMinimized: false,
+    allCategories: [],
+    allTags: [],
+    filterDropdownOpen: false,
+    notifications: []
+  };
 
-// Importar datos dummy para testing
-import { DUMMY_GPTS } from '../data/dummy-gpts.js';
+  // Elementos DOM
+  let elements = {};
 
-const logger = new Logger('Sidebar');
-
-/**
- * Estado global del sidebar
- */
-const state = {
-  activeTab: 'gpts',
-  gpts: [],
-  prompts: [],
-  favorites: [],
-  searchQuery: '',
-  filters: {
-    category: 'all',
-    favorites: false
-  },
-  viewMode: 'grid', // 'grid' or 'list'
-  pagination: {
-    page: 1,
-    perPage: 20,
-    loading: false,
-    hasMore: true
-  },
-  draftPrompt: null,
-  notifications: [],
-  selectedPrompts: new Set(),
-  multiSelectMode: false
-};
-
-/**
- * Elementos DOM cacheados
- */
-const elements = {};
-
-/**
- * Inicialización principal
- */
-async function init() {
-  try {
-    logger.info('Inicializando sidebar');
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log('Secure sidebar loaded');
     
     // Cachear elementos DOM
-    cacheElements();
-    
-    // Cargar estado inicial
-    await loadInitialState();
-    
-    // Configurar event listeners
+    elements = {
+      closeBtn: document.getElementById('close-sidebar-btn'),
+      minimizeBtn: document.getElementById('minimize-btn'),
+      searchInput: document.getElementById('search-input'),
+      content: document.getElementById('sidebar-content'),
+      tabs: document.querySelectorAll('.tab'),
+      viewBtns: document.querySelectorAll('.view-btn'),
+      resizeHandle: document.getElementById('resize-handle'),
+      filterToggle: document.getElementById('filter-toggle'),
+      filterDropdown: document.getElementById('filter-dropdown'),
+      filterContent: document.getElementById('filter-content'),
+      activeFiltersCount: document.getElementById('active-filters-count'),
+      notificationsBtn: document.getElementById('notifications-btn'),
+      notificationsBadge: document.getElementById('notifications-badge')
+    };
+
+    // Event listeners
     setupEventListeners();
     
-    // Renderizar UI inicial
-    renderUI();
+    // Verificar dispositivo antes de cargar datos
+    checkDeviceAuthorization();
     
-    // Configurar comunicación con service worker
-    setupMessageHandlers();
-    
-    logger.info('Sidebar inicializado correctamente');
-  } catch (error) {
-    logger.error('Error al inicializar sidebar:', error);
-    showNotification('Error al inicializar la extensión', 'error');
-  }
-}
+    // Configurar resize
+    setupResize();
+  });
 
-/**
- * Cachea elementos DOM para optimizar acceso
- */
-function cacheElements() {
-  // Main containers
-  elements.sidebar = document.getElementById('kitia-sidebar');
-  elements.content = document.querySelector('.kitia-content');
-  
-  // Navigation
-  elements.tabs = document.querySelector('.kitia-tabs');
-  elements.searchInput = document.getElementById('kitia-search-input');
-  
-  // Toolbar
-  elements.categoryFilter = document.getElementById('kitia-category-filter');
-  elements.viewGridBtn = document.getElementById('kitia-view-grid');
-  elements.viewListBtn = document.getElementById('kitia-view-list');
-  
-  // Panels
-  elements.gptsList = document.getElementById('kitia-gpts-list');
-  elements.promptsList = document.getElementById('kitia-prompts-list');
-  elements.favoritesList = document.getElementById('kitia-favorites-list');
-  elements.notificationsList = document.getElementById('kitia-notifications-list');
-  
-  // Empty states
-  elements.gptsEmpty = document.getElementById('kitia-gpts-empty');
-  elements.promptsEmpty = document.getElementById('kitia-prompts-empty');
-  elements.favoritesEmpty = document.getElementById('kitia-favorites-empty');
-  elements.notificationsEmpty = document.getElementById('kitia-notifications-empty');
-  
-  // Skeleton loader
-  elements.gptsSkeleton = document.getElementById('kitia-gpts-skeleton');
-  
-  // Modals
-  elements.promptModal = document.getElementById('kitia-prompt-modal');
-  elements.promptForm = document.getElementById('kitia-prompt-form');
-  
-  // Buttons
-  elements.minimizeBtn = document.getElementById('kitia-minimize-btn');
-  elements.closeBtn = document.getElementById('kitia-close-btn');
-}
+  function setupEventListeners() {
+    // Botón cerrar
+    if (elements.closeBtn) {
+      SecurityUtils.addSafeEventListener(elements.closeBtn, 'click', closeSidebar);
+    }
 
-/**
- * Carga el estado inicial desde storage
- */
-async function loadInitialState() {
-  try {
-    const stored = await chrome.storage.local.get([
-      STORAGE_KEYS.GPTS_CACHE,
-      STORAGE_KEYS.PROMPTS,
-      STORAGE_KEYS.FAVORITES,
-      STORAGE_KEYS.ACTIVE_TAB,
-      STORAGE_KEYS.DRAFT_PROMPT,
-      'kitia_view_mode'
-    ]);
-    
-    // TODO: Cambiar a datos reales cuando esté implementado el backend
-    state.gpts = stored[STORAGE_KEYS.GPTS_CACHE] || DUMMY_GPTS;
-    state.prompts = stored[STORAGE_KEYS.PROMPTS] || [];
-    state.favorites = stored[STORAGE_KEYS.FAVORITES] || [];
-    state.activeTab = stored[STORAGE_KEYS.ACTIVE_TAB] || 'gpts';
-    state.draftPrompt = stored[STORAGE_KEYS.DRAFT_PROMPT] || null;
-    state.viewMode = stored.kitia_view_mode || 'grid';
-    
-    logger.info('Estado inicial cargado:', {
-      gptsCount: state.gpts.length,
-      promptsCount: state.prompts.length,
-      favoritesCount: state.favorites.length,
-      viewMode: state.viewMode
+    // Botón minimizar
+    if (elements.minimizeBtn) {
+      SecurityUtils.addSafeEventListener(elements.minimizeBtn, 'click', toggleMinimize);
+    }
+
+    // Búsqueda
+    if (elements.searchInput) {
+      SecurityUtils.addSafeEventListener(elements.searchInput, 'input', handleSearch);
+    }
+
+    // Tabs
+    elements.tabs.forEach(tab => {
+      SecurityUtils.addSafeEventListener(tab, 'click', handleTabClick);
     });
-  } catch (error) {
-    logger.error('Error al cargar estado inicial:', error);
-  }
-}
-
-/**
- * Configura todos los event listeners
- */
-function setupEventListeners() {
-  // Tabs
-  elements.tabs.addEventListener('click', handleTabClick);
-  
-  // Búsqueda con debounce
-  let searchTimeout;
-  elements.searchInput.addEventListener('input', (e) => {
-    clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(() => {
-      state.searchQuery = e.target.value;
-      filterAndRenderItems();
-    }, 300);
-  });
-  
-  // Category filter
-  elements.categoryFilter?.addEventListener('change', (e) => {
-    state.filters.category = e.target.value;
-    filterAndRenderItems();
-  });
-  
-  // View toggle buttons
-  elements.viewGridBtn?.addEventListener('click', () => setViewMode('grid'));
-  elements.viewListBtn?.addEventListener('click', () => setViewMode('list'));
-  
-  // Minimize and close buttons
-  elements.minimizeBtn?.addEventListener('click', minimizeSidebar);
-  elements.closeBtn?.addEventListener('click', closeSidebar);
-  
-  // Formulario de prompts
-  elements.promptForm.addEventListener('submit', handlePromptSubmit);
-  
-  // Auto-save de drafts
-  const promptTextarea = elements.promptForm.querySelector('textarea');
-  promptTextarea.addEventListener('input', debounce(saveDraft, 1000));
-  
-  // Contador de caracteres
-  promptTextarea.addEventListener('input', updateCharCount);
-  
-  // Infinite scroll
-  elements.gptsList.addEventListener('scroll', handleScroll);
-  
-  // Atajos de teclado
-  document.addEventListener('keydown', handleKeyboardShortcuts);
-  
-  // Toggle sidebar con Escape
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      toggleSidebar();
-    }
-  });
-}
-
-/**
- * Maneja clicks en tabs
- */
-function handleTabClick(e) {
-  const tab = e.target.closest('[data-tab]');
-  if (!tab) return;
-  
-  const tabName = tab.dataset.tab;
-  setActiveTab(tabName);
-}
-
-/**
- * Cambia la tab activa
- */
-function setActiveTab(tabName) {
-  state.activeTab = tabName;
-  
-  // Actualizar UI de tabs
-  document.querySelectorAll('[data-tab]').forEach(tab => {
-    const isActive = tab.dataset.tab === tabName;
-    tab.classList.toggle('kitia-tab-active', isActive);
-    tab.setAttribute('aria-selected', isActive);
-  });
-  
-  // Mostrar/ocultar paneles
-  document.querySelectorAll('.kitia-panel').forEach(panel => {
-    panel.hidden = true;
-  });
-  
-  const activePanel = document.getElementById(`kitia-panel-${tabName}`);
-  if (activePanel) {
-    activePanel.hidden = false;
-  }
-  
-  // Mostrar/ocultar toolbar (solo visible en tab GPTs)
-  const toolbar = document.getElementById('kitia-toolbar');
-  if (toolbar) {
-    toolbar.hidden = tabName !== 'gpts';
-  }
-  
-  // Guardar en storage
-  chrome.storage.local.set({ [STORAGE_KEYS.ACTIVE_TAB]: tabName });
-  
-  // Renderizar contenido según la tab
-  switch (tabName) {
-    case 'gpts':
-      renderGPTs();
-      break;
-    case 'prompts':
-      renderPrompts();
-      break;
-    case 'favorites':
-      renderFavorites();
-      break;
-    case 'notifications':
-      renderNotifications();
-      break;
-  }
-}
-
-/**
- * Renderiza la lista de favoritos
- */
-function renderFavorites() {
-  const favoritedGPTs = state.gpts.filter(gpt => state.favorites.includes(gpt.id));
-  const favoritedPrompts = state.prompts.filter(prompt => state.favorites.includes(prompt.id));
-  
-  if (favoritedGPTs.length === 0 && favoritedPrompts.length === 0) {
-    showEmptyState('favorites');
-    return;
-  }
-  
-  if (elements.favoritesEmpty) elements.favoritesEmpty.hidden = true;
-  if (elements.favoritesList) {
-    elements.favoritesList.hidden = false;
     
-    let html = '';
-    
-    // Renderizar GPTs favoritos
-    if (favoritedGPTs.length > 0) {
-      html += '<h3 class="kitia-section-title">GPTs Favoritos</h3>';
-      html += '<div class="kitia-gpt-list">';
-      html += favoritedGPTs.map(gpt => createGPTCard(gpt)).join('');
-      html += '</div>';
-    }
-    
-    // Renderizar prompts favoritos
-    if (favoritedPrompts.length > 0) {
-      html += '<h3 class="kitia-section-title">Prompts Favoritos</h3>';
-      html += '<div class="kitia-list">';
-      html += favoritedPrompts.map(prompt => createPromptCard(prompt)).join('');
-      html += '</div>';
-    }
-    
-    elements.favoritesList.innerHTML = html;
-    
-    // Añadir listeners
-    addGPTCardListeners();
-    addPromptCardListeners();
-  }
-}
-
-/**
- * Renderiza la lista de notificaciones
- */
-function renderNotifications() {
-  if (state.notifications.length === 0) {
-    if (elements.notificationsEmpty) elements.notificationsEmpty.hidden = false;
-    if (elements.notificationsList) elements.notificationsList.hidden = true;
-    return;
-  }
-  
-  if (elements.notificationsEmpty) elements.notificationsEmpty.hidden = true;
-  if (elements.notificationsList) {
-    elements.notificationsList.hidden = false;
-    // TODO: Implementar renderizado de notificaciones
-  }
-}
-
-/**
- * Filtra y renderiza items según búsqueda y filtros
- */
-function filterAndRenderItems() {
-  if (state.activeTab === 'gpts') {
-    renderGPTs();
-  } else {
-    renderPrompts();
-  }
-}
-
-/**
- * Renderiza lista de GPTs con lazy loading
- */
-async function renderGPTs() {
-  // Ocultar skeleton
-  if (elements.gptsSkeleton) {
-    elements.gptsSkeleton.hidden = true;
-  }
-  
-  const filtered = filterGPTs();
-  
-  if (filtered.length === 0) {
-    showEmptyState('gpts');
-    return;
-  }
-  
-  // Mostrar lista
-  if (elements.gptsEmpty) elements.gptsEmpty.hidden = true;
-  if (elements.gptsList) {
-    elements.gptsList.hidden = false;
-    
-    // Paginación
-    const start = 0;
-    const end = state.pagination.page * state.pagination.perPage;
-    const paginated = filtered.slice(start, end);
-    
-    elements.gptsList.innerHTML = paginated.map(gpt => createGPTCard(gpt)).join('');
-    
-    // Actualizar estado de paginación
-    state.pagination.hasMore = end < filtered.length;
-    
-    // Añadir listeners a las nuevas cards
-    addGPTCardListeners();
-  }
-}
-
-/**
- * Filtra GPTs según búsqueda y filtros
- */
-function filterGPTs() {
-  let filtered = [...state.gpts];
-  
-  // Filtro de búsqueda
-  if (state.searchQuery) {
-    const query = state.searchQuery.toLowerCase();
-    filtered = filtered.filter(gpt => 
-      gpt.name.toLowerCase().includes(query) ||
-      gpt.description?.toLowerCase().includes(query) ||
-      gpt.category?.toLowerCase().includes(query)
-    );
-  }
-  
-  // Filtro de categoría
-  if (state.filters.category !== 'all') {
-    filtered = filtered.filter(gpt => gpt.category === state.filters.category);
-  }
-  
-  // Filtro de favoritos (solo en tab de favoritos)
-  if (state.activeTab === 'favorites') {
-    filtered = filtered.filter(gpt => state.favorites.includes(gpt.id));
-  }
-  
-  return filtered;
-}
-
-/**
- * Obtiene el nombre de categoría para mostrar
- */
-function getCategoryDisplayName(category) {
-  const categoryNames = {
-    productivity: 'Productividad',
-    creative: 'Creatividad',
-    development: 'Desarrollo',
-    writing: 'Escritura',
-    research: 'Investigación',
-    education: 'Educación',
-    business: 'Negocios',
-    other: 'Otros'
-  };
-  
-  return categoryNames[category] || categoryNames.other;
-}
-
-/**
- * Cambia el modo de vista
- */
-function setViewMode(mode) {
-  if (state.viewMode === mode) return;
-  
-  state.viewMode = mode;
-  
-  // Actualizar botones
-  elements.viewGridBtn?.classList.toggle('kitia-view-btn-active', mode === 'grid');
-  elements.viewListBtn?.classList.toggle('kitia-view-btn-active', mode === 'list');
-  
-  // Actualizar clase del contenedor
-  elements.content?.classList.remove('kitia-view-grid', 'kitia-view-list');
-  elements.content?.classList.add(`kitia-view-${mode}`);
-  
-  // Guardar preferencia
-  chrome.storage.local.set({ 'kitia_view_mode': mode });
-  
-  // Re-renderizar si estamos en GPTs
-  if (state.activeTab === 'gpts') {
-    renderGPTs();
-  }
-}
-
-/**
- * Minimiza el sidebar
- */
-function minimizeSidebar() {
-  elements.sidebar?.classList.add('kitia-sidebar--minimized');
-  // Notificar al content script
-  chrome.runtime.sendMessage({ type: 'MINIMIZE_SIDEBAR' });
-}
-
-/**
- * Cierra el sidebar
- */
-function closeSidebar() {
-  elements.sidebar?.classList.remove('kitia-sidebar--open');
-  // Notificar al content script
-  chrome.runtime.sendMessage({ type: 'CLOSE_SIDEBAR' });
-}
-
-/**
- * Crea el HTML de una card de GPT
- */
-function createGPTCard(gpt) {
-  const isFavorite = state.favorites.includes(gpt.id);
-  const categoryName = getCategoryDisplayName(gpt.category);
-  
-  return `
-    <div class="kitia-gpt-card" data-gpt-id="${gpt.id}">
-      <span class="kitia-gpt-card__badge kitia-gpt-card__badge--${gpt.category || 'other'}">
-        ${escapeHtml(categoryName)}
-      </span>
-      <div class="kitia-gpt-card__header">
-        <div class="kitia-gpt-card__icon">
-          ${gpt.icon ? `<img src="${gpt.icon}" alt="${gpt.name}" width="24" height="24">` : `
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-            </svg>
-          `}
-        </div>
-        <div class="kitia-gpt-card__info">
-          <h3 class="kitia-gpt-card__title">${escapeHtml(gpt.name)}</h3>
-          <p class="kitia-gpt-card__description">${escapeHtml(gpt.description || 'Sin descripción')}</p>
-        </div>
-      </div>
-      <div class="kitia-gpt-card__actions">
-        <button class="kitia-gpt-card__button kitia-gpt-card__button--primary use-gpt" data-gpt-id="${gpt.id}">
-          Usar GPT
-        </button>
-        <button class="kitia-btn-icon favorite-btn ${isFavorite ? 'active' : ''}" data-gpt-id="${gpt.id}" title="${isFavorite ? 'Quitar de' : 'Añadir a'} favoritos">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-            <path d="${isFavorite ? 'M3.612 15.443c-.386.198-.824-.149-.746-.592l.83-4.73L.173 6.765c-.329-.314-.158-.888.283-.95l4.898-.696L7.538.792c.197-.39.73-.39.927 0l2.184 4.327 4.898.696c.441.062.612.636.282.95l-3.522 3.356.83 4.73c.078.443-.36.79-.746.592L8 13.187l-4.389 2.256z' : 'M2.866 14.85c-.078.444.36.791.746.593l4.39-2.256 4.389 2.256c.386.198.824-.149.746-.592l-.83-4.73 3.522-3.356c.33-.314.16-.888-.282-.95l-4.898-.696L8.465.792a.513.513 0 0 0-.927 0L5.354 5.12l-4.898.696c-.441.062-.612.636-.283.95l3.523 3.356-.83 4.73zm4.905-2.767-3.686 1.894.694-3.957a.565.565 0 0 0-.163-.505L1.71 6.745l4.052-.576a.525.525 0 0 0 .393-.288L8 2.223l1.847 3.658a.525.525 0 0 0 .393.288l4.052.575-2.906 2.77a.565.565 0 0 0-.163.506l.694 3.957-3.686-1.894a.503.503 0 0 0-.46 0z'}"/>
-          </svg>
-        </button>
-      </div>
-    </div>
-  `;
-}
-
-/**
- * Añade event listeners a las cards de GPT
- */
-function addGPTCardListeners() {
-  // Favoritos
-  document.querySelectorAll('.favorite-btn').forEach(btn => {
-    btn.addEventListener('click', handleFavoriteToggle);
-  });
-  
-  // Abrir GPT
-  document.querySelectorAll('.open-gpt').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const url = e.target.dataset.url;
-      chrome.tabs.create({ url });
+    // View toggle
+    elements.viewBtns.forEach(btn => {
+      SecurityUtils.addSafeEventListener(btn, 'click', handleViewToggle);
     });
-  });
-  
-  // Usar GPT
-  document.querySelectorAll('.use-gpt').forEach(btn => {
-    btn.addEventListener('click', handleUseGPT);
-  });
-}
+    
+    // Filter toggle
+    if (elements.filterToggle) {
+      SecurityUtils.addSafeEventListener(elements.filterToggle, 'click', toggleFilterDropdown);
+    }
+    
+    // Notifications
+    if (elements.notificationsBtn) {
+      SecurityUtils.addSafeEventListener(elements.notificationsBtn, 'click', toggleNotifications);
+    }
+  }
 
-/**
- * Maneja el toggle de favoritos
- */
-async function handleFavoriteToggle(e) {
-  e.stopPropagation();
-  const gptId = e.currentTarget.dataset.gptId;
+  function closeSidebar() {
+    window.parent.postMessage({ type: 'CLOSE_SIDEBAR' }, '*');
+  }
+
+  function toggleMinimize() {
+    state.isMinimized = !state.isMinimized;
+    // TODO: Implementar minimización visual
+    const sidebar = document.getElementById('kit-ia-sidebar');
+    if (sidebar) {
+      sidebar.classList.toggle('minimized', state.isMinimized);
+    }
+  }
+
+  function handleSearch(e) {
+    state.searchQuery = e.target.value.toLowerCase();
+    renderContent();
+  }
+
+  function handleTabClick(e) {
+    const tab = e.currentTarget.dataset.tab;
+    state.currentTab = tab;
+    
+    // Actualizar clases activas
+    elements.tabs.forEach(t => t.classList.remove('active'));
+    e.currentTarget.classList.add('active');
+    
+    renderContent();
+  }
   
-  try {
-    const index = state.favorites.indexOf(gptId);
-    if (index > -1) {
-      state.favorites.splice(index, 1);
-      e.currentTarget.classList.remove('active');
-      showNotification('Eliminado de favoritos', 'info');
+  function handleViewToggle(e) {
+    const view = e.currentTarget.dataset.view;
+    state.currentView = view;
+    
+    // Actualizar clases activas
+    elements.viewBtns.forEach(btn => btn.classList.remove('active'));
+    e.currentTarget.classList.add('active');
+    
+    renderContent();
+  }
+
+  async function checkDeviceAuthorization() {
+    try {
+      // Verificar autenticación y dispositivo
+      const response = await chrome.runtime.sendMessage({ type: 'CHECK_AUTH' });
+      
+      if (!response || !response.success) {
+        showError('Error al verificar autenticación');
+        return;
+      }
+      
+      const { isAuthenticated, deviceAuthorized, deviceInfo } = response.data;
+      
+      if (!isAuthenticated) {
+        showLoginPrompt();
+        return;
+      }
+      
+      if (!deviceAuthorized && deviceInfo) {
+        // Mostrar modal de gestión de dispositivos
+        showDeviceLimitModal(deviceInfo);
+        return;
+      }
+      
+      // Todo OK, cargar datos
+      loadInitialData();
+    } catch (error) {
+      console.error('Error checking device:', error);
+      showError('Error al verificar dispositivo');
+    }
+  }
+
+  async function loadInitialData() {
+    try {
+      // Cargar GPTs
+      const gptsResponse = await chrome.runtime.sendMessage({ type: 'GET_GPTS' });
+      if (gptsResponse?.success) {
+        // Validar datos de GPTs
+        state.gpts = gptsResponse.data.filter(gpt => {
+          const validation = SecurityUtils.validateGPTData(gpt);
+          if (!validation.valid) {
+            SecurityUtils.safeLog('warn', 'Invalid GPT data filtered out', { gpt, errors: validation.errors });
+          }
+          return validation.valid;
+        });
+        
+        // Extraer categorías y tags únicos
+        state.allCategories = [...new Set(state.gpts.map(g => g.category))].sort();
+        state.allTags = [...new Set(state.gpts.flatMap(g => g.tags || []))].sort();
+      }
+
+      // Cargar favoritos
+      const favResponse = await chrome.runtime.sendMessage({ type: 'GET_FAVORITES' });
+      if (favResponse?.success) {
+        state.favorites = favResponse.data || [];
+      }
+
+      // Cargar prompts
+      const promptsResponse = await chrome.runtime.sendMessage({ type: 'GET_PROMPTS' });
+      if (promptsResponse?.success) {
+        state.prompts = promptsResponse.data || [];
+      }
+      
+      // Añadir notificaciones de bienvenida
+      if (state.notifications.length === 0) {
+        addNotification('Bienvenido a Kit IA Emprendedor v0.4.3');
+        addNotification('Nuevo sistema de filtros disponible');
+        updateNotificationsBadge();
+      }
+
+      renderContent();
+    } catch (error) {
+      console.error('Error loading data:', error);
+      showError('Error al cargar los datos');
+    }
+  }
+
+  function renderContent() {
+    // Limpiar contenido
+    if (elements.content) {
+      elements.content.innerHTML = '';
     } else {
-      state.favorites.push(gptId);
-      e.currentTarget.classList.add('active');
-      showNotification('Añadido a favoritos', 'success');
+      SecurityUtils.safeLog('error', 'Content element not found');
+      return;
     }
+
+    let items = [];
+
+    // Filtrar según tab activa
+    switch (state.currentTab) {
+      case 'all':
+        items = state.gpts;
+        break;
+      case 'favorites':
+        items = state.gpts.filter(gpt => state.favorites.includes(gpt.id));
+        break;
+      case 'recent':
+        items = state.recentGpts;
+        break;
+      case 'prompts':
+        renderPrompts();
+        return;
+    }
+
+    // Aplicar búsqueda
+    if (state.searchQuery) {
+      items = items.filter(item => 
+        item.name.toLowerCase().includes(state.searchQuery) ||
+        item.description.toLowerCase().includes(state.searchQuery) ||
+        item.category.toLowerCase().includes(state.searchQuery) ||
+        (item.tags && item.tags.some(tag => tag.toLowerCase().includes(state.searchQuery)))
+      );
+    }
+
+    // Filtrar por categoría
+    if (state.currentCategory !== 'all') {
+      items = items.filter(item => item.category === state.currentCategory);
+    }
+    
+    // Filtrar por tags
+    if (state.currentTags.length > 0) {
+      items = items.filter(item => 
+        item.tags && state.currentTags.every(tag => item.tags.includes(tag))
+      );
+    }
+
+    // Renderizar GPTs
+    if (items.length === 0) {
+      showEmptyState();
+    } else {
+      if (state.currentView === 'grid') {
+        renderGPTGrid(items);
+      } else {
+        renderGPTList(items);
+      }
+    }
+  }
+
+  function renderGPTGrid(items) {
+    const container = SecurityUtils.createElement('div', { className: 'gpt-grid' });
+    
+    items.forEach(gpt => {
+      const card = createGPTCard(gpt);
+      container.appendChild(card);
+    });
+    
+    elements.content.appendChild(container);
+    setupCardListeners();
+  }
+
+  function renderGPTList(items) {
+    const container = SecurityUtils.createElement('div', { className: 'gpt-list' });
+    
+    items.forEach(gpt => {
+      const listItem = createGPTListItem(gpt);
+      container.appendChild(listItem);
+    });
+    
+    elements.content.appendChild(container);
+    setupCardListeners();
+  }
+
+  function createGPTCard(gpt) {
+    const isFavorite = state.favorites.includes(gpt.id);
+    
+    const card = SecurityUtils.createElement('div', { 
+      className: 'gpt-card',
+      attributes: { 'data-gpt-id': gpt.id }
+    });
+    
+    // Icono del GPT
+    const icon = SecurityUtils.createElement('div', { 
+      className: 'gpt-icon',
+      textContent: gpt.icon || '🤖'
+    });
+    
+    // Contenido
+    const content = SecurityUtils.createElement('div', { className: 'gpt-content' });
+    
+    // Header
+    const header = SecurityUtils.createElement('div', { className: 'gpt-header' });
+    const title = SecurityUtils.createElement('h3', { 
+      className: 'gpt-name',
+      textContent: gpt.name 
+    });
+    header.appendChild(title);
+    
+    // Mostrar categoría en lugar de badge oficial
+    if (gpt.category) {
+      const categoryBadge = SecurityUtils.createElement('span', { 
+        className: 'category-badge',
+        textContent: gpt.category
+      });
+      header.appendChild(categoryBadge);
+    }
+    
+    // Descripción
+    const description = SecurityUtils.createElement('p', { 
+      className: 'gpt-description',
+      textContent: gpt.description
+    });
+    
+    // Tags
+    const tagsContainer = SecurityUtils.createElement('div', { className: 'gpt-tags' });
+    if (gpt.tags && gpt.tags.length > 0) {
+      gpt.tags.forEach(tag => {
+        const tagElement = SecurityUtils.createElement('span', { 
+          className: 'tag',
+          textContent: tag
+        });
+        tagsContainer.appendChild(tagElement);
+      });
+    }
+    
+    // Botones de acción
+    const actions = SecurityUtils.createElement('div', { className: 'gpt-actions' });
+    
+    // Botón favorito
+    const favoriteBtn = SecurityUtils.createElement('button', { 
+      className: `favorite-btn ${isFavorite ? 'active' : ''}`,
+      attributes: { 
+        'data-gpt-id': gpt.id,
+        'title': isFavorite ? 'Quitar de favoritos' : 'Añadir a favoritos'
+      }
+    });
+    
+    // SVG para favorito
+    const favIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    favIcon.setAttribute('viewBox', '0 0 24 24');
+    favIcon.setAttribute('fill', isFavorite ? 'currentColor' : 'none');
+    favIcon.setAttribute('width', '16');
+    favIcon.setAttribute('height', '16');
+    
+    const favPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    favPath.setAttribute('d', 'M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z');
+    favPath.setAttribute('stroke', 'currentColor');
+    favPath.setAttribute('stroke-width', '2');
+    favPath.setAttribute('stroke-linejoin', 'round');
+    
+    favIcon.appendChild(favPath);
+    favoriteBtn.appendChild(favIcon);
+    
+    // Botón usar
+    const useBtn = SecurityUtils.createElement('button', { 
+      className: 'action-btn primary',
+      textContent: 'Usar',
+      attributes: { 
+        'data-action': 'use',
+        'data-gpt-id': gpt.id,
+        'title': 'Abrir en esta pestaña'
+      }
+    });
+    
+    // Botón nueva pestaña
+    const newTabBtn = SecurityUtils.createElement('button', { 
+      className: 'action-btn-icon secondary',
+      attributes: { 
+        'data-action': 'newtab',
+        'data-gpt-id': gpt.id,
+        'title': 'Abrir en nueva pestaña'
+      }
+    });
+    
+    // SVG para nueva pestaña
+    const tabIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    tabIcon.setAttribute('viewBox', '0 0 24 24');
+    tabIcon.setAttribute('fill', 'none');
+    tabIcon.setAttribute('width', '16');
+    tabIcon.setAttribute('height', '16');
+    
+    const tabPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    tabPath.setAttribute('d', 'M10 6H6C4.89543 6 4 6.89543 4 8V18C4 19.1046 4.89543 20 6 20H16C17.1046 20 18 19.1046 18 18V14M14 4H20M20 4V10M20 4L10 14');
+    tabPath.setAttribute('stroke', 'currentColor');
+    tabPath.setAttribute('stroke-width', '2');
+    tabPath.setAttribute('stroke-linecap', 'round');
+    tabPath.setAttribute('stroke-linejoin', 'round');
+    
+    tabIcon.appendChild(tabPath);
+    newTabBtn.appendChild(tabIcon);
+    
+    // Ensamblar acciones
+    actions.appendChild(favoriteBtn);
+    actions.appendChild(useBtn);
+    actions.appendChild(newTabBtn);
+    
+    // Ensamblar contenido
+    content.appendChild(header);
+    content.appendChild(description);
+    content.appendChild(tagsContainer);
+    content.appendChild(actions);
+    
+    // Ensamblar card
+    card.appendChild(icon);
+    card.appendChild(content);
+    
+    return card;
+  }
+
+  function createGPTListItem(gpt) {
+    const isFavorite = state.favorites.includes(gpt.id);
+    
+    const listItem = SecurityUtils.createElement('div', { 
+      className: 'gpt-list-item',
+      attributes: { 'data-gpt-id': gpt.id }
+    });
+    
+    // Icono
+    const icon = SecurityUtils.createElement('div', { 
+      className: 'gpt-list-icon',
+      textContent: gpt.icon || '🤖'
+    });
+    
+    // Contenido
+    const content = SecurityUtils.createElement('div', { className: 'gpt-list-content' });
+    
+    // Header
+    const header = SecurityUtils.createElement('div', { className: 'gpt-list-header' });
+    const name = SecurityUtils.createElement('h4', { 
+      className: 'gpt-list-name',
+      textContent: gpt.name
+    });
+    header.appendChild(name);
+    
+    // Mostrar categoría en lugar de badge oficial
+    if (gpt.category) {
+      const categoryBadge = SecurityUtils.createElement('span', { 
+        className: 'category-badge',
+        textContent: gpt.category
+      });
+      header.appendChild(categoryBadge);
+    }
+    
+    // Descripción
+    const description = SecurityUtils.createElement('p', { 
+      className: 'gpt-list-description',
+      textContent: gpt.description
+    });
+    
+    // Tags
+    const tagsContainer = SecurityUtils.createElement('div', { className: 'gpt-tags-small' });
+    if (gpt.tags && gpt.tags.length > 0) {
+      gpt.tags.forEach(tag => {
+        const tagElement = SecurityUtils.createElement('span', { 
+          className: 'tag-small',
+          textContent: tag
+        });
+        tagsContainer.appendChild(tagElement);
+      });
+    }
+    
+    // Ensamblar contenido
+    content.appendChild(header);
+    content.appendChild(description);
+    content.appendChild(tagsContainer);
+    
+    // Acciones
+    const actions = SecurityUtils.createElement('div', { className: 'gpt-list-actions' });
+    
+    // Botón favorito
+    const favoriteBtn = SecurityUtils.createElement('button', { 
+      className: `favorite-btn ${isFavorite ? 'active' : ''}`,
+      attributes: { 
+        'data-gpt-id': gpt.id,
+        'title': isFavorite ? 'Quitar de favoritos' : 'Añadir a favoritos'
+      }
+    });
+    
+    // SVG favorito (igual que antes)
+    const favIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    favIcon.setAttribute('viewBox', '0 0 24 24');
+    favIcon.setAttribute('fill', isFavorite ? 'currentColor' : 'none');
+    favIcon.setAttribute('width', '16');
+    favIcon.setAttribute('height', '16');
+    
+    const favPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    favPath.setAttribute('d', 'M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z');
+    favPath.setAttribute('stroke', 'currentColor');
+    favPath.setAttribute('stroke-width', '2');
+    favPath.setAttribute('stroke-linejoin', 'round');
+    
+    favIcon.appendChild(favPath);
+    favoriteBtn.appendChild(favIcon);
+    
+    // Botón usar
+    const useBtn = SecurityUtils.createElement('button', { 
+      className: 'action-btn-icon primary',
+      attributes: { 
+        'data-action': 'use',
+        'data-gpt-id': gpt.id,
+        'title': 'Abrir en esta pestaña'
+      }
+    });
+    
+    // SVG usar
+    const useIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    useIcon.setAttribute('viewBox', '0 0 24 24');
+    useIcon.setAttribute('fill', 'none');
+    useIcon.setAttribute('width', '16');
+    useIcon.setAttribute('height', '16');
+    
+    const usePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    usePath.setAttribute('d', 'M5 12H19M19 12L12 5M19 12L12 19');
+    usePath.setAttribute('stroke', 'currentColor');
+    usePath.setAttribute('stroke-width', '2');
+    usePath.setAttribute('stroke-linecap', 'round');
+    usePath.setAttribute('stroke-linejoin', 'round');
+    
+    useIcon.appendChild(usePath);
+    useBtn.appendChild(useIcon);
+    
+    // Botón nueva pestaña
+    const newTabBtn = SecurityUtils.createElement('button', { 
+      className: 'action-btn-icon secondary',
+      attributes: { 
+        'data-action': 'newtab',
+        'data-gpt-id': gpt.id,
+        'title': 'Abrir en nueva pestaña'
+      }
+    });
+    
+    // SVG nueva pestaña (igual que antes)
+    const tabIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    tabIcon.setAttribute('viewBox', '0 0 24 24');
+    tabIcon.setAttribute('fill', 'none');
+    tabIcon.setAttribute('width', '16');
+    tabIcon.setAttribute('height', '16');
+    
+    const tabPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    tabPath.setAttribute('d', 'M10 6H6C4.89543 6 4 6.89543 4 8V18C4 19.1046 4.89543 20 6 20H16C17.1046 20 18 19.1046 18 18V14M14 4H20M20 4V10M20 4L10 14');
+    tabPath.setAttribute('stroke', 'currentColor');
+    tabPath.setAttribute('stroke-width', '2');
+    tabPath.setAttribute('stroke-linecap', 'round');
+    tabPath.setAttribute('stroke-linejoin', 'round');
+    
+    tabIcon.appendChild(tabPath);
+    newTabBtn.appendChild(tabIcon);
+    
+    // Ensamblar acciones
+    actions.appendChild(favoriteBtn);
+    actions.appendChild(useBtn);
+    actions.appendChild(newTabBtn);
+    
+    // Ensamblar item
+    listItem.appendChild(icon);
+    listItem.appendChild(content);
+    listItem.appendChild(actions);
+    
+    return listItem;
+  }
+
+  function showEmptyState() {
+    const emptyDiv = SecurityUtils.createElement('div', { className: 'empty-state' });
+    
+    const icon = SecurityUtils.createElement('div', { 
+      className: 'empty-icon',
+      textContent: '🔍'
+    });
+    
+    const title = SecurityUtils.createElement('h3', { 
+      className: 'empty-title',
+      textContent: 'No se encontraron resultados'
+    });
+    
+    const description = SecurityUtils.createElement('p', { 
+      className: 'empty-description',
+      textContent: 'Intenta ajustar tu búsqueda o filtros'
+    });
+    
+    emptyDiv.appendChild(icon);
+    emptyDiv.appendChild(title);
+    emptyDiv.appendChild(description);
+    
+    elements.content.appendChild(emptyDiv);
+  }
+
+  function renderPrompts() {
+    const container = SecurityUtils.createElement('div', { className: 'prompts-container' });
+    
+    // Header con botón añadir
+    const header = SecurityUtils.createElement('div', { className: 'prompts-header' });
+    const title = SecurityUtils.createElement('h3', { 
+      className: 'prompts-title',
+      textContent: 'Mis Prompts'
+    });
+    
+    const addBtn = SecurityUtils.createElement('button', { 
+      className: 'action-btn primary',
+      textContent: 'Añadir Prompt',
+      attributes: { 'data-action': 'add-prompt' }
+    });
+    
+    header.appendChild(title);
+    header.appendChild(addBtn);
+    container.appendChild(header);
+    
+    // Lista de prompts
+    if (state.prompts.length === 0) {
+      const emptyPrompts = SecurityUtils.createElement('div', { className: 'empty-prompts' });
+      const emptyText = SecurityUtils.createElement('p', { 
+        textContent: 'Aún no tienes prompts guardados'
+      });
+      emptyPrompts.appendChild(emptyText);
+      container.appendChild(emptyPrompts);
+    } else {
+      const promptsList = SecurityUtils.createElement('div', { className: 'prompts-list' });
+      
+      state.prompts.forEach(prompt => {
+        const promptItem = createPromptItem(prompt);
+        promptsList.appendChild(promptItem);
+      });
+      
+      container.appendChild(promptsList);
+    }
+    
+    elements.content.appendChild(container);
+    setupPromptListeners();
+  }
+
+  function createPromptItem(prompt) {
+    const item = SecurityUtils.createElement('div', { 
+      className: 'prompt-item',
+      attributes: { 'data-prompt-id': prompt.id }
+    });
+    
+    const content = SecurityUtils.createElement('div', { className: 'prompt-content' });
+    
+    const title = SecurityUtils.createElement('h4', { 
+      className: 'prompt-title',
+      textContent: prompt.title
+    });
+    
+    const description = SecurityUtils.createElement('p', { 
+      className: 'prompt-description',
+      textContent: prompt.content.substring(0, 100) + (prompt.content.length > 100 ? '...' : '')
+    });
+    
+    const actions = SecurityUtils.createElement('div', { className: 'prompt-actions' });
+    
+    // Botón copiar
+    const copyBtn = SecurityUtils.createElement('button', { 
+      className: 'action-btn-icon secondary',
+      attributes: { 
+        'data-action': 'copy-prompt',
+        'data-prompt-id': prompt.id,
+        'title': 'Copiar prompt'
+      }
+    });
+    
+    // SVG copiar
+    const copyIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    copyIcon.setAttribute('viewBox', '0 0 24 24');
+    copyIcon.setAttribute('fill', 'none');
+    copyIcon.setAttribute('width', '16');
+    copyIcon.setAttribute('height', '16');
+    
+    const copyPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    copyPath.setAttribute('d', 'M8 5H6C4.89543 5 4 5.89543 4 7V19C4 20.1046 4.89543 21 6 21H18C19.1046 21 20 20.1046 20 19V7C20 5.89543 19.1046 5 18 5H16M8 5C8 6.10457 8.89543 7 10 7H14C15.1046 7 16 6.10457 16 5M8 5C8 3.89543 8.89543 3 10 3H14C15.1046 3 16 3.89543 16 5');
+    copyPath.setAttribute('stroke', 'currentColor');
+    copyPath.setAttribute('stroke-width', '2');
+    copyPath.setAttribute('stroke-linecap', 'round');
+    copyPath.setAttribute('stroke-linejoin', 'round');
+    
+    copyIcon.appendChild(copyPath);
+    copyBtn.appendChild(copyIcon);
+    
+    // Botón editar
+    const editBtn = SecurityUtils.createElement('button', { 
+      className: 'action-btn-icon secondary',
+      attributes: { 
+        'data-action': 'edit-prompt',
+        'data-prompt-id': prompt.id,
+        'title': 'Editar prompt'
+      }
+    });
+    
+    // SVG editar
+    const editIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    editIcon.setAttribute('viewBox', '0 0 24 24');
+    editIcon.setAttribute('fill', 'none');
+    editIcon.setAttribute('width', '16');
+    editIcon.setAttribute('height', '16');
+    
+    const editPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    editPath.setAttribute('d', 'M11 4H4C2.89543 4 2 4.89543 2 6V20C2 21.1046 2.89543 22 4 22H18C19.1046 22 20 21.1046 20 20V13M18.5 2.5C19.6046 2.5 20.5 3.39543 20.5 4.5V4.5C20.5 5.60457 19.6046 6.5 18.5 6.5L11 14V17H14L21.5 9.5L18.5 2.5Z');
+    editPath.setAttribute('stroke', 'currentColor');
+    editPath.setAttribute('stroke-width', '2');
+    editPath.setAttribute('stroke-linecap', 'round');
+    editPath.setAttribute('stroke-linejoin', 'round');
+    
+    editIcon.appendChild(editPath);
+    editBtn.appendChild(editIcon);
+    
+    // Botón eliminar
+    const deleteBtn = SecurityUtils.createElement('button', { 
+      className: 'action-btn-icon danger',
+      attributes: { 
+        'data-action': 'delete-prompt',
+        'data-prompt-id': prompt.id,
+        'title': 'Eliminar prompt'
+      }
+    });
+    
+    // SVG eliminar
+    const deleteIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    deleteIcon.setAttribute('viewBox', '0 0 24 24');
+    deleteIcon.setAttribute('fill', 'none');
+    deleteIcon.setAttribute('width', '16');
+    deleteIcon.setAttribute('height', '16');
+    
+    const deletePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    deletePath.setAttribute('d', 'M9 7V4C9 3.44772 9.44772 3 10 3H14C14.5523 3 15 3.44772 15 4V7M21 7H3M19 7V18C19 19.1046 18.1046 20 17 20H7C5.89543 20 5 19.1046 5 18V7H19Z');
+    deletePath.setAttribute('stroke', 'currentColor');
+    deletePath.setAttribute('stroke-width', '2');
+    deletePath.setAttribute('stroke-linecap', 'round');
+    deletePath.setAttribute('stroke-linejoin', 'round');
+    
+    deleteIcon.appendChild(deletePath);
+    deleteBtn.appendChild(deleteIcon);
+    
+    // Ensamblar acciones
+    actions.appendChild(copyBtn);
+    actions.appendChild(editBtn);
+    actions.appendChild(deleteBtn);
+    
+    // Ensamblar contenido
+    content.appendChild(title);
+    content.appendChild(description);
+    
+    // Ensamblar item
+    item.appendChild(content);
+    item.appendChild(actions);
+    
+    return item;
+  }
+
+  function renderCategoriesAndTags() {
+    const container = SecurityUtils.createElement('div', { className: 'categories-container' });
+    
+    // Título
+    const title = SecurityUtils.createElement('h3', { 
+      className: 'categories-title',
+      textContent: 'Filtros'
+    });
+    container.appendChild(title);
+    
+    // Sección categorias
+    const categoriesSection = SecurityUtils.createElement('div', { className: 'filter-section' });
+    const catTitle = SecurityUtils.createElement('h4', { 
+      className: 'filter-section-title',
+      textContent: 'Categorías'
+    });
+    categoriesSection.appendChild(catTitle);
+    
+    const categoriesList = SecurityUtils.createElement('div', { className: 'filter-list' });
+    
+    // Opción "Todas"
+    const allOption = createFilterOption('category', 'all', 'Todas las categorías', state.gpts.length);
+    categoriesList.appendChild(allOption);
+    
+    // Categorias individuales
+    state.allCategories.forEach(category => {
+      const count = state.gpts.filter(gpt => gpt.category === category).length;
+      const option = createFilterOption('category', category, category, count);
+      categoriesList.appendChild(option);
+    });
+    
+    categoriesSection.appendChild(categoriesList);
+    container.appendChild(categoriesSection);
+    
+    // Sección tags
+    const tagsSection = SecurityUtils.createElement('div', { className: 'filter-section' });
+    const tagsTitle = SecurityUtils.createElement('h4', { 
+      className: 'filter-section-title',
+      textContent: 'Etiquetas'
+    });
+    tagsSection.appendChild(tagsTitle);
+    
+    const tagsList = SecurityUtils.createElement('div', { className: 'filter-list' });
+    
+    state.allTags.forEach(tag => {
+      const count = state.gpts.filter(gpt => gpt.tags && gpt.tags.includes(tag)).length;
+      const option = createFilterOption('tag', tag, tag, count);
+      tagsList.appendChild(option);
+    });
+    
+    tagsSection.appendChild(tagsList);
+    container.appendChild(tagsSection);
+    
+    elements.content.appendChild(container);
+    setupFilterListeners();
+  }
+
+  function createFilterOption(type, value, label, count) {
+    const isActive = (type === 'category' && state.currentCategory === value);
+    
+    const option = SecurityUtils.createElement('div', { 
+      className: `filter-option ${isActive ? 'active' : ''}`,
+      attributes: { 
+        'data-filter-type': type,
+        'data-filter-value': value
+      }
+    });
+    
+    const labelEl = SecurityUtils.createElement('span', { 
+      className: 'filter-label',
+      textContent: label
+    });
+    
+    const countEl = SecurityUtils.createElement('span', { 
+      className: 'filter-count',
+      textContent: count.toString()
+    });
+    
+    option.appendChild(labelEl);
+    option.appendChild(countEl);
+    
+    return option;
+  }
+
+  function setupCardListeners() {
+    // Listeners para botones de GPTs
+    const favoriteButtons = document.querySelectorAll('.favorite-btn');
+    favoriteButtons.forEach(btn => {
+      SecurityUtils.addSafeEventListener(btn, 'click', handleFavoriteClick);
+    });
+    
+    const actionButtons = document.querySelectorAll('[data-action]');
+    actionButtons.forEach(btn => {
+      SecurityUtils.addSafeEventListener(btn, 'click', handleGPTAction);
+    });
+  }
+
+  function setupPromptListeners() {
+    const promptButtons = document.querySelectorAll('[data-action^="add-prompt"], [data-action^="copy-prompt"], [data-action^="edit-prompt"], [data-action^="delete-prompt"]');
+    promptButtons.forEach(btn => {
+      SecurityUtils.addSafeEventListener(btn, 'click', handlePromptAction);
+    });
+  }
+
+  function setupFilterListeners() {
+    const filterOptions = document.querySelectorAll('.filter-option');
+    filterOptions.forEach(option => {
+      SecurityUtils.addSafeEventListener(option, 'click', handleFilterClick);
+    });
+  }
+
+  function handleFavoriteClick(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const gptId = e.currentTarget.dataset.gptId;
+    if (!SecurityUtils.validateId(gptId)) {
+      SecurityUtils.safeLog('error', 'Invalid GPT ID in favorite click', { gptId });
+      return;
+    }
+    
+    toggleFavorite(gptId);
+  }
+
+  async function toggleFavorite(gptId) {
+    try {
+      const isFavorite = state.favorites.includes(gptId);
+      const response = await chrome.runtime.sendMessage({
+        type: isFavorite ? 'REMOVE_FAVORITE' : 'ADD_FAVORITE',
+        data: { gptId }
+      });
+      
+      if (response?.success) {
+        if (isFavorite) {
+          state.favorites = state.favorites.filter(id => id !== gptId);
+          showNotification('Eliminado de favoritos', 'success');
+          addNotification('GPT eliminado de favoritos');
+        } else {
+          state.favorites.push(gptId);
+          showNotification('Añadido a favoritos', 'success');
+          addNotification('GPT añadido a favoritos');
+        }
+        
+        // Re-renderizar si estamos en la tab de favoritos
+        if (state.currentTab === 'favorites') {
+          renderContent();
+        } else {
+          // Solo actualizar el botón específico
+          updateFavoriteButton(gptId, !isFavorite);
+        }
+      } else {
+        showNotification('Error al actualizar favoritos', 'error');
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+      showNotification('Error al actualizar favoritos', 'error');
+    }
+  }
+
+  function updateFavoriteButton(gptId, isFavorite) {
+    const buttons = document.querySelectorAll(`[data-gpt-id="${gptId}"].favorite-btn`);
+    buttons.forEach(btn => {
+      btn.classList.toggle('active', isFavorite);
+      btn.setAttribute('title', isFavorite ? 'Quitar de favoritos' : 'Añadir a favoritos');
+      
+      const svg = btn.querySelector('svg');
+      if (svg) {
+        svg.setAttribute('fill', isFavorite ? 'currentColor' : 'none');
+      }
+    });
+  }
+
+  function handleGPTAction(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const action = e.currentTarget.dataset.action;
+    const gptId = e.currentTarget.dataset.gptId;
+    
+    if (!SecurityUtils.validateId(gptId)) {
+      SecurityUtils.safeLog('error', 'Invalid GPT ID in action', { gptId, action });
+      return;
+    }
+    
+    const gpt = state.gpts.find(g => g.id === gptId);
+    if (!gpt) {
+      SecurityUtils.safeLog('error', 'GPT not found', { gptId });
+      return;
+    }
+    
+    switch (action) {
+      case 'use':
+        openGPT(gpt, false);
+        break;
+      case 'newtab':
+        openGPT(gpt, true);
+        break;
+      default:
+        SecurityUtils.safeLog('warn', 'Unknown action', { action });
+    }
+  }
+
+  async function openGPT(gpt, newTab = false) {
+    try {
+      // Validar URL si existe
+      if (gpt.url && !SecurityUtils.validateUrl(gpt.url)) {
+        SecurityUtils.safeLog('error', 'Invalid GPT URL', { gpt });
+        showNotification('URL del GPT inválida', 'error');
+        return;
+      }
+      
+      const response = await chrome.runtime.sendMessage({
+        type: 'OPEN_GPT',
+        data: { gpt, newTab }
+      });
+      
+      if (response?.success) {
+        // Añadir a recientes
+        addToRecent(gpt);
+        showNotification(`Abriendo ${gpt.name}`, 'success');
+        addNotification(`GPT "${gpt.name}" abierto`);
+        
+        // Cerrar sidebar si no es nueva pestaña
+        if (!newTab) {
+          setTimeout(() => closeSidebar(), 500);
+        }
+      } else {
+        showNotification('Error al abrir GPT', 'error');
+      }
+    } catch (error) {
+      console.error('Error opening GPT:', error);
+      showNotification('Error al abrir GPT', 'error');
+    }
+  }
+
+  function addToRecent(gpt) {
+    // Eliminar si ya existe
+    state.recentGpts = state.recentGpts.filter(g => g.id !== gpt.id);
+    
+    // Añadir al principio
+    state.recentGpts.unshift(gpt);
+    
+    // Mantener solo los últimos 10
+    state.recentGpts = state.recentGpts.slice(0, 10);
     
     // Guardar en storage
-    await chrome.storage.local.set({ [STORAGE_KEYS.FAVORITES]: state.favorites });
+    chrome.runtime.sendMessage({
+      type: 'SAVE_RECENT',
+      data: { recent: state.recentGpts }
+    });
+  }
+
+  function handlePromptAction(e) {
+    e.preventDefault();
+    e.stopPropagation();
     
-    // Re-renderizar si está activo el filtro de favoritos
-    if (state.filters.favorites) {
-      renderGPTs();
-    }
-  } catch (error) {
-    logger.error('Error al actualizar favoritos:', error);
-    showNotification('Error al actualizar favoritos', 'error');
-  }
-}
-
-/**
- * Renderiza lista de prompts
- */
-function renderPrompts() {
-  const filtered = filterPrompts();
-  
-  if (filtered.length === 0) {
-    showEmptyState('prompts');
-    return;
-  }
-  
-  // Renderizar barra de herramientas si hay items seleccionados
-  renderMultiSelectToolbar();
-  
-  elements.promptsList.innerHTML = filtered.map(prompt => createPromptCard(prompt)).join('');
-  
-  // Añadir listeners
-  addPromptCardListeners();
-}
-
-/**
- * Filtra prompts según búsqueda
- */
-function filterPrompts() {
-  if (!state.searchQuery) return state.prompts;
-  
-  const query = state.searchQuery.toLowerCase();
-  return state.prompts.filter(prompt => 
-    prompt.title.toLowerCase().includes(query) ||
-    prompt.content.toLowerCase().includes(query) ||
-    prompt.tags?.some(tag => tag.toLowerCase().includes(query))
-  );
-}
-
-/**
- * Crea el HTML de una card de prompt
- */
-function createPromptCard(prompt) {
-  const isSelected = state.selectedPrompts.has(prompt.id);
-  
-  return `
-    <div class="prompt-card ${isSelected ? 'selected' : ''}" data-prompt-id="${prompt.id}">
-      <div class="prompt-select-checkbox">
-        <input type="checkbox" 
-               class="prompt-checkbox" 
-               data-prompt-id="${prompt.id}"
-               ${isSelected ? 'checked' : ''}
-               aria-label="Seleccionar ${escapeHtml(prompt.title)}">
-      </div>
-      <div class="prompt-content">
-        <div class="prompt-header">
-          <h3 class="prompt-title">${escapeHtml(prompt.title)}</h3>
-          <div class="prompt-actions">
-            <button class="icon-btn copy-prompt" data-prompt-id="${prompt.id}" title="Copiar">
-              <svg class="icon" viewBox="0 0 24 24">
-                <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
-              </svg>
-            </button>
-            <button class="icon-btn edit-prompt" data-prompt-id="${prompt.id}" title="Editar">
-              <svg class="icon" viewBox="0 0 24 24">
-                <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
-              </svg>
-            </button>
-            <button class="icon-btn delete-prompt" data-prompt-id="${prompt.id}" title="Eliminar">
-              <svg class="icon" viewBox="0 0 24 24">
-                <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
-              </svg>
-            </button>
-          </div>
-        </div>
-        <p class="prompt-preview">${escapeHtml(prompt.content.substring(0, 150))}...</p>
-        ${prompt.tags?.length ? `
-          <div class="prompt-tags">
-            ${prompt.tags.map(tag => `<span class="tag">${escapeHtml(tag)}</span>`).join('')}
-          </div>
-        ` : ''}
-        <div class="prompt-meta">
-          <span class="prompt-date">${formatDate(prompt.createdAt)}</span>
-          <span class="prompt-length">${prompt.content.length} caracteres</span>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-/**
- * Añade event listeners a las cards de prompt
- */
-function addPromptCardListeners() {
-  // Checkboxes
-  document.querySelectorAll('.prompt-checkbox').forEach(checkbox => {
-    checkbox.addEventListener('change', handlePromptSelection);
-  });
-  
-  // Copiar
-  document.querySelectorAll('.copy-prompt').forEach(btn => {
-    btn.addEventListener('click', handleCopyPrompt);
-  });
-  
-  // Editar
-  document.querySelectorAll('.edit-prompt').forEach(btn => {
-    btn.addEventListener('click', handleEditPrompt);
-  });
-  
-  // Eliminar
-  document.querySelectorAll('.delete-prompt').forEach(btn => {
-    btn.addEventListener('click', handleDeletePrompt);
-  });
-  
-  // Selección al hacer click en la card (no en botones)
-  document.querySelectorAll('.prompt-card').forEach(card => {
-    card.addEventListener('click', handleCardClick);
-  });
-}
-
-/**
- * Maneja la copia de un prompt
- */
-async function handleCopyPrompt(e) {
-  const promptId = e.currentTarget.dataset.promptId;
-  const prompt = state.prompts.find(p => p.id === promptId);
-  
-  if (!prompt) return;
-  
-  try {
-    await navigator.clipboard.writeText(prompt.content);
-    showNotification('Prompt copiado al portapapeles', 'success');
+    const action = e.currentTarget.dataset.action;
+    const promptId = e.currentTarget.dataset.promptId;
     
-    // Animación visual
-    e.currentTarget.classList.add('copied');
-    setTimeout(() => {
-      e.currentTarget.classList.remove('copied');
-    }, 1000);
-  } catch (error) {
-    logger.error('Error al copiar prompt:', error);
-    showNotification('Error al copiar prompt', 'error');
-  }
-}
-
-/**
- * Maneja la edición de un prompt
- */
-function handleEditPrompt(e) {
-  const promptId = e.currentTarget.dataset.promptId;
-  const prompt = state.prompts.find(p => p.id === promptId);
-  
-  if (!prompt) return;
-  
-  // Cargar en el formulario
-  const form = elements.promptForm;
-  form.querySelector('[name="title"]').value = prompt.title;
-  form.querySelector('[name="content"]').value = prompt.content;
-  form.querySelector('[name="tags"]').value = prompt.tags?.join(', ') || '';
-  form.dataset.editingId = promptId;
-  
-  // Cambiar a tab de crear/editar
-  setActiveTab('create');
-  
-  // Scroll al formulario
-  form.scrollIntoView({ behavior: 'smooth' });
-}
-
-/**
- * Maneja la eliminación de un prompt
- */
-async function handleDeletePrompt(e) {
-  const promptId = e.currentTarget.dataset.promptId;
-  
-  if (!confirm('¿Estás seguro de que quieres eliminar este prompt?')) {
-    return;
-  }
-  
-  try {
-    // Eliminar del estado
-    const index = state.prompts.findIndex(p => p.id === promptId);
-    if (index > -1) {
-      state.prompts.splice(index, 1);
+    if (promptId && !SecurityUtils.validateId(promptId)) {
+      SecurityUtils.safeLog('error', 'Invalid prompt ID', { promptId, action });
+      return;
     }
     
-    // Guardar en storage
-    await chrome.storage.local.set({ [STORAGE_KEYS.PROMPTS]: state.prompts });
-    
-    // Re-renderizar
-    renderPrompts();
-    
-    showNotification('Prompt eliminado', 'success');
-  } catch (error) {
-    logger.error('Error al eliminar prompt:', error);
-    showNotification('Error al eliminar prompt', 'error');
+    switch (action) {
+      case 'add-prompt':
+        showPromptModal();
+        break;
+      case 'copy-prompt':
+        copyPrompt(promptId);
+        break;
+      case 'edit-prompt':
+        editPrompt(promptId);
+        break;
+      case 'delete-prompt':
+        deletePrompt(promptId);
+        break;
+      default:
+        SecurityUtils.safeLog('warn', 'Unknown prompt action', { action });
+    }
   }
-}
 
-/**
- * Maneja el envío del formulario de prompts
- */
-async function handlePromptSubmit(e) {
-  e.preventDefault();
+  async function copyPrompt(promptId) {
+    try {
+      const prompt = state.prompts.find(p => p.id === promptId);
+      if (!prompt) {
+        showNotification('Prompt no encontrado', 'error');
+        return;
+      }
+      
+      const success = await SecurityUtils.copyToClipboard(prompt.content);
+      
+      if (success) {
+        showNotification('Prompt copiado al portapapeles', 'success');
+        addNotification(`Prompt "${prompt.title}" copiado`);
+      } else {
+        showNotification('Error al copiar prompt', 'error');
+      }
+    } catch (error) {
+      console.error('Error copying prompt:', error);
+      showNotification('Error al copiar prompt', 'error');
+    }
+  }
+
+  function handleFilterClick(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const filterType = e.currentTarget.dataset.filterType;
+    const filterValue = e.currentTarget.dataset.filterValue;
+    
+    if (filterType === 'category') {
+      state.currentCategory = filterValue;
+      
+      // Actualizar clases activas
+      const filterOptions = document.querySelectorAll('.filter-option[data-filter-type="category"]');
+      filterOptions.forEach(option => {
+        option.classList.toggle('active', option.dataset.filterValue === filterValue);
+      });
+      
+      // Cambiar a la tab de todos para mostrar filtros
+      state.currentTab = 'all';
+      
+      // Actualizar tab activa en UI
+      elements.tabs.forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.tab === 'all');
+      });
+      
+      renderContent();
+    }
+  }
+
+  // Usar showToast en lugar de showNotification
+  function showNotification(message, type = 'info', duration = 3000) {
+    return showToast(message, type, duration);
+  }
   
-  const formData = new FormData(e.target);
-  const promptData = {
-    title: formData.get('title').trim(),
-    content: formData.get('content').trim(),
-    tags: formData.get('tags').split(',').map(t => t.trim()).filter(Boolean)
+  // Sistema de notificaciones seguro
+  const notificationSystem = {
+    container: null,
+    activeNotifications: new Map(),
+    
+    init() {
+      if (!this.container) {
+        this.container = SecurityUtils.createElement('div', { 
+          id: 'notifications-container',
+          className: 'notifications-container'
+        });
+        document.body.appendChild(this.container);
+      }
+    },
+    
+    show(message, type = 'info', duration = 3000) {
+      this.init();
+      
+      const id = 'notif_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      
+      const notification = SecurityUtils.createElement('div', { 
+        className: `notification notification-${type}`,
+        attributes: { 'data-notification-id': id }
+      });
+      
+      // Aplicar estilos seguros
+      Object.assign(notification.style, {
+        position: 'fixed',
+        top: '20px',
+        right: '20px',
+        zIndex: '10000',
+        maxWidth: '400px',
+        minWidth: '280px',
+        padding: '12px 16px',
+        backgroundColor: 'var(--bg-primary)',
+        border: '1px solid var(--border-color)',
+        borderRadius: '8px',
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        transform: 'translateX(120%)',
+        transition: 'transform 0.3s ease, opacity 0.3s ease',
+        opacity: '0'
+      });
+      
+      // Icono
+      const iconMap = {
+        success: '✓',
+        error: '⚠',
+        warning: '⚠',
+        info: 'i'
+      };
+      
+      const icon = SecurityUtils.createElement('div', { 
+        className: 'notification-icon',
+        textContent: iconMap[type] || iconMap.info
+      });
+      
+      Object.assign(icon.style, {
+        flexShrink: '0',
+        width: '20px',
+        height: '20px',
+        textAlign: 'center',
+        fontWeight: 'bold',
+        color: type === 'success' ? '#10B981' : type === 'error' ? '#EF4444' : type === 'warning' ? '#F59E0B' : '#4F46E5'
+      });
+      
+      // Mensaje
+      const content = SecurityUtils.createElement('div', { 
+        className: 'notification-content',
+        textContent: message
+      });
+      
+      Object.assign(content.style, {
+        flex: '1',
+        fontSize: '14px',
+        lineHeight: '1.4',
+        color: 'var(--text-primary)'
+      });
+      
+      // Botón cerrar
+      const closeBtn = SecurityUtils.createElement('button', { 
+        className: 'notification-close',
+        textContent: '×'
+      });
+      
+      Object.assign(closeBtn.style, {
+        flexShrink: '0',
+        width: '20px',
+        height: '20px',
+        padding: '0',
+        background: 'none',
+        border: 'none',
+        cursor: 'pointer',
+        color: 'var(--text-secondary)',
+        opacity: '0.7',
+        fontSize: '16px',
+        lineHeight: '1'
+      });
+      
+      // Event listener para cerrar
+      SecurityUtils.addSafeEventListener(closeBtn, 'click', () => {
+        this.hide(id);
+      });
+      
+      // Ensamblar notificación
+      notification.appendChild(icon);
+      notification.appendChild(content);
+      notification.appendChild(closeBtn);
+      
+      // Añadir al contenedor
+      this.container.appendChild(notification);
+      this.activeNotifications.set(id, notification);
+      
+      // Animar entrada
+      requestAnimationFrame(() => {
+        notification.style.transform = 'translateX(0)';
+        notification.style.opacity = '1';
+      });
+      
+      // Auto-cerrar
+      if (duration > 0) {
+        setTimeout(() => this.hide(id), duration);
+      }
+      
+      return id;
+    },
+    
+    hide(id) {
+      const notification = this.activeNotifications.get(id);
+      if (!notification) return;
+      
+      // Animar salida
+      notification.style.transform = 'translateX(120%)';
+      notification.style.opacity = '0';
+      
+      // Remover después de la animación
+      setTimeout(() => {
+        if (notification.parentNode) {
+          notification.parentNode.removeChild(notification);
+        }
+        this.activeNotifications.delete(id);
+      }, 300);
+    }
   };
-  
-  // Validar
-  // TODO: Implementar validación
-  // const validation = validatePrompt(promptData);
-  const validation = { isValid: true }; // Temporal
-  if (!validation.isValid) {
-    showNotification(validation.errors.join(', '), 'error');
-    return;
+
+  function showNotification(message, type = 'info', duration = 3000) {
+    return notificationSystem.show(message, type, duration);
   }
-  
-  try {
-    const editingId = e.target.dataset.editingId;
+
+  function showError(message) {
+    // Limpiar contenido actual
+    if (elements.content) {
+      elements.content.innerHTML = '';
+    }
     
-    if (editingId) {
-      // Actualizar prompt existente
-      const index = state.prompts.findIndex(p => p.id === editingId);
+    // Crear elementos de forma segura
+    const errorDiv = SecurityUtils.createElement('div', { className: 'error-state' });
+    const errorText = SecurityUtils.createElement('p', { textContent: message });
+    const retryBtn = SecurityUtils.createElement('button', { 
+      className: 'action-btn primary',
+      textContent: 'Reintentar'
+    });
+    
+    // Añadir event listener de forma segura
+    SecurityUtils.addSafeEventListener(retryBtn, 'click', () => {
+      location.reload();
+    });
+    
+    // Construir la estructura
+    errorDiv.appendChild(errorText);
+    errorDiv.appendChild(retryBtn);
+    
+    if (elements.content) {
+      elements.content.appendChild(errorDiv);
+    }
+  }
+
+  function showLoginPrompt() {
+    if (elements.content) {
+      elements.content.innerHTML = '';
+    }
+    
+    const loginDiv = SecurityUtils.createElement('div', { className: 'login-prompt' });
+    const title = SecurityUtils.createElement('h3', { textContent: 'Iniciar Sesión' });
+    const description = SecurityUtils.createElement('p', { 
+      textContent: 'Necesitas iniciar sesión para acceder a tus GPTs'
+    });
+    
+    const loginBtn = SecurityUtils.createElement('button', { 
+      className: 'action-btn primary',
+      textContent: 'Iniciar Sesión'
+    });
+    
+    SecurityUtils.addSafeEventListener(loginBtn, 'click', () => {
+      chrome.runtime.sendMessage({ type: 'SHOW_LOGIN' });
+    });
+    
+    loginDiv.appendChild(title);
+    loginDiv.appendChild(description);
+    loginDiv.appendChild(loginBtn);
+    
+    if (elements.content) {
+      elements.content.appendChild(loginDiv);
+    }
+  }
+
+  function showDeviceLimitModal(deviceInfo) {
+    // TODO: Implementar modal de dispositivos
+    showError('Límite de dispositivos alcanzado. Contacta soporte.');
+  }
+
+  function showPromptModal(promptData = null) {
+    // TODO: Implementar modal de prompts
+    showNotification('Funcionalidad en desarrollo', 'info');
+  }
+
+  function editPrompt(promptId) {
+    const prompt = state.prompts.find(p => p.id === promptId);
+    if (prompt) {
+      showPromptModal(prompt);
+    }
+  }
+
+  async function deletePrompt(promptId) {
+    if (!confirm('¿Estás seguro de que quieres eliminar este prompt?')) {
+      return;
+    }
+    
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: 'DELETE_PROMPT',
+        data: { promptId }
+      });
+      
+      if (response?.success) {
+        state.prompts = state.prompts.filter(p => p.id !== promptId);
+        renderContent(); // Re-renderizar
+        showNotification('Prompt eliminado', 'success');
+        addNotification('Prompt eliminado correctamente');
+      } else {
+        showNotification('Error al eliminar prompt', 'error');
+      }
+    } catch (error) {
+      console.error('Error deleting prompt:', error);
+      showNotification('Error al eliminar prompt', 'error');
+    }
+  }
+
+  // Configurar redimensionamiento
+  function setupResize() {
+    if (!elements.resizeHandle) return;
+    
+    let isResizing = false;
+    let startX, startWidth;
+    
+    SecurityUtils.addSafeEventListener(elements.resizeHandle, 'mousedown', (e) => {
+      isResizing = true;
+      startX = e.clientX;
+      
+      const sidebar = document.getElementById('kit-ia-sidebar');
+      if (sidebar) {
+        startWidth = parseInt(window.getComputedStyle(sidebar).width, 10);
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+        e.preventDefault();
+      }
+    });
+    
+    function handleMouseMove(e) {
+      if (!isResizing) return;
+      
+      const sidebar = document.getElementById('kit-ia-sidebar');
+      if (sidebar) {
+        const width = startWidth + (startX - e.clientX);
+        const minWidth = 320;
+        const maxWidth = 600;
+        const newWidth = Math.max(minWidth, Math.min(maxWidth, width));
+        
+        sidebar.style.width = newWidth + 'px';
+      }
+    }
+    
+    function handleMouseUp() {
+      isResizing = false;
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    }
+  }
+
+  // Funciones de utilidad
+  function formatDate(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('es-ES', { 
+      day: 'numeric', 
+      month: 'short' 
+    });
+  }
+
+  // Exportar funciones para testing/debugging
+  if (typeof window !== 'undefined') {
+    window.KitIASidebar = {
+      state,
+      renderContent,
+      showNotification,
+      SecurityUtils
+    };
+  }
+
+})();
+
+// Añadir estilos para notificaciones si no existen
+if (!document.getElementById('kit-ia-notifications-styles')) {
+  const style = document.createElement('style');
+  style.id = 'kit-ia-notifications-styles';
+  style.textContent = `
+    .notifications-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 10000;
+      pointer-events: none;
+    }
+    
+    .notification {
+      pointer-events: auto;
+      margin-bottom: 8px;
+    }
+    
+    .notification:hover .notification-close {
+      opacity: 1;
+    }
+  `;
+  document.head.appendChild(style);
+}
+    
+    items.forEach(gpt => {
+      const card = createGPTListItem(gpt);
+      container.appendChild(card);
+    });
+    
+    elements.content.appendChild(container);
+    setupCardListeners();
+  }
+
+  function createGPTCard(gpt) {
+    const isFavorite = state.favorites.includes(gpt.id);
+    
+    // Crear estructura del card
+    const card = SecurityUtils.createElement('div', { 
+      className: 'gpt-card',
+      attributes: { 'data-gpt-id': gpt.id }
+    });
+
+    // Header con icono y badges
+    const header = SecurityUtils.createElement('div', { className: 'gpt-header' });
+    
+    const icon = SecurityUtils.createElement('div', { 
+      className: 'gpt-icon',
+      textContent: gpt.icon || '🤖'
+    });
+    
+    const badges = SecurityUtils.createElement('div', { className: 'gpt-badges' });
+    
+    if (gpt.official) {
+      const officialBadge = SecurityUtils.createElement('span', { 
+        className: 'official-badge',
+        textContent: 'Oficial'
+      });
+      badges.appendChild(officialBadge);
+    }
+    
+    // Botón de favorito
+    const favoriteBtn = SecurityUtils.createElement('button', { 
+      className: `favorite-btn ${isFavorite ? 'active' : ''}`,
+      attributes: { 
+        'data-gpt-id': gpt.id,
+        'title': isFavorite ? 'Quitar de favoritos' : 'Añadir a favoritos'
+      }
+    });
+    favoriteBtn.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="${isFavorite ? 'currentColor' : 'none'}" width="18" height="18">
+        <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+      </svg>
+    `;
+    badges.appendChild(favoriteBtn);
+    
+    header.appendChild(icon);
+    header.appendChild(badges);
+
+    // Información del GPT
+    const name = SecurityUtils.createElement('h3', { 
+      className: 'gpt-name',
+      textContent: gpt.name
+    });
+    
+    const description = SecurityUtils.createElement('p', { 
+      className: 'gpt-description',
+      textContent: gpt.description
+    });
+
+    // Tags
+    const tagsContainer = SecurityUtils.createElement('div', { className: 'gpt-tags' });
+    if (gpt.tags && Array.isArray(gpt.tags)) {
+      gpt.tags.forEach(tag => {
+        const tagElement = SecurityUtils.createElement('span', { 
+          className: 'tag',
+          textContent: tag
+        });
+        tagsContainer.appendChild(tagElement);
+      });
+    }
+
+    // Acciones
+    const actions = SecurityUtils.createElement('div', { className: 'gpt-actions' });
+    
+    const useBtn = SecurityUtils.createElement('button', { 
+      className: 'action-btn primary',
+      textContent: 'Usar',
+      attributes: { 
+        'data-action': 'use',
+        'data-gpt-id': gpt.id,
+        'title': 'Abrir en esta pestaña'
+      }
+    });
+    useBtn.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" width="16" height="16">
+        <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Usar
+    `;
+    
+    const newBtn = SecurityUtils.createElement('button', { 
+      className: 'action-btn secondary',
+      attributes: { 
+        'data-action': 'open-new',
+        'data-gpt-id': gpt.id,
+        'title': 'Abrir en nueva pestaña'
+      }
+    });
+    newBtn.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" width="16" height="16">
+        <path d="M15 3H21V9M21 3L9 15M10 5H7C5.89543 5 5 5.89543 5 7V17C5 18.1046 5.89543 19 7 19H17C18.1046 19 19 18.1046 19 17V14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    `;
+    
+    actions.appendChild(useBtn);
+    actions.appendChild(newBtn);
+
+    // Construir card completo
+    card.appendChild(header);
+    card.appendChild(name);
+    card.appendChild(description);
+    if (tagsContainer.children.length > 0) {
+      card.appendChild(tagsContainer);
+    }
+    card.appendChild(actions);
+
+    return card;
+  }
+
+  function createGPTListItem(gpt) {
+    const isFavorite = state.favorites.includes(gpt.id);
+    
+    // Crear estructura del list item
+    const item = SecurityUtils.createElement('div', { 
+      className: 'gpt-list-item',
+      attributes: { 'data-gpt-id': gpt.id }
+    });
+
+    // Icono
+    const icon = SecurityUtils.createElement('div', { 
+      className: 'gpt-list-icon',
+      textContent: gpt.icon || '🤖'
+    });
+
+    // Contenido
+    const content = SecurityUtils.createElement('div', { className: 'gpt-list-content' });
+    
+    const headerDiv = SecurityUtils.createElement('div', { className: 'gpt-list-header' });
+    const name = SecurityUtils.createElement('h4', { 
+      className: 'gpt-list-name',
+      textContent: gpt.name
+    });
+    headerDiv.appendChild(name);
+    
+    if (gpt.official) {
+      const badge = SecurityUtils.createElement('span', { 
+        className: 'official-badge-small',
+        textContent: 'Oficial'
+      });
+      headerDiv.appendChild(badge);
+    }
+    
+    const description = SecurityUtils.createElement('p', { 
+      className: 'gpt-list-description',
+      textContent: gpt.description
+    });
+
+    content.appendChild(headerDiv);
+    content.appendChild(description);
+
+    // Tags en lista
+    if (gpt.tags && Array.isArray(gpt.tags)) {
+      const tagsDiv = SecurityUtils.createElement('div', { className: 'gpt-tags-small' });
+      gpt.tags.forEach(tag => {
+        const tagElement = SecurityUtils.createElement('span', { 
+          className: 'tag-small',
+          textContent: tag
+        });
+        tagsDiv.appendChild(tagElement);
+      });
+      content.appendChild(tagsDiv);
+    }
+
+    // Acciones
+    const actions = SecurityUtils.createElement('div', { className: 'gpt-list-actions' });
+    
+    // Botón favorito
+    const favoriteBtn = SecurityUtils.createElement('button', { 
+      className: `favorite-btn ${isFavorite ? 'active' : ''}`,
+      attributes: { 
+        'data-gpt-id': gpt.id,
+        'title': isFavorite ? 'Quitar de favoritos' : 'Añadir a favoritos'
+      }
+    });
+    favoriteBtn.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="${isFavorite ? 'currentColor' : 'none'}" width="16" height="16">
+        <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+      </svg>
+    `;
+    
+    // Botones de acción
+    const useBtn = SecurityUtils.createElement('button', { 
+      className: 'action-btn-icon primary',
+      attributes: { 
+        'data-action': 'use',
+        'data-gpt-id': gpt.id,
+        'title': 'Abrir en esta pestaña'
+      }
+    });
+    useBtn.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" width="16" height="16">
+        <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    `;
+    
+    const newBtn = SecurityUtils.createElement('button', { 
+      className: 'action-btn-icon secondary',
+      attributes: { 
+        'data-action': 'open-new',
+        'data-gpt-id': gpt.id,
+        'title': 'Abrir en nueva pestaña'
+      }
+    });
+    newBtn.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" width="16" height="16">
+        <path d="M15 3H21V9M21 3L9 15M10 5H7C5.89543 5 5 5.89543 5 7V17C5 18.1046 5.89543 19 7 19H17C18.1046 19 19 18.1046 19 17V14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    `;
+    
+    actions.appendChild(favoriteBtn);
+    actions.appendChild(useBtn);
+    actions.appendChild(newBtn);
+
+    // Construir item completo
+    item.appendChild(icon);
+    item.appendChild(content);
+    item.appendChild(actions);
+
+    return item;
+  }
+
+  function renderCategoriesAndTags() {
+    elements.content.innerHTML = '';
+    
+    const container = SecurityUtils.createElement('div', { className: 'filters-container' });
+    
+    // Sección de categorías
+    const categoriesSection = SecurityUtils.createElement('div', { className: 'filter-section' });
+    const categoriesTitle = SecurityUtils.createElement('h3', { 
+      className: 'filter-title',
+      textContent: 'Categorías'
+    });
+    categoriesSection.appendChild(categoriesTitle);
+    
+    const categoriesGrid = SecurityUtils.createElement('div', { className: 'filter-grid' });
+    
+    // Botón "Todas las categorías"
+    const allCatBtn = SecurityUtils.createElement('button', { 
+      className: `filter-btn ${state.currentCategory === 'all' ? 'active' : ''}`,
+      textContent: 'Todas',
+      attributes: { 'data-category': 'all' }
+    });
+    SecurityUtils.addSafeEventListener(allCatBtn, 'click', () => {
+      state.currentCategory = 'all';
+      state.currentTab = 'all';
+      renderContent();
+    });
+    categoriesGrid.appendChild(allCatBtn);
+    
+    // Botones de categorías
+    state.allCategories.forEach(category => {
+      const count = state.gpts.filter(gpt => gpt.category === category).length;
+      const btn = SecurityUtils.createElement('button', { 
+        className: `filter-btn ${state.currentCategory === category ? 'active' : ''}`,
+        attributes: { 'data-category': category }
+      });
+      
+      const text = SecurityUtils.createElement('span', { textContent: category });
+      const badge = SecurityUtils.createElement('span', { 
+        className: 'filter-count',
+        textContent: count.toString()
+      });
+      
+      btn.appendChild(text);
+      btn.appendChild(badge);
+      
+      SecurityUtils.addSafeEventListener(btn, 'click', () => {
+        state.currentCategory = category;
+        state.currentTab = 'all';
+        renderContent();
+      });
+      
+      categoriesGrid.appendChild(btn);
+    });
+    
+    categoriesSection.appendChild(categoriesGrid);
+    
+    // Sección de tags
+    const tagsSection = SecurityUtils.createElement('div', { className: 'filter-section' });
+    const tagsTitle = SecurityUtils.createElement('h3', { 
+      className: 'filter-title',
+      textContent: 'Etiquetas Populares'
+    });
+    tagsSection.appendChild(tagsTitle);
+    
+    const tagsGrid = SecurityUtils.createElement('div', { className: 'tags-grid' });
+    
+    // Contar frecuencia de tags
+    const tagCounts = {};
+    state.gpts.forEach(gpt => {
+      if (gpt.tags && Array.isArray(gpt.tags)) {
+        gpt.tags.forEach(tag => {
+          tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+        });
+      }
+    });
+    
+    // Ordenar tags por frecuencia y mostrar los top 20
+    const sortedTags = Object.entries(tagCounts)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 20);
+    
+    sortedTags.forEach(([tag, count]) => {
+      const btn = SecurityUtils.createElement('button', { 
+        className: 'tag-btn',
+        attributes: { 'data-tag': tag }
+      });
+      
+      const text = SecurityUtils.createElement('span', { textContent: tag });
+      const badge = SecurityUtils.createElement('span', { 
+        className: 'tag-count',
+        textContent: count.toString()
+      });
+      
+      btn.appendChild(text);
+      btn.appendChild(badge);
+      
+      SecurityUtils.addSafeEventListener(btn, 'click', () => {
+        // Filtrar por tag en la búsqueda
+        elements.searchInput.value = tag;
+        state.searchQuery = tag.toLowerCase();
+        state.currentTab = 'all';
+        renderContent();
+      });
+      
+      tagsGrid.appendChild(btn);
+    });
+    
+    tagsSection.appendChild(tagsGrid);
+    
+    container.appendChild(categoriesSection);
+    container.appendChild(tagsSection);
+    elements.content.appendChild(container);
+  }
+
+  function renderPrompts() {
+    elements.content.innerHTML = '';
+    
+    if (state.prompts.length === 0) {
+      showEmptyState('No tienes prompts guardados', 'Crear Prompt');
+    } else {
+      const header = SecurityUtils.createElement('div', { className: 'prompts-header' });
+      const createBtn = SecurityUtils.createElement('button', { 
+        className: 'action-btn primary',
+        textContent: '+ Nuevo Prompt'
+      });
+      SecurityUtils.addSafeEventListener(createBtn, 'click', createPrompt);
+      header.appendChild(createBtn);
+      
+      const container = SecurityUtils.createElement('div', { className: 'prompts-list' });
+      
+      state.prompts.forEach(prompt => {
+        const card = createPromptCard(prompt);
+        container.appendChild(card);
+      });
+      
+      elements.content.appendChild(header);
+      elements.content.appendChild(container);
+      setupPromptListeners();
+    }
+  }
+
+  function createPromptCard(prompt) {
+    const card = SecurityUtils.createElement('div', { 
+      className: 'prompt-card',
+      attributes: { 'data-prompt-id': prompt.id }
+    });
+
+    const title = SecurityUtils.createElement('h4', { 
+      className: 'prompt-title',
+      textContent: prompt.title
+    });
+    
+    // Truncar contenido de forma segura
+    const previewText = prompt.content.length > 150 
+      ? prompt.content.substring(0, 150) + '...'
+      : prompt.content;
+    
+    const preview = SecurityUtils.createElement('p', { 
+      className: 'prompt-preview',
+      textContent: previewText
+    });
+
+    const footer = SecurityUtils.createElement('div', { className: 'prompt-footer' });
+    
+    const date = SecurityUtils.createElement('span', { 
+      className: 'prompt-date',
+      textContent: formatDate(prompt.createdAt)
+    });
+    
+    const actions = SecurityUtils.createElement('div', { className: 'prompt-actions' });
+    
+    // Botón editar
+    const editBtn = SecurityUtils.createElement('button', { 
+      className: 'icon-btn small',
+      attributes: { 
+        'data-action': 'edit',
+        'data-prompt-id': prompt.id
+      }
+    });
+    editBtn.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" width="16" height="16">
+        <path d="M11 4H4C2.89543 4 2 4.89543 2 6V20C2 21.1046 2.89543 22 4 22H18C19.1046 22 20 21.1046 20 20V13" stroke="currentColor" stroke-width="2"/>
+        <path d="M18.5 2.5C19.3284 1.67157 20.6716 1.67157 21.5 2.5C22.3284 3.32843 22.3284 4.67157 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke="currentColor" stroke-width="2"/>
+      </svg>
+    `;
+    
+    // Botón copiar
+    const copyBtn = SecurityUtils.createElement('button', { 
+      className: 'icon-btn small',
+      attributes: { 
+        'data-action': 'copy',
+        'data-prompt-id': prompt.id
+      }
+    });
+    copyBtn.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" width="16" height="16">
+        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" stroke="currentColor" stroke-width="2"/>
+        <path d="M5 15H4C2.89543 15 2 14.1046 2 13V4C2 2.89543 2.89543 2 4 2H13C14.1046 2 15 2.89543 15 4V5" stroke="currentColor" stroke-width="2"/>
+      </svg>
+    `;
+    
+    // Botón eliminar
+    const deleteBtn = SecurityUtils.createElement('button', { 
+      className: 'icon-btn small danger',
+      attributes: { 
+        'data-action': 'delete',
+        'data-prompt-id': prompt.id
+      }
+    });
+    deleteBtn.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" width="16" height="16">
+        <path d="M3 6H5H21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <path d="M8 6V4C8 3.44772 8.44772 3 9 3H15C15.5523 3 16 3.44772 16 4V6M19 6V20C19 21.1046 18.1046 22 17 22H7C5.89543 22 6 21.1046 6 20V6H19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    `;
+    
+    actions.appendChild(editBtn);
+    actions.appendChild(copyBtn);
+    actions.appendChild(deleteBtn);
+    
+    footer.appendChild(date);
+    footer.appendChild(actions);
+    
+    card.appendChild(title);
+    card.appendChild(preview);
+    card.appendChild(footer);
+
+    return card;
+  }
+
+  function showEmptyState(message = 'No hay elementos para mostrar', buttonText = null) {
+    const emptyDiv = SecurityUtils.createElement('div', { className: 'empty-state' });
+    
+    const text = SecurityUtils.createElement('p', { textContent: message });
+    emptyDiv.appendChild(text);
+    
+    if (buttonText) {
+      const btn = SecurityUtils.createElement('button', { 
+        className: 'action-btn primary',
+        textContent: buttonText
+      });
+      
+      if (buttonText === 'Crear Prompt') {
+        SecurityUtils.addSafeEventListener(btn, 'click', createPrompt);
+      }
+      
+      emptyDiv.appendChild(btn);
+    }
+    
+    elements.content.appendChild(emptyDiv);
+  }
+
+  function showError(message) {
+    // Limpiar contenido actual
+    elements.content.innerHTML = '';
+    
+    // Crear elementos de forma segura
+    const errorDiv = SecurityUtils.createElement('div', { className: 'error-state' });
+    const errorText = SecurityUtils.createElement('p', { textContent: message });
+    const retryBtn = SecurityUtils.createElement('button', { 
+      className: 'action-btn primary',
+      textContent: 'Reintentar'
+    });
+    
+    // Añadir event listener de forma segura
+    SecurityUtils.addSafeEventListener(retryBtn, 'click', () => {
+      location.reload();
+    });
+    
+    // Construir la estructura
+    errorDiv.appendChild(errorText);
+    errorDiv.appendChild(retryBtn);
+    elements.content.appendChild(errorDiv);
+  }
+
+  function setupCardListeners() {
+    // Event delegation para acciones de GPT
+    SecurityUtils.addSafeEventListener(elements.content, 'click', (e) => {
+      const target = e.target.closest('[data-action]');
+      if (!target) return;
+      
+      const action = target.dataset.action;
+      const gptId = target.dataset.gptId;
+      
+      if (!SecurityUtils.validateId(gptId)) {
+        SecurityUtils.safeLog('warn', 'Invalid GPT ID in action', { action, gptId });
+        return;
+      }
+      
+      handleGPTAction(action, gptId);
+    });
+    
+    // Event delegation para botones de favorito
+    SecurityUtils.addSafeEventListener(elements.content, 'click', (e) => {
+      if (e.target.closest('.favorite-btn')) {
+        const btn = e.target.closest('.favorite-btn');
+        const gptId = btn.dataset.gptId;
+        
+        if (!SecurityUtils.validateId(gptId)) {
+          SecurityUtils.safeLog('warn', 'Invalid GPT ID in favorite', { gptId });
+          return;
+        }
+        
+        toggleFavorite(gptId);
+      }
+    });
+  }
+
+  function setupPromptListeners() {
+    // Event delegation para acciones de prompt
+    SecurityUtils.addSafeEventListener(elements.content, 'click', (e) => {
+      const target = e.target.closest('[data-action]');
+      if (!target) return;
+      
+      const action = target.dataset.action;
+      const promptId = target.dataset.promptId;
+      
+      if (!SecurityUtils.validateId(promptId)) {
+        SecurityUtils.safeLog('warn', 'Invalid prompt ID in action', { action, promptId });
+        return;
+      }
+      
+      handlePromptAction(action, promptId);
+    });
+  }
+
+  async function handleGPTAction(action, gptId) {
+    const gpt = state.gpts.find(g => g.id === gptId);
+    if (!gpt) {
+      showToast('GPT no encontrado', 'error');
+      return;
+    }
+
+    if (!SecurityUtils.validateUrl(gpt.url)) {
+      showToast('URL del GPT no válida', 'error');
+      return;
+    }
+
+    switch (action) {
+      case 'use':
+        window.open(gpt.url, '_self');
+        break;
+      case 'open-new':
+        window.open(gpt.url, '_blank', 'noopener,noreferrer');
+        break;
+      default:
+        SecurityUtils.safeLog('warn', 'Unknown GPT action', { action, gptId });
+    }
+  }
+
+  async function handlePromptAction(action, promptId) {
+    const prompt = state.prompts.find(p => p.id === promptId);
+    if (!prompt) {
+      showToast('Prompt no encontrado', 'error');
+      return;
+    }
+
+    switch (action) {
+      case 'copy':
+        try {
+          const success = await SecurityUtils.copyToClipboard(prompt.content);
+          if (success) {
+            showToast('Prompt copiado al portapapeles', 'success');
+          } else {
+            showToast('Error al copiar al portapapeles', 'error');
+          }
+        } catch (error) {
+          showToast('Error al copiar al portapapeles', 'error');
+        }
+        break;
+      case 'edit':
+        showEditPromptModal(prompt);
+        break;
+      case 'delete':
+        if (confirm('¿Estás seguro de que quieres eliminar este prompt?')) {
+          deletePrompt(promptId);
+        }
+        break;
+      default:
+        SecurityUtils.safeLog('warn', 'Unknown prompt action', { action, promptId });
+    }
+  }
+
+  async function toggleFavorite(gptId) {
+    try {
+      const isFavorite = state.favorites.includes(gptId);
+      const action = isFavorite ? 'REMOVE_FAVORITE' : 'ADD_FAVORITE';
+      
+      const response = await chrome.runtime.sendMessage({
+        type: action,
+        data: { gptId }
+      });
+      
+      if (response?.success) {
+        if (isFavorite) {
+          state.favorites = state.favorites.filter(id => id !== gptId);
+          showToast('Eliminado de favoritos', 'info');
+        } else {
+          state.favorites.push(gptId);
+          showToast('Añadido a favoritos', 'success');
+        }
+        renderContent();
+      } else {
+        showToast('Error al actualizar favoritos', 'error');
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+      showToast('Error al actualizar favoritos', 'error');
+    }
+  }
+
+  function createPrompt() {
+    showCreatePromptModal();
+  }
+
+  function showCreatePromptModal() {
+    const existingModal = document.querySelector('.modal-overlay');
+    if (existingModal) {
+      existingModal.remove();
+    }
+
+    const modal = SecurityUtils.createElement('div', { className: 'modal-overlay' });
+    
+    const modalContent = SecurityUtils.createElement('div', { className: 'modal' });
+    
+    // Header
+    const header = SecurityUtils.createElement('div', { className: 'modal-header' });
+    const title = SecurityUtils.createElement('h3', { textContent: 'Crear Nuevo Prompt' });
+    const closeBtn = SecurityUtils.createElement('button', { className: 'modal-close' });
+    closeBtn.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" width="20" height="20">
+        <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    `;
+    
+    header.appendChild(title);
+    header.appendChild(closeBtn);
+    
+    // Body
+    const body = SecurityUtils.createElement('div', { className: 'modal-body' });
+    
+    const titleGroup = SecurityUtils.createElement('div', { className: 'form-group' });
+    const titleLabel = SecurityUtils.createElement('label', { 
+      textContent: 'Título del Prompt',
+      attributes: { for: 'prompt-title' }
+    });
+    const titleInput = SecurityUtils.createElement('input', { 
+      attributes: { 
+        type: 'text',
+        id: 'prompt-title',
+        placeholder: 'Ej: Asistente de Marketing',
+        maxlength: '100'
+      }
+    });
+    titleGroup.appendChild(titleLabel);
+    titleGroup.appendChild(titleInput);
+    
+    const contentGroup = SecurityUtils.createElement('div', { className: 'form-group' });
+    const contentLabel = SecurityUtils.createElement('label', { 
+      textContent: 'Contenido del Prompt',
+      attributes: { for: 'prompt-content' }
+    });
+    const contentTextarea = SecurityUtils.createElement('textarea', { 
+      attributes: { 
+        id: 'prompt-content',
+        rows: '10',
+        placeholder: 'Escribe tu prompt aquí...',
+        maxlength: '20000'
+      }
+    });
+    const charCounter = SecurityUtils.createElement('small', { 
+      className: 'char-counter',
+      textContent: '0/20000 caracteres'
+    });
+    
+    contentGroup.appendChild(contentLabel);
+    contentGroup.appendChild(contentTextarea);
+    contentGroup.appendChild(charCounter);
+    
+    body.appendChild(titleGroup);
+    body.appendChild(contentGroup);
+    
+    // Footer
+    const footer = SecurityUtils.createElement('div', { className: 'modal-footer' });
+    const cancelBtn = SecurityUtils.createElement('button', { 
+      className: 'btn secondary',
+      textContent: 'Cancelar'
+    });
+    const saveBtn = SecurityUtils.createElement('button', { 
+      className: 'btn primary',
+      textContent: 'Crear Prompt'
+    });
+    
+    footer.appendChild(cancelBtn);
+    footer.appendChild(saveBtn);
+    
+    // Construir modal
+    modalContent.appendChild(header);
+    modalContent.appendChild(body);
+    modalContent.appendChild(footer);
+    modal.appendChild(modalContent);
+    
+    // Event listeners
+    SecurityUtils.addSafeEventListener(closeBtn, 'click', () => modal.remove());
+    SecurityUtils.addSafeEventListener(cancelBtn, 'click', () => modal.remove());
+    SecurityUtils.addSafeEventListener(saveBtn, 'click', () => saveNewPrompt(modal));
+    
+    // Character counter
+    SecurityUtils.addSafeEventListener(contentTextarea, 'input', () => {
+      const length = contentTextarea.value.length;
+      charCounter.textContent = `${length}/20000 caracteres`;
+    });
+    
+    // ESC key to close
+    SecurityUtils.addSafeEventListener(modal, 'keydown', (e) => {
+      if (e.key === 'Escape') {
+        modal.remove();
+      }
+    });
+    
+    document.body.appendChild(modal);
+    titleInput.focus();
+  }
+
+  function showEditPromptModal(prompt) {
+    const existingModal = document.querySelector('.modal-overlay');
+    if (existingModal) {
+      existingModal.remove();
+    }
+
+    const modal = SecurityUtils.createElement('div', { className: 'modal-overlay' });
+    
+    const modalContent = SecurityUtils.createElement('div', { className: 'modal' });
+    
+    // Header
+    const header = SecurityUtils.createElement('div', { className: 'modal-header' });
+    const title = SecurityUtils.createElement('h3', { textContent: 'Editar Prompt' });
+    const closeBtn = SecurityUtils.createElement('button', { className: 'modal-close' });
+    closeBtn.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" width="20" height="20">
+        <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    `;
+    
+    header.appendChild(title);
+    header.appendChild(closeBtn);
+    
+    // Body
+    const body = SecurityUtils.createElement('div', { className: 'modal-body' });
+    
+    const titleGroup = SecurityUtils.createElement('div', { className: 'form-group' });
+    const titleLabel = SecurityUtils.createElement('label', { 
+      textContent: 'Título del Prompt',
+      attributes: { for: 'prompt-title' }
+    });
+    const titleInput = SecurityUtils.createElement('input', { 
+      attributes: { 
+        type: 'text',
+        id: 'prompt-title',
+        placeholder: 'Ej: Asistente de Marketing',
+        maxlength: '100',
+        value: prompt.title || ''
+      }
+    });
+    titleGroup.appendChild(titleLabel);
+    titleGroup.appendChild(titleInput);
+    
+    const contentGroup = SecurityUtils.createElement('div', { className: 'form-group' });
+    const contentLabel = SecurityUtils.createElement('label', { 
+      textContent: 'Contenido del Prompt',
+      attributes: { for: 'prompt-content' }
+    });
+    const contentTextarea = SecurityUtils.createElement('textarea', { 
+      attributes: { 
+        id: 'prompt-content',
+        rows: '10',
+        placeholder: 'Escribe tu prompt aquí...',
+        maxlength: '20000'
+      }
+    });
+    contentTextarea.value = prompt.content || '';
+    
+    const charCounter = SecurityUtils.createElement('small', { 
+      className: 'char-counter',
+      textContent: `${(prompt.content || '').length}/20000 caracteres`
+    });
+    
+    contentGroup.appendChild(contentLabel);
+    contentGroup.appendChild(contentTextarea);
+    contentGroup.appendChild(charCounter);
+    
+    body.appendChild(titleGroup);
+    body.appendChild(contentGroup);
+    
+    // Footer
+    const footer = SecurityUtils.createElement('div', { className: 'modal-footer' });
+    const cancelBtn = SecurityUtils.createElement('button', { 
+      className: 'btn secondary',
+      textContent: 'Cancelar'
+    });
+    const saveBtn = SecurityUtils.createElement('button', { 
+      className: 'btn primary',
+      textContent: 'Actualizar Prompt'
+    });
+    
+    footer.appendChild(cancelBtn);
+    footer.appendChild(saveBtn);
+    
+    // Construir modal
+    modalContent.appendChild(header);
+    modalContent.appendChild(body);
+    modalContent.appendChild(footer);
+    modal.appendChild(modalContent);
+    
+    // Event listeners
+    SecurityUtils.addSafeEventListener(closeBtn, 'click', () => modal.remove());
+    SecurityUtils.addSafeEventListener(cancelBtn, 'click', () => modal.remove());
+    SecurityUtils.addSafeEventListener(saveBtn, 'click', () => updatePrompt(prompt, modal));
+    
+    // Character counter
+    SecurityUtils.addSafeEventListener(contentTextarea, 'input', () => {
+      const length = contentTextarea.value.length;
+      charCounter.textContent = `${length}/20000 caracteres`;
+    });
+    
+    // ESC key to close
+    SecurityUtils.addSafeEventListener(modal, 'keydown', (e) => {
+      if (e.key === 'Escape') {
+        modal.remove();
+      }
+    });
+    
+    document.body.appendChild(modal);
+    titleInput.focus();
+  }
+
+  async function saveNewPrompt(modal) {
+    const titleInput = modal.querySelector('#prompt-title');
+    const contentTextarea = modal.querySelector('#prompt-content');
+    
+    const promptData = {
+      title: titleInput.value.trim(),
+      content: contentTextarea.value.trim()
+    };
+    
+    const validation = SecurityUtils.validatePromptInput(promptData);
+    if (!validation.valid) {
+      showToast(validation.errors.join(', '), 'warning');
+      return;
+    }
+    
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: 'SAVE_PROMPT',
+        data: promptData
+      });
+      
+      if (response?.success) {
+        state.prompts.push(response.data);
+        modal.remove();
+        if (state.currentTab === 'prompts') {
+          renderContent();
+        }
+        showToast('Prompt creado exitosamente', 'success');
+      } else {
+        showToast('Error al crear el prompt', 'error');
+      }
+    } catch (error) {
+      console.error('Error creating prompt:', error);
+      showToast('Error al crear el prompt', 'error');
+    }
+  }
+
+  async function updatePrompt(originalPrompt, modal) {
+    const titleInput = modal.querySelector('#prompt-title');
+    const contentTextarea = modal.querySelector('#prompt-content');
+    
+    const promptData = {
+      id: originalPrompt.id,
+      title: titleInput.value.trim(),
+      content: contentTextarea.value.trim()
+    };
+    
+    const validation = SecurityUtils.validatePromptInput(promptData);
+    if (!validation.valid) {
+      showToast(validation.errors.join(', '), 'warning');
+      return;
+    }
+    
+    try {
+      const index = state.prompts.findIndex(p => p.id === originalPrompt.id);
       if (index > -1) {
+        // Actualizar en el estado local
         state.prompts[index] = {
           ...state.prompts[index],
-          ...promptData,
+          title: promptData.title,
+          content: promptData.content,
           updatedAt: Date.now()
         };
+        
+        // Enviar mensaje al service worker
+        const response = await chrome.runtime.sendMessage({
+          type: 'UPDATE_PROMPT',
+          data: promptData
+        });
+        
+        if (response?.success) {
+          modal.remove();
+          if (state.currentTab === 'prompts') {
+            renderContent();
+          }
+          showToast('Prompt actualizado exitosamente', 'success');
+        } else {
+          showToast('Error al actualizar el prompt', 'error');
+        }
       }
-      delete e.target.dataset.editingId;
-    } else {
-      // Crear nuevo prompt
-      const newPrompt = {
-        id: generateId(),
-        ...promptData,
-        createdAt: Date.now(),
-        updatedAt: Date.now()
+    } catch (error) {
+      console.error('Error updating prompt:', error);
+      showToast('Error al actualizar el prompt', 'error');
+    }
+  }
+
+  async function deletePrompt(promptId) {
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: 'DELETE_PROMPT',
+        data: { id: promptId }
+      });
+      
+      if (response?.success) {
+        state.prompts = state.prompts.filter(p => p.id !== promptId);
+        renderContent();
+        showToast('Prompt eliminado', 'success');
+      }
+    } catch (error) {
+      console.error('Error eliminando prompt:', error);
+      showError('Error al eliminar el prompt');
+    }
+  }
+
+  // Sistema de notificaciones seguro
+  let notificationId = 0;
+  const activeNotifications = new Map();
+  
+  function initNotifications() {
+    if (!document.getElementById('notifications-container')) {
+      const container = SecurityUtils.createElement('div', { 
+        id: 'notifications-container',
+        attributes: { 
+          style: `position: fixed; bottom: 20px; right: 20px; z-index: 10000; display: flex; flex-direction: column; gap: 10px; pointer-events: none; max-width: 400px;`
+        }
+      });
+      document.body.appendChild(container);
+    }
+  }
+  
+  function showToast(message, type = 'info', duration = 3000) {
+    initNotifications();
+    const container = document.getElementById('notifications-container');
+    const id = ++notificationId;
+    
+    // Crear notificación de forma segura
+    const notification = SecurityUtils.createElement('div', { 
+      className: `notification notification-${type}`,
+      id: `notification-${id}`,
+      attributes: {
+        style: `display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); transform: translateX(120%); transition: all 0.3s ease; pointer-events: auto; min-width: 280px; max-width: 100%;`
+      }
+    });
+    
+    // Iconos según tipo
+    const icons = {
+      success: '<svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>',
+      error: '<svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/></svg>',
+      warning: '<svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>',
+      info: '<svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>'
+    };
+    
+    // Icon
+    const iconDiv = SecurityUtils.createElement('div', { 
+      className: 'notification-icon',
+      attributes: {
+        style: `flex-shrink: 0; width: 20px; height: 20px; color: ${type === 'success' ? '#10B981' : type === 'error' ? '#EF4444' : type === 'warning' ? '#F59E0B' : '#4F46E5'}`
+      }
+    });
+    iconDiv.innerHTML = icons[type] || icons.info;
+    
+    // Content
+    const contentDiv = SecurityUtils.createElement('div', { 
+      className: 'notification-content',
+      textContent: message,
+      attributes: {
+        style: 'flex: 1; font-size: 14px; line-height: 1.4; color: var(--text-primary);'
+      }
+    });
+    
+    // Close button
+    const closeBtn = SecurityUtils.createElement('button', { 
+      className: 'notification-close',
+      attributes: {
+        style: 'background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 2px; border-radius: 4px; transition: all 0.2s;'
+      }
+    });
+    closeBtn.innerHTML = '<svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>';
+    
+    notification.appendChild(iconDiv);
+    notification.appendChild(contentDiv);
+    notification.appendChild(closeBtn);
+    
+    container.appendChild(notification);
+    activeNotifications.set(id, notification);
+    
+    // Event listeners
+    SecurityUtils.addSafeEventListener(closeBtn, 'click', () => hideNotification(id));
+    
+    // Mostrar animación
+    setTimeout(() => {
+      notification.style.transform = 'translateX(0)';
+    }, 10);
+    
+    // Auto-hide
+    if (duration > 0) {
+      setTimeout(() => hideNotification(id), duration);
+    }
+  }
+  
+  function hideNotification(id) {
+    const notification = activeNotifications.get(id);
+    if (!notification) return;
+    
+    notification.style.transform = 'translateX(120%)';
+    notification.style.opacity = '0';
+    
+    setTimeout(() => {
+      notification.remove();
+      activeNotifications.delete(id);
+    }, 300);
+  }
+
+  function formatDate(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('es-ES', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    });
+  }
+
+  // Función para mostrar mensaje de login (segura)
+  function showLoginPrompt() {
+    elements.content.innerHTML = '';
+    
+    const loginDiv = SecurityUtils.createElement('div', { className: 'login-prompt' });
+    
+    const iconDiv = SecurityUtils.createElement('div', { className: 'login-icon' });
+    iconDiv.innerHTML = `
+      <svg viewBox="0 0 24 24" width="64" height="64" fill="none">
+        <path d="M12 14C14.2091 14 16 12.2091 16 10C16 7.79086 14.2091 6 12 6C9.79086 6 8 7.79086 8 10C8 12.2091 9.79086 14 12 14Z" 
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M20 21C20 19.1435 19.2625 17.363 17.9497 16.0503C16.637 14.7375 14.8565 14 13 14H11C9.14348 14 7.36301 14.7375 6.05025 16.0503C4.7375 17.363 4 19.1435 4 21" 
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    `;
+    
+    const title = SecurityUtils.createElement('h2', { textContent: 'Inicia Sesión' });
+    const desc = SecurityUtils.createElement('p', { textContent: 'Para acceder a tus GPTs y prompts guardados' });
+    const loginBtn = SecurityUtils.createElement('button', { 
+      className: 'btn-login',
+      textContent: '🔑 Iniciar Sesión'
+    });
+    
+    SecurityUtils.addSafeEventListener(loginBtn, 'click', () => {
+      // TODO: Implementar login real
+      showToast('Login en desarrollo', 'info');
+    });
+    
+    loginDiv.appendChild(iconDiv);
+    loginDiv.appendChild(title);
+    loginDiv.appendChild(desc);
+    loginDiv.appendChild(loginBtn);
+    
+    elements.content.appendChild(loginDiv);
+  }
+
+  // Función para mostrar modal de límite de dispositivos (segura)
+  function showDeviceLimitModal(deviceInfo) {
+    elements.content.innerHTML = '';
+    
+    const blockDiv = SecurityUtils.createElement('div', { className: 'device-limit-block' });
+    
+    const iconDiv = SecurityUtils.createElement('div', { className: 'device-limit-icon' });
+    iconDiv.innerHTML = `
+      <svg viewBox="0 0 24 24" width="64" height="64" fill="none">
+        <path d="M12 9V13M12 17H12.01M5 19H19C20.1046 19 21 18.1046 21 17V7C21 5.89543 20.1046 5 19 5H5C3.89543 5 3 5.89543 3 7V17C3 18.1046 3.89543 19 5 19Z" 
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    `;
+    
+    const title = SecurityUtils.createElement('h2', { 
+      className: 'device-limit-title',
+      textContent: 'Límite de Dispositivos Alcanzado'
+    });
+    
+    const desc1 = SecurityUtils.createElement('p', { 
+      className: 'device-limit-desc'
+    });
+    desc1.innerHTML = `Has alcanzado el límite de <strong>${SecurityUtils.escapeHtml(deviceInfo.limit)} dispositivos</strong> para tu plan ${SecurityUtils.escapeHtml(deviceInfo.plan || 'Free')}.`;
+    
+    const desc2 = SecurityUtils.createElement('p', { 
+      className: 'device-limit-desc',
+      textContent: 'Para usar la extensión en este dispositivo, debes desactivarla en otro o actualizar tu plan.'
+    });
+    
+    const actionsDiv = SecurityUtils.createElement('div', { className: 'device-limit-actions' });
+    
+    const manageBtn = SecurityUtils.createElement('button', { 
+      className: 'btn-manage-devices',
+      textContent: '📱 Gestionar Dispositivos'
+    });
+    
+    const upgradeBtn = SecurityUtils.createElement('button', { 
+      className: 'btn-upgrade-plan',
+      textContent: '🚀 Ver Planes'
+    });
+    
+    SecurityUtils.addSafeEventListener(manageBtn, 'click', () => {
+      loadDeviceManager(deviceInfo);
+    });
+    
+    SecurityUtils.addSafeEventListener(upgradeBtn, 'click', () => {
+      window.open('https://kit-ia-pro.com/pricing', '_blank');
+    });
+    
+    actionsDiv.appendChild(manageBtn);
+    actionsDiv.appendChild(upgradeBtn);
+    
+    blockDiv.appendChild(iconDiv);
+    blockDiv.appendChild(title);
+    blockDiv.appendChild(desc1);
+    blockDiv.appendChild(desc2);
+    blockDiv.appendChild(actionsDiv);
+    
+    elements.content.appendChild(blockDiv);
+    
+    // Agregar estilos
+    addDeviceLimitStyles();
+  }
+
+  // Cargar el gestor de dispositivos de forma segura
+  async function loadDeviceManager(deviceInfo) {
+    if (!window.DeviceManager) {
+      const script = document.createElement('script');
+      script.src = '../components/device-manager.js';
+      script.onload = () => {
+        window.DeviceManager.showDeviceModal(deviceInfo);
       };
-      state.prompts.unshift(newPrompt);
-    }
-    
-    // Guardar en storage
-    await chrome.storage.local.set({ [STORAGE_KEYS.PROMPTS]: state.prompts });
-    
-    // Limpiar formulario
-    e.target.reset();
-    state.draftPrompt = null;
-    await chrome.storage.local.remove(STORAGE_KEYS.DRAFT_PROMPT);
-    
-    // Cambiar a tab de prompts y re-renderizar
-    setActiveTab('prompts');
-    
-    showNotification(editingId ? 'Prompt actualizado' : 'Prompt creado', 'success');
-  } catch (error) {
-    logger.error('Error al guardar prompt:', error);
-    showNotification('Error al guardar prompt', 'error');
-  }
-}
-
-/**
- * Guarda el borrador del prompt
- */
-async function saveDraft() {
-  const form = elements.promptForm;
-  const draft = {
-    title: form.querySelector('[name="title"]').value,
-    content: form.querySelector('[name="content"]').value,
-    tags: form.querySelector('[name="tags"]').value,
-    savedAt: Date.now()
-  };
-  
-  state.draftPrompt = draft;
-  
-  try {
-    await chrome.storage.local.set({ [STORAGE_KEYS.DRAFT_PROMPT]: draft });
-    logger.info('Borrador guardado');
-  } catch (error) {
-    logger.error('Error al guardar borrador:', error);
-  }
-}
-
-/**
- * Actualiza el contador de caracteres
- */
-function updateCharCount(e) {
-  const count = e.target.value.length;
-  const counter = e.target.parentElement.querySelector('.char-count');
-  if (counter) {
-    counter.textContent = `${count} caracteres`;
-    counter.classList.toggle('warning', count > 4000);
-  }
-}
-
-/**
- * Maneja el scroll infinito
- */
-function handleScroll(e) {
-  const { scrollTop, scrollHeight, clientHeight } = e.target;
-  
-  if (scrollHeight - scrollTop <= clientHeight + 100 && 
-      !state.pagination.loading && 
-      state.pagination.hasMore) {
-    loadMoreGPTs();
-  }
-}
-
-/**
- * Carga más GPTs (paginación)
- */
-async function loadMoreGPTs() {
-  state.pagination.loading = true;
-  showLoadingIndicator();
-  
-  // Simular delay de carga
-  await new Promise(resolve => setTimeout(resolve, 300));
-  
-  state.pagination.page++;
-  renderGPTs();
-  
-  state.pagination.loading = false;
-  hideLoadingIndicator();
-}
-
-/**
- * Maneja atajos de teclado
- */
-function handleKeyboardShortcuts(e) {
-  // Ctrl/Cmd + K para búsqueda
-  if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-    e.preventDefault();
-    elements.searchInput.focus();
-  }
-  
-  // Ctrl/Cmd + N para nuevo prompt
-  if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
-    e.preventDefault();
-    setActiveTab('create');
-  }
-}
-
-/**
- * Toggle del sidebar
- */
-function toggleSidebar() {
-  elements.container.classList.toggle('collapsed');
-  
-  // Guardar estado
-  const isCollapsed = elements.container.classList.contains('collapsed');
-  chrome.storage.local.set({ sidebarCollapsed: isCollapsed });
-}
-
-/**
- * Muestra una notificación
- */
-function showNotification(message, type = 'info') {
-  const notification = document.createElement('div');
-  notification.className = `notification notification-${type}`;
-  notification.innerHTML = `
-    <span class="notification-message">${escapeHtml(message)}</span>
-    <button class="notification-close">&times;</button>
-  `;
-  
-  // Añadir al contenedor
-  elements.notificationsContainer.appendChild(notification);
-  
-  // Animar entrada
-  requestAnimationFrame(() => {
-    notification.classList.add('show');
-  });
-  
-  // Close button
-  notification.querySelector('.notification-close').addEventListener('click', () => {
-    removeNotification(notification);
-  });
-  
-  // Auto-remove después de 5 segundos
-  setTimeout(() => {
-    removeNotification(notification);
-  }, 5000);
-}
-
-/**
- * Elimina una notificación
- */
-function removeNotification(notification) {
-  notification.classList.remove('show');
-  setTimeout(() => {
-    notification.remove();
-  }, 300);
-}
-
-/**
- * Muestra estado vacío
- */
-function showEmptyState(type) {
-  // Ocultar skeleton si está visible
-  if (elements.gptsSkeleton) {
-    elements.gptsSkeleton.hidden = true;
-  }
-  
-  // Mostrar estado vacío correspondiente
-  switch (type) {
-    case 'gpts':
-      if (elements.gptsList) elements.gptsList.hidden = true;
-      if (elements.gptsEmpty) elements.gptsEmpty.hidden = false;
-      break;
-    case 'prompts':
-      if (elements.promptsList) elements.promptsList.hidden = true;
-      if (elements.promptsEmpty) elements.promptsEmpty.hidden = false;
-      break;
-    case 'favorites':
-      if (elements.favoritesList) elements.favoritesList.hidden = true;
-      if (elements.favoritesEmpty) elements.favoritesEmpty.hidden = false;
-      break;
-  }
-}
-
-/**
- * Muestra indicador de carga
- */
-function showLoadingIndicator() {
-  elements.loadingIndicator.classList.remove('hidden');
-}
-
-/**
- * Oculta indicador de carga
- */
-function hideLoadingIndicator() {
-  elements.loadingIndicator.classList.add('hidden');
-}
-
-/**
- * Configura manejadores de mensajes con service worker
- */
-function setupMessageHandlers() {
-  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    logger.info('Mensaje recibido:', message);
-    
-    switch (message.type) {
-      case 'UPDATE_GPTS':
-        state.gpts = message.data;
-        if (state.activeTab === 'gpts') {
-          renderGPTs();
-        }
-        break;
-        
-      case 'GPT_ADDED':
-        state.gpts.unshift(message.data);
-        if (state.activeTab === 'gpts') {
-          renderGPTs();
-        }
-        showNotification('Nuevo GPT añadido', 'success');
-        break;
-        
-      case 'SYNC_COMPLETE':
-        showNotification('Sincronización completada', 'success');
-        loadInitialState();
-        break;
-        
-      default:
-        logger.warn('Tipo de mensaje no manejado:', message.type);
-    }
-    
-    sendResponse({ received: true });
-  });
-}
-
-/**
- * Renderiza la UI completa
- */
-function renderUI() {
-  // Establecer modo de vista inicial
-  setViewMode(state.viewMode);
-  
-  // Establecer tab activa
-  setActiveTab(state.activeTab);
-  
-  // Cargar draft si existe
-  if (state.draftPrompt && elements.promptForm) {
-    const form = elements.promptForm;
-    const titleInput = form.querySelector('[name="title"]');
-    const contentInput = form.querySelector('[name="content"]');
-    const tagsInput = form.querySelector('[name="tags"]');
-    
-    if (titleInput) titleInput.value = state.draftPrompt.title || '';
-    if (contentInput) contentInput.value = state.draftPrompt.content || '';
-    if (tagsInput) tagsInput.value = state.draftPrompt.tags || '';
-    
-    showNotification('Borrador recuperado', 'info');
-  }
-  
-  // Actualizar contador de favoritos
-  updateFavoritesCount();
-}
-
-/**
- * Actualiza el contador de favoritos en la tab
- */
-function updateFavoritesCount() {
-  const favoritesCount = document.getElementById('kitia-favorites-count');
-  if (favoritesCount) {
-    favoritesCount.textContent = state.favorites.length;
-    favoritesCount.hidden = state.favorites.length === 0;
-  }
-}
-
-/**
- * Utilidades
- */
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
-
-function generateId() {
-  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-}
-
-function formatDate(timestamp) {
-  const date = new Date(timestamp);
-  const now = new Date();
-  const diff = now - date;
-  
-  if (diff < 60000) return 'Hace un momento';
-  if (diff < 3600000) return `Hace ${Math.floor(diff / 60000)} minutos`;
-  if (diff < 86400000) return `Hace ${Math.floor(diff / 3600000)} horas`;
-  if (diff < 604800000) return `Hace ${Math.floor(diff / 86400000)} días`;
-  
-  return date.toLocaleDateString();
-}
-
-function debounce(func, wait) {
-  let timeout;
-  return function executedFunction(...args) {
-    const later = () => {
-      clearTimeout(timeout);
-      func(...args);
-    };
-    clearTimeout(timeout);
-    timeout = setTimeout(later, wait);
-  };
-}
-
-/**
- * Maneja el uso de un GPT
- */
-async function handleUseGPT(e) {
-  const gptId = e.currentTarget.dataset.gptId;
-  const gpt = state.gpts.find(g => g.id === gptId);
-  
-  if (!gpt) return;
-  
-  try {
-    // Enviar mensaje al service worker para abrir el GPT
-    const response = await chrome.runtime.sendMessage({
-      type: 'OPEN_GPT',
-      data: { gpt }
-    });
-    
-    if (response.success) {
-      showNotification(`Abriendo ${gpt.name}...`, 'info');
+      script.onerror = () => {
+        showToast('Error al cargar el gestor de dispositivos', 'error');
+      };
+      document.head.appendChild(script);
     } else {
-      throw new Error(response.error);
+      window.DeviceManager.showDeviceModal(deviceInfo);
     }
-  } catch (error) {
-    logger.error('Error al usar GPT:', error);
-    showNotification('Error al abrir el GPT', 'error');
   }
-}
 
-// Iniciar cuando el DOM esté listo
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', init);
-} else {
-  init();
-}
-
-/**
- * Renderiza la barra de herramientas de multi-selección
- */
-function renderMultiSelectToolbar() {
-  const existingToolbar = document.getElementById('multi-select-toolbar');
-  const promptsPanel = document.getElementById('kitia-panel-prompts');
-  const panelHeader = promptsPanel.querySelector('.kitia-panel-header');
-  
-  if (state.selectedPrompts.size === 0) {
-    if (existingToolbar) {
-      existingToolbar.remove();
-    }
-    state.multiSelectMode = false;
-    document.body.classList.remove('multi-select-mode');
-    return;
-  }
-  
-  state.multiSelectMode = true;
-  document.body.classList.add('multi-select-mode');
-  
-  if (!existingToolbar) {
-    const toolbar = document.createElement('div');
-    toolbar.id = 'multi-select-toolbar';
-    toolbar.className = 'multi-select-toolbar';
-    toolbar.innerHTML = `
-      <div class="toolbar-left">
-        <button type="button" class="select-all-btn" id="select-all-btn">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2zm10.03 4.97a.5.5 0 0 1 .47.53v.5a.5.5 0 0 1-.5.5.5.5 0 0 1-.47-.53v-.5a.5.5 0 0 1 .5-.5zm-5.657 1.06a.5.5 0 0 1 0 .707L4.707 8.393a.5.5 0 0 1-.707 0L2.343 6.736a.5.5 0 1 1 .707-.707l1.353 1.353 3.293-3.293a.5.5 0 0 1 .707 0z"/>
-          </svg>
-          <span id="select-all-text">Seleccionar todo</span>
-        </button>
-        <span class="selected-count">
-          <span id="selected-count">${state.selectedPrompts.size}</span> seleccionado${state.selectedPrompts.size !== 1 ? 's' : ''}
-        </span>
-      </div>
-      <div class="toolbar-actions">
-        <button type="button" class="btn-toolbar copy-all" id="copy-all-btn" title="Copiar todos">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V2zm2 0v8h8V2H6zM2 6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-2h-2v2H2V8h2V6H2z"/>
-          </svg>
-          Copiar
-        </button>
-        <button type="button" class="btn-toolbar export-all" id="export-all-btn" title="Exportar seleccionados">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M8.5 6.5a.5.5 0 0 0-1 0v3.793L6.354 9.146a.5.5 0 1 0-.708.708l2 2a.5.5 0 0 0 .708 0l2-2a.5.5 0 0 0-.708-.708L8.5 10.293V6.5z"/>
-            <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5v2z"/>
-          </svg>
-          Exportar
-        </button>
-        <button type="button" class="btn-toolbar delete-all" id="delete-all-btn" title="Eliminar seleccionados">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M6.5 1h3a.5.5 0 0 1 .5.5v1H6v-1a.5.5 0 0 1 .5-.5ZM11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3A1.5 1.5 0 0 0 5 1.5v1H2.506a.58.58 0 0 0-.01 0H1.5a.5.5 0 0 0 0 1h.538l.853 10.66A2 2 0 0 0 4.885 16h6.23a2 2 0 0 0 1.994-1.84l.853-10.66h.538a.5.5 0 0 0 0-1h-.995a.59.59 0 0 0-.01 0H11Zm1.958 1-.846 10.58a1 1 0 0 1-.997.92h-6.23a1 1 0 0 1-.997-.92L3.042 3.5h9.916Zm-7.487 1a.5.5 0 0 1 .528.47l.5 8.5a.5.5 0 0 1-.998.06L5 5.03a.5.5 0 0 1 .47-.53Zm5.058 0a.5.5 0 0 1 .47.53l-.5 8.5a.5.5 0 1 1-.998-.06l.5-8.5a.5.5 0 0 1 .528-.47ZM8 4.5a.5.5 0 0 1 .5.5v8.5a.5.5 0 0 1-1 0V5a.5.5 0 0 1 .5-.5Z"/>
-          </svg>
-          Eliminar
-        </button>
-      </div>
-    `;
+  function addDeviceLimitStyles() {
+    if (document.getElementById('device-limit-styles')) return;
     
-    // Insertar después del header
-    if (panelHeader && panelHeader.nextSibling) {
-      promptsPanel.insertBefore(toolbar, panelHeader.nextSibling);
-    } else {
-      promptsPanel.insertBefore(toolbar, promptsPanel.firstChild);
-    }
-    
-    // Añadir event listeners
-    document.getElementById('select-all-btn').addEventListener('click', handleSelectAll);
-    document.getElementById('copy-all-btn').addEventListener('click', handleCopySelected);
-    document.getElementById('export-all-btn').addEventListener('click', handleExportSelected);
-    document.getElementById('delete-all-btn').addEventListener('click', handleDeleteSelected);
-  } else {
-    // Actualizar contador
-    document.getElementById('selected-count').textContent = state.selectedPrompts.size;
-    existingToolbar.querySelector('.selected-count').innerHTML = `
-      <span id="selected-count">${state.selectedPrompts.size}</span> seleccionado${state.selectedPrompts.size !== 1 ? 's' : ''}
-    `;
-  }
-}
-
-/**
- * Maneja la selección de prompts
- */
-function handlePromptSelection(e) {
-  e.stopPropagation();
-  const promptId = e.target.dataset.promptId;
-  const card = e.target.closest('.prompt-card');
-  
-  if (e.target.checked) {
-    state.selectedPrompts.add(promptId);
-    card.classList.add('selected');
-  } else {
-    state.selectedPrompts.delete(promptId);
-    card.classList.remove('selected');
-  }
-  
-  renderMultiSelectToolbar();
-  updateSelectAllButton();
-}
-
-/**
- * Maneja click en la card
- */
-function handleCardClick(e) {
-  // No hacer nada si se clickeó en un botón o checkbox
-  if (e.target.closest('.icon-btn') || e.target.closest('.prompt-checkbox')) {
-    return;
-  }
-  
-  // Si estamos en modo multi-select, toggle la selección
-  if (state.multiSelectMode || e.ctrlKey || e.metaKey) {
-    const checkbox = e.currentTarget.querySelector('.prompt-checkbox');
-    checkbox.checked = !checkbox.checked;
-    checkbox.dispatchEvent(new Event('change'));
-  }
-}
-
-/**
- * Maneja seleccionar/deseleccionar todo
- */
-function handleSelectAll() {
-  const allPrompts = filterPrompts();
-  const allSelected = allPrompts.every(p => state.selectedPrompts.has(p.id));
-  
-  if (allSelected) {
-    // Deseleccionar todo
-    state.selectedPrompts.clear();
-    document.querySelectorAll('.prompt-checkbox').forEach(cb => {
-      cb.checked = false;
-      cb.closest('.prompt-card').classList.remove('selected');
-    });
-  } else {
-    // Seleccionar todo
-    allPrompts.forEach(prompt => {
-      state.selectedPrompts.add(prompt.id);
-    });
-    document.querySelectorAll('.prompt-checkbox').forEach(cb => {
-      cb.checked = true;
-      cb.closest('.prompt-card').classList.add('selected');
-    });
-  }
-  
-  renderMultiSelectToolbar();
-  updateSelectAllButton();
-}
-
-/**
- * Actualiza el botón de seleccionar todo
- */
-function updateSelectAllButton() {
-  const btn = document.getElementById('select-all-btn');
-  if (!btn) return;
-  
-  const allPrompts = filterPrompts();
-  const allSelected = allPrompts.length > 0 && allPrompts.every(p => state.selectedPrompts.has(p.id));
-  
-  const textSpan = btn.querySelector('#select-all-text');
-  textSpan.textContent = allSelected ? 'Deseleccionar todo' : 'Seleccionar todo';
-}
-
-/**
- * Maneja copiar prompts seleccionados
- */
-async function handleCopySelected() {
-  const selectedPrompts = state.prompts.filter(p => state.selectedPrompts.has(p.id));
-  
-  if (selectedPrompts.length === 0) return;
-  
-  try {
-    const content = selectedPrompts.map(prompt => {
-      let text = `## ${prompt.title}\n\n${prompt.content}`;
-      if (prompt.tags?.length) {
-        text += `\n\nTags: ${prompt.tags.join(', ')}`;
+    const style = document.createElement('style');
+    style.id = 'device-limit-styles';
+    style.textContent = `
+      .login-prompt,
+      .device-limit-block {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 40px 20px;
+        min-height: 400px;
       }
-      return text;
-    }).join('\n\n---\n\n');
+      
+      .login-icon,
+      .device-limit-icon {
+        color: var(--text-secondary);
+        margin-bottom: 24px;
+        opacity: 0.8;
+      }
+      
+      .device-limit-icon {
+        color: var(--error-color);
+      }
+      
+      .login-prompt h2,
+      .device-limit-title {
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0 0 16px 0;
+      }
+      
+      .login-prompt p,
+      .device-limit-desc {
+        color: var(--text-secondary);
+        margin: 0 0 12px 0;
+        max-width: 400px;
+        line-height: 1.5;
+      }
+      
+      .btn-login,
+      .device-limit-actions {
+        margin-top: 24px;
+      }
+      
+      .device-limit-actions {
+        display: flex;
+        gap: 12px;
+      }
+      
+      .btn-login,
+      .btn-manage-devices,
+      .btn-upgrade-plan {
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: none;
+      }
+      
+      .btn-login,
+      .btn-upgrade-plan {
+        background: var(--accent-color);
+        color: white;
+      }
+      
+      .btn-login:hover,
+      .btn-upgrade-plan:hover {
+        background: var(--accent-hover);
+        transform: translateY(-1px);
+      }
+      
+      .btn-manage-devices {
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
+      }
+      
+      .btn-manage-devices:hover {
+        background: var(--bg-hover);
+      }
+    `;
     
-    await navigator.clipboard.writeText(content);
-    showNotification(`${selectedPrompts.length} prompts copiados al portapapeles`, 'success');
-  } catch (error) {
-    logger.error('Error al copiar prompts:', error);
-    showNotification('Error al copiar prompts', 'error');
+    document.head.appendChild(style);
   }
-}
 
-/**
- * Maneja exportar prompts seleccionados
- */
-function handleExportSelected() {
-  const selectedPrompts = state.prompts.filter(p => state.selectedPrompts.has(p.id));
-  
-  if (selectedPrompts.length === 0) return;
-  
-  try {
-    const exportData = {
-      version: '1.0',
-      exportDate: new Date().toISOString(),
-      prompts: selectedPrompts
-    };
+  function setupResize() {
+    if (!elements.resizeHandle) return;
     
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `kit-ia-prompts-${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    let isResizing = false;
+    let startX, startWidth;
     
-    showNotification(`${selectedPrompts.length} prompts exportados`, 'success');
-  } catch (error) {
-    logger.error('Error al exportar prompts:', error);
-    showNotification('Error al exportar prompts', 'error');
-  }
-}
-
-/**
- * Maneja eliminar prompts seleccionados
- */
-async function handleDeleteSelected() {
-  const count = state.selectedPrompts.size;
-  
-  if (count === 0) return;
-  
-  if (!confirm(`¿Estás seguro de que quieres eliminar ${count} prompt${count !== 1 ? 's' : ''}?`)) {
-    return;
+    SecurityUtils.addSafeEventListener(elements.resizeHandle, 'mousedown', (e) => {
+      isResizing = true;
+      startX = e.clientX;
+      
+      const sidebar = document.getElementById('kit-ia-sidebar');
+      if (sidebar) {
+        startWidth = parseInt(window.getComputedStyle(sidebar).width, 10);
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+        e.preventDefault();
+      }
+    });
+    
+    function handleMouseMove(e) {
+      if (!isResizing) return;
+      
+      const sidebar = document.getElementById('kit-ia-sidebar');
+      if (sidebar) {
+        const width = startWidth + (startX - e.clientX);
+        const minWidth = 320;
+        const maxWidth = 600;
+        const newWidth = Math.max(minWidth, Math.min(maxWidth, width));
+        
+        sidebar.style.width = newWidth + 'px';
+      }
+    }
+    
+    function handleMouseUp() {
+      isResizing = false;
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    }
   }
   
-  try {
-    // Eliminar del estado
-    state.prompts = state.prompts.filter(p => !state.selectedPrompts.has(p.id));
+  // Toggle filter dropdown
+  function toggleFilterDropdown() {
+    state.filterDropdownOpen = !state.filterDropdownOpen;
     
-    // Guardar en storage
-    await chrome.storage.local.set({ [STORAGE_KEYS.PROMPTS]: state.prompts });
+    if (elements.filterToggle) {
+      elements.filterToggle.classList.toggle('active', state.filterDropdownOpen);
+    }
     
-    // Limpiar selección
-    state.selectedPrompts.clear();
+    if (elements.filterDropdown) {
+      elements.filterDropdown.classList.toggle('active', state.filterDropdownOpen);
+    }
+    
+    if (state.filterDropdownOpen) {
+      renderFilters();
+    }
+  }
+  
+  // Render filters in dropdown
+  function renderFilters() {
+    if (!elements.filterContent) return;
+    
+    elements.filterContent.innerHTML = '';
+    
+    // Sección de categorías
+    const categoriesSection = SecurityUtils.createElement('div', { className: 'filter-section' });
+    const catTitle = SecurityUtils.createElement('h4', { 
+      className: 'filter-section-title',
+      textContent: 'CATEGORÍAS'
+    });
+    categoriesSection.appendChild(catTitle);
+    
+    const categoriesList = SecurityUtils.createElement('div', { className: 'filter-list' });
+    
+    // Opción "Todas"
+    const allOption = createFilterOption('category', 'all', 'Todas las categorías', state.gpts.length);
+    categoriesList.appendChild(allOption);
+    
+    // Categorías individuales
+    state.allCategories.forEach(category => {
+      const count = state.gpts.filter(gpt => gpt.category === category).length;
+      const option = createFilterOption('category', category, category, count);
+      categoriesList.appendChild(option);
+    });
+    
+    categoriesSection.appendChild(categoriesList);
+    elements.filterContent.appendChild(categoriesSection);
+    
+    // Sección de etiquetas
+    if (state.allTags.length > 0) {
+      const tagsSection = SecurityUtils.createElement('div', { className: 'filter-section' });
+      const tagsTitle = SecurityUtils.createElement('h4', { 
+        className: 'filter-section-title',
+        textContent: 'ETIQUETAS'
+      });
+      tagsSection.appendChild(tagsTitle);
+      
+      const tagsList = SecurityUtils.createElement('div', { className: 'filter-list' });
+      
+      state.allTags.forEach(tag => {
+        const count = state.gpts.filter(gpt => gpt.tags && gpt.tags.includes(tag)).length;
+        const option = createFilterOption('tag', tag, tag, count);
+        tagsList.appendChild(option);
+      });
+      
+      tagsSection.appendChild(tagsList);
+      elements.filterContent.appendChild(tagsSection);
+    }
+    
+    setupFilterListeners();
+  }
+  
+  function createFilterOption(type, value, label, count) {
+    const isActive = (type === 'category' && state.currentCategory === value) ||
+                    (type === 'tag' && state.currentTags.includes(value));
+    
+    const option = SecurityUtils.createElement('div', { 
+      className: `filter-option ${isActive ? 'active' : ''}`,
+      attributes: { 
+        'data-filter-type': type,
+        'data-filter-value': value
+      }
+    });
+    
+    const labelEl = SecurityUtils.createElement('span', { 
+      className: 'filter-label',
+      textContent: label
+    });
+    
+    const countEl = SecurityUtils.createElement('span', { 
+      className: 'filter-count',
+      textContent: `(${count})`
+    });
+    
+    option.appendChild(labelEl);
+    option.appendChild(countEl);
+    
+    return option;
+  }
+  
+  function setupFilterListeners() {
+    const filterOptions = document.querySelectorAll('.filter-option');
+    filterOptions.forEach(option => {
+      SecurityUtils.addSafeEventListener(option, 'click', handleFilterClick);
+    });
+  }
+  
+  function handleFilterClick(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const filterType = e.currentTarget.dataset.filterType;
+    const filterValue = e.currentTarget.dataset.filterValue;
+    
+    if (filterType === 'category') {
+      state.currentCategory = filterValue;
+    } else if (filterType === 'tag') {
+      const index = state.currentTags.indexOf(filterValue);
+      if (index > -1) {
+        state.currentTags.splice(index, 1);
+      } else {
+        state.currentTags.push(filterValue);
+      }
+    }
+    
+    // Actualizar contador de filtros activos
+    updateActiveFiltersCount();
     
     // Re-renderizar
-    renderPrompts();
-    
-    showNotification(`${count} prompt${count !== 1 ? 's' : ''} eliminado${count !== 1 ? 's' : ''}`, 'success');
-  } catch (error) {
-    logger.error('Error al eliminar prompts:', error);
-    showNotification('Error al eliminar prompts', 'error');
+    renderFilters();
+    renderContent();
   }
-}
+  
+  function updateActiveFiltersCount() {
+    let count = 0;
+    if (state.currentCategory !== 'all') count++;
+    count += state.currentTags.length;
+    
+    if (elements.activeFiltersCount) {
+      elements.activeFiltersCount.textContent = count.toString();
+      elements.activeFiltersCount.style.display = count > 0 ? 'inline-block' : 'none';
+    }
+  }
+  
+  // Toggle notifications
+  function toggleNotifications() {
+    const existingDropdown = document.getElementById('notifications-dropdown');
+    
+    if (existingDropdown) {
+      existingDropdown.remove();
+      return;
+    }
+    
+    // Crear dropdown de notificaciones
+    const dropdown = SecurityUtils.createElement('div', {
+      id: 'notifications-dropdown',
+      className: 'notifications-dropdown active'
+    });
+    
+    // Header
+    const header = SecurityUtils.createElement('div', { className: 'notifications-header' });
+    const title = SecurityUtils.createElement('h4', { 
+      className: 'notifications-title',
+      textContent: 'Notificaciones'
+    });
+    
+    const clearBtn = SecurityUtils.createElement('button', {
+      className: 'notifications-clear',
+      textContent: 'Limpiar todo'
+    });
+    
+    SecurityUtils.addSafeEventListener(clearBtn, 'click', () => {
+      state.notifications = [];
+      updateNotificationsBadge();
+      toggleNotifications();
+    });
+    
+    header.appendChild(title);
+    header.appendChild(clearBtn);
+    dropdown.appendChild(header);
+    
+    // Lista de notificaciones
+    const list = SecurityUtils.createElement('div', { className: 'notifications-list' });
+    
+    if (state.notifications.length === 0) {
+      const empty = SecurityUtils.createElement('div', { 
+        className: 'empty-notifications',
+        textContent: 'No hay notificaciones nuevas'
+      });
+      list.appendChild(empty);
+    } else {
+      state.notifications.forEach(notif => {
+        const item = SecurityUtils.createElement('div', { className: 'notification-item' });
+        const content = SecurityUtils.createElement('div', { 
+          className: 'notification-content',
+          textContent: notif.message
+        });
+        const time = SecurityUtils.createElement('div', { 
+          className: 'notification-time',
+          textContent: formatTime(notif.timestamp)
+        });
+        
+        item.appendChild(content);
+        item.appendChild(time);
+        list.appendChild(item);
+      });
+    }
+    
+    dropdown.appendChild(list);
+    
+    // Posicionar dropdown
+    if (elements.notificationsBtn) {
+      const rect = elements.notificationsBtn.getBoundingClientRect();
+      dropdown.style.position = 'fixed';
+      dropdown.style.top = (rect.bottom + 8) + 'px';
+      dropdown.style.right = '20px';
+      document.body.appendChild(dropdown);
+      
+      // Cerrar al hacer clic fuera
+      setTimeout(() => {
+        SecurityUtils.addSafeEventListener(document, 'click', function closeDropdown(e) {
+          if (!dropdown.contains(e.target) && !elements.notificationsBtn.contains(e.target)) {
+            dropdown.remove();
+            document.removeEventListener('click', closeDropdown);
+          }
+        });
+      }, 100);
+    }
+  }
+  
+  function updateNotificationsBadge() {
+    if (elements.notificationsBadge) {
+      const count = state.notifications.length;
+      elements.notificationsBadge.textContent = count.toString();
+      elements.notificationsBadge.style.display = count > 0 ? 'inline-block' : 'none';
+    }
+  }
+  
+  function addNotification(message) {
+    state.notifications.unshift({
+      id: Date.now(),
+      message: message,
+      timestamp: new Date()
+    });
+    
+    // Mantener máximo 10 notificaciones
+    state.notifications = state.notifications.slice(0, 10);
+    
+    updateNotificationsBadge();
+  }
+  
+  function formatTime(date) {
+    const now = new Date();
+    const diff = now - date;
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+    
+    if (minutes < 1) return 'Ahora mismo';
+    if (minutes < 60) return `Hace ${minutes} minutos`;
+    if (hours < 24) return `Hace ${hours} horas`;
+    return `Hace ${days} días`;
+  }
+  
+  // Sistema de toast más simple
+  function showToast(message, type = 'info', duration = 3000) {
+    const toast = SecurityUtils.createElement('div', {
+      className: `toast toast-${type}`,
+      textContent: message,
+      attributes: {
+        style: `
+          position: fixed;
+          bottom: 20px;
+          right: 20px;
+          background: ${type === 'success' ? '#10B981' : type === 'error' ? '#EF4444' : type === 'warning' ? '#F59E0B' : '#4F46E5'};
+          color: white;
+          padding: 12px 20px;
+          border-radius: 8px;
+          font-size: 14px;
+          z-index: 10000;
+          animation: slideIn 0.3s ease;
+        `
+      }
+    });
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+      toast.style.animation = 'slideOut 0.3s ease';
+      setTimeout(() => toast.remove(), 300);
+    }, duration);
+  }
+  
+  // Eliminar renderCategoriesAndTags ya que no se usa
+  function renderCategoriesAndTags() {
+    // Esta función ya no se necesita
+    // Los filtros ahora están en el dropdown
+  }
 
-// Exportar para testing
-export { state, init, showNotification };
+  // Agregar footer de forma segura
+  function addFooter() {
+    const existingFooter = document.getElementById('sidebar-footer');
+    if (existingFooter) return;
+    
+    const footer = SecurityUtils.createElement('div', { 
+      id: 'sidebar-footer',
+      className: 'sidebar-footer',
+      attributes: {
+        style: 'padding: 10px 20px; text-align: center; font-size: 12px; color: #666; border-top: 1px solid var(--border-color); background: var(--bg-secondary);'
+      }
+    });
+    
+    const link = SecurityUtils.createElement('a', { 
+      textContent: 'Made with ☕ by Carlos Rodera',
+      attributes: { 
+        href: 'https://carlosrodera.com',
+        target: '_blank',
+        rel: 'noopener noreferrer',
+        style: 'color: inherit; text-decoration: none;'
+      }
+    });
+    
+    footer.appendChild(link);
+    
+    // Añadir al final del sidebar
+    const sidebarContainer = document.querySelector('.sidebar-container');
+    if (sidebarContainer) {
+      sidebarContainer.appendChild(footer);
+    }
+  }
+
+  // Inicializar footer cuando el DOM esté listo
+  document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(addFooter, 100);
+  });
+
+})();

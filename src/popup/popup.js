@@ -1,6 +1,4 @@
 // Popup script para Kit IA Emprendedor
-// Este archivo NO usa imports ES6 para compatibilidad con Chrome Extensions
-
 (function() {
   'use strict';
 
@@ -18,6 +16,7 @@
       openSidebarBtn: document.getElementById('open-sidebar-btn'),
       syncBtn: document.getElementById('sync-btn'),
       helpLink: document.getElementById('help-link'),
+      retryBtn: document.getElementById('retry-btn'),
       totalGpts: document.getElementById('total-gpts'),
       favoriteCount: document.getElementById('favorite-count'),
       promptCount: document.getElementById('prompt-count'),
@@ -54,6 +53,7 @@
     elements.openSidebarBtn?.addEventListener('click', handleOpenSidebar);
     elements.syncBtn?.addEventListener('click', handleSync);
     elements.helpLink?.addEventListener('click', handleHelp);
+    elements.retryBtn?.addEventListener('click', () => location.reload());
 
     function showState(state) {
       // Ocultar todos los estados
@@ -86,9 +86,18 @@
         elements.userEmail.textContent = user.email || '';
       }
       
-      if (elements.userAvatar && user.avatar_url) {
-        elements.userAvatar.src = user.avatar_url;
-        elements.userAvatar.alt = user.email || 'User avatar';
+      if (elements.userAvatar) {
+        if (user.avatar_url) {
+          elements.userAvatar.src = user.avatar_url;
+        } else {
+          // Crear avatar con inicial
+          const initial = user.email ? user.email[0].toUpperCase() : '?';
+          elements.userAvatar.style.display = 'none';
+          const avatarDiv = document.createElement('div');
+          avatarDiv.className = 'user-avatar';
+          avatarDiv.textContent = initial;
+          elements.userAvatar.parentElement.replaceChild(avatarDiv, elements.userAvatar);
+        }
       }
     }
 
@@ -98,12 +107,9 @@
         const gptResponse = await chrome.runtime.sendMessage({ type: 'GET_GPT_STATS' });
         if (gptResponse?.success) {
           elements.totalGpts.textContent = gptResponse.data.total || 0;
+          elements.favoriteCount.textContent = gptResponse.data.favoriteCount || 0;
+          elements.promptCount.textContent = gptResponse.data.promptCount || 0;
         }
-
-        // Cargar estadísticas locales
-        const localData = await chrome.storage.local.get(['prompts', 'favorites']);
-        elements.promptCount.textContent = localData.prompts?.length || 0;
-        elements.favoriteCount.textContent = localData.favorites?.length || 0;
       } catch (error) {
         console.error('Error loading stats:', error);
       }
@@ -113,16 +119,22 @@
       try {
         elements.loginBtn.disabled = true;
         
-        const response = await chrome.runtime.sendMessage({ type: 'LOGIN' });
-        if (!response?.success) {
+        const response = await chrome.runtime.sendMessage({ 
+          type: 'LOGIN',
+          data: { provider: 'google' }
+        });
+        
+        if (response?.success) {
+          showState('logged');
+          updateUserInfo(response.data.user);
+          await loadStats();
+        } else {
           throw new Error(response?.error || 'Login failed');
         }
-        
-        // El service worker manejará la redirección
-        window.close();
       } catch (error) {
         console.error('Login error:', error);
         showError('Error al iniciar sesión');
+      } finally {
         elements.loginBtn.disabled = false;
       }
     }
@@ -149,12 +161,49 @@
       try {
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
         
-        await chrome.tabs.sendMessage(tab.id, { 
-          type: 'TOGGLE_SIDEBAR',
-          data: { show: true }
-        });
+        // Verificar si podemos inyectar en esta página
+        if (!tab.url || tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://')) {
+          // Abrir ChatGPT en nueva pestaña
+          chrome.tabs.create({ url: 'https://chat.openai.com' });
+          window.close();
+          return;
+        }
 
-        window.close();
+        // Intentar enviar mensaje al content script
+        try {
+          await chrome.tabs.sendMessage(tab.id, { 
+            type: 'TOGGLE_SIDEBAR',
+            data: { show: true }
+          });
+          window.close();
+        } catch (messageError) {
+          // Si falla, intentar inyectar el content script primero
+          console.log('Content script not loaded, injecting...');
+          
+          try {
+            await chrome.scripting.executeScript({
+              target: { tabId: tab.id },
+              files: ['content/content-script.js']
+            });
+            
+            // Esperar un momento para que se cargue
+            setTimeout(async () => {
+              try {
+                await chrome.tabs.sendMessage(tab.id, { 
+                  type: 'TOGGLE_SIDEBAR',
+                  data: { show: true }
+                });
+                window.close();
+              } catch (retryError) {
+                console.error('Retry error:', retryError);
+                showError('Error al abrir el panel. Intenta recargar la página.');
+              }
+            }, 100);
+          } catch (injectError) {
+            console.error('Inject error:', injectError);
+            showError('No se puede abrir el panel en esta página');
+          }
+        }
       } catch (error) {
         console.error('Open sidebar error:', error);
         showError('Error al abrir el panel');
@@ -174,8 +223,8 @@
           elements.syncBtn.textContent = '✓ Sincronizado';
           setTimeout(() => {
             elements.syncBtn.innerHTML = `
-              <svg class="icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M13.65 2.35A8 8 0 0 0 2.35 13.65M2.35 2.35A8 8 0 0 1 13.65 13.65" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M1 4V10H7M23 20V14H17M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14L18.36 18.36A9 9 0 0 1 3.51 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
               Sincronizar
             `;
