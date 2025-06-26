@@ -262,7 +262,7 @@ describe('validateEmail', () => {
   });
 
   it('debe rechazar emails muy largos', () => {
-    const longEmail = 'a'.repeat(250) + '@example.com';
+    const longEmail = `${'a'.repeat(250)}@example.com`;
     const result = validateEmail(longEmail);
     expect(result.valid).toBe(false);
     expect(result.error).toContain('demasiado largo');

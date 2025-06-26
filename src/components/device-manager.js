@@ -1,5 +1,5 @@
 // Componente de gestión de dispositivos
-(function() {
+(function () {
   'use strict';
 
   window.DeviceManager = {
@@ -15,9 +15,9 @@
       const modal = document.createElement('div');
       modal.id = 'device-manager-modal';
       modal.className = 'device-modal-overlay';
-      
+
       const isLimitExceeded = !deviceInfo.authorized && deviceInfo.reason === 'DEVICE_LIMIT_EXCEEDED';
-      
+
       modal.innerHTML = `
         <div class="device-modal">
           <div class="device-modal-header">
@@ -32,7 +32,8 @@
           </div>
           
           <div class="device-modal-content">
-            ${isLimitExceeded ? `
+            ${isLimitExceeded
+    ? `
               <div class="device-limit-warning">
                 <p>Has alcanzado el límite de <strong>${deviceInfo.limit} dispositivos</strong> para tu plan <strong>${deviceInfo.plan || 'Free'}</strong>.</p>
                 <p>Para usar la extensión en este dispositivo, debes:</p>
@@ -41,7 +42,8 @@
                   <li>O actualizar a un plan superior</li>
                 </ul>
               </div>
-            ` : `
+            `
+    : `
               <div class="device-info">
                 <p>Dispositivos activos: <strong>${deviceInfo.deviceCount}/${deviceInfo.limit}</strong></p>
               </div>
@@ -74,13 +76,15 @@
                 </div>
               </div>
               
-              ${deviceInfo.plan === 'free' ? `
+              ${deviceInfo.plan === 'free'
+    ? `
                 <div class="upgrade-cta">
                   <button class="btn-upgrade" id="upgrade-plan-btn">
                     🚀 Actualizar Plan
                   </button>
                 </div>
-              ` : ''}
+              `
+    : ''}
             </div>
           </div>
         </div>
@@ -88,31 +92,31 @@
 
       // Agregar estilos
       this._addStyles();
-      
+
       // Agregar al DOM
       document.body.appendChild(modal);
-      
+
       // Event listeners
       const closeBtn = document.getElementById('close-device-modal');
       closeBtn.addEventListener('click', () => this.closeModal());
-      
+
       modal.addEventListener('click', (e) => {
         if (e.target === modal) {
           this.closeModal();
         }
       });
-      
+
       const upgradeBtn = document.getElementById('upgrade-plan-btn');
       if (upgradeBtn) {
         upgradeBtn.addEventListener('click', () => {
           window.open('https://kit-ia-pro.com/pricing', '_blank');
         });
       }
-      
+
       // Cargar lista de dispositivos
       await this._loadDeviceList();
     },
-    
+
     /**
      * Carga y muestra la lista de dispositivos
      */
@@ -122,21 +126,21 @@
         const response = await chrome.runtime.sendMessage({
           type: 'GET_USER_DEVICES'
         });
-        
+
         const deviceListEl = document.getElementById('device-list');
-        
+
         if (!response.success) {
           deviceListEl.innerHTML = '<p class="error-message">Error al cargar dispositivos</p>';
           return;
         }
-        
+
         const devices = response.data || [];
-        
+
         if (devices.length === 0) {
           deviceListEl.innerHTML = '<p class="no-devices">No hay dispositivos registrados</p>';
           return;
         }
-        
+
         deviceListEl.innerHTML = devices.map(device => `
           <div class="device-item ${device.isCurrent ? 'current-device' : ''}">
             <div class="device-info">
@@ -151,14 +155,16 @@
                 Última actividad: ${this._formatLastActive(device.lastActive)}
               </div>
             </div>
-            ${!device.isCurrent ? `
+            ${!device.isCurrent
+    ? `
               <button class="btn-remove-device" data-device-id="${device.deviceId}">
                 🗑️ Eliminar
               </button>
-            ` : ''}
+            `
+    : ''}
           </div>
         `).join('');
-        
+
         // Agregar event listeners a botones de eliminar
         deviceListEl.querySelectorAll('.btn-remove-device').forEach(btn => {
           btn.addEventListener('click', async (e) => {
@@ -174,7 +180,7 @@
         deviceListEl.innerHTML = '<p class="error-message">Error al cargar dispositivos</p>';
       }
     },
-    
+
     /**
      * Formatea la última actividad
      */
@@ -182,11 +188,11 @@
       const date = new Date(dateString);
       const now = new Date();
       const diff = now - date;
-      
+
       const minutes = Math.floor(diff / 60000);
       const hours = Math.floor(diff / 3600000);
       const days = Math.floor(diff / 86400000);
-      
+
       if (minutes < 60) {
         return `hace ${minutes} minuto${minutes !== 1 ? 's' : ''}`;
       } else if (hours < 24) {
@@ -195,7 +201,7 @@
         return `hace ${days} día${days !== 1 ? 's' : ''}`;
       }
     },
-    
+
     /**
      * Elimina un dispositivo
      */
@@ -205,11 +211,11 @@
           type: 'REMOVE_DEVICE',
           data: { deviceId }
         });
-        
+
         if (response.success) {
           // Recargar lista
           await this._loadDeviceList();
-          
+
           // Mostrar notificación
           if (window.showToast) {
             window.showToast('Dispositivo eliminado correctamente', 'success');
@@ -226,7 +232,7 @@
         }
       }
     },
-    
+
     /**
      * Cierra el modal
      */
@@ -237,13 +243,13 @@
         setTimeout(() => modal.remove(), 300);
       }
     },
-    
+
     /**
      * Agrega los estilos necesarios
      */
     _addStyles() {
       if (document.getElementById('device-manager-styles')) return;
-      
+
       const style = document.createElement('style');
       style.id = 'device-manager-styles';
       style.textContent = `
@@ -509,7 +515,7 @@
           padding: 20px;
         }
       `;
-      
+
       document.head.appendChild(style);
     }
   };

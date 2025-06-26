@@ -1,7 +1,7 @@
 /**
  * Cliente de Supabase - Kit IA Emprendedor
  * Gestiona la conexión con Supabase usando chrome.storage para persistencia
- * 
+ *
  * @module supabase-client
  */
 
@@ -44,10 +44,10 @@ class ChromeStorageAdapter {
       // Verificar cuota antes de guardar
       const bytesInUse = await chrome.storage.local.getBytesInUse();
       const quota = chrome.storage.local.QUOTA_BYTES || 5242880; // 5MB default
-      
+
       // Estimar tamaño del nuevo valor
       const estimatedSize = new Blob([value]).size;
-      
+
       if (bytesInUse + estimatedSize > quota * 0.9) { // 90% de la cuota
         logger.warn('Storage quota nearly full, cleaning up...');
         await this.cleanup();
@@ -56,7 +56,7 @@ class ChromeStorageAdapter {
       await chrome.storage.local.set({ [key]: value });
     } catch (error) {
       logger.error('ChromeStorageAdapter setItem error:', error);
-      
+
       // Si es error de cuota, intentar limpiar y reintentar
       if (error.message?.includes('QUOTA')) {
         await this.cleanup();
@@ -205,16 +205,16 @@ class SupabaseClient {
           logger.info('User signed in');
           this.handleSignIn(session);
           break;
-        
+
         case 'SIGNED_OUT':
           logger.info('User signed out');
           this.handleSignOut();
           break;
-        
+
         case 'TOKEN_REFRESHED':
           logger.info('Token refreshed successfully');
           break;
-        
+
         case 'USER_UPDATED':
           logger.info('User data updated');
           break;
@@ -239,7 +239,7 @@ class SupabaseClient {
     setInterval(async () => {
       try {
         const { data: { session }, error } = await this.client.auth.getSession();
-        
+
         if (error) {
           logger.error('Error checking session:', error);
           return;
@@ -254,7 +254,7 @@ class SupabaseClient {
           if (timeUntilExpiry < 10 * 60 * 1000) { // 10 minutos
             logger.info('Token expiring soon, refreshing...');
             const { error: refreshError } = await this.client.auth.refreshSession();
-            
+
             if (refreshError) {
               logger.error('Error refreshing token:', refreshError);
             } else {
@@ -304,10 +304,10 @@ class SupabaseClient {
 
       // Verificar sesión actual
       const { data: { session }, error } = await this.client.auth.getSession();
-      
+
       if (error) {
         logger.error('Reconnection error:', error);
-        
+
         // Si hay error de red, reintentar
         if (error.message?.includes('network') || error.message?.includes('fetch')) {
           this.scheduleReconnection();
@@ -339,7 +339,7 @@ class SupabaseClient {
 
     const attemptReconnect = async () => {
       attempts++;
-      
+
       if (attempts > maxAttempts) {
         logger.error('Max reconnection attempts reached');
         this.stopReconnection();
@@ -347,14 +347,14 @@ class SupabaseClient {
       }
 
       logger.info(`Reconnection attempt ${attempts}/${maxAttempts}`);
-      
+
       try {
         await this.reconnect();
       } catch (error) {
         // Backoff exponencial
         const delay = Math.min(baseDelay * Math.pow(2, attempts - 1), 30000);
         logger.info(`Retrying in ${delay}ms...`);
-        
+
         this.reconnectTimer = setTimeout(attemptReconnect, delay);
       }
     };
@@ -441,12 +441,12 @@ class SupabaseClient {
     try {
       const client = await this.getClient();
       const { data: { session }, error } = await client.auth.getSession();
-      
+
       if (error) {
         logger.error('Error getting session:', error);
         return null;
       }
-      
+
       return session;
     } catch (error) {
       logger.error('Error getting session:', error);
@@ -462,12 +462,12 @@ class SupabaseClient {
     try {
       const client = await this.getClient();
       const { data: { user }, error } = await client.auth.getUser();
-      
+
       if (error) {
         logger.error('Error getting user:', error);
         return null;
       }
-      
+
       return user;
     } catch (error) {
       logger.error('Error getting user:', error);
@@ -483,12 +483,12 @@ class SupabaseClient {
     try {
       const client = await this.getClient();
       const { error } = await client.auth.signOut();
-      
+
       if (error) {
         logger.error('Error signing out:', error);
         throw error;
       }
-      
+
       logger.info('Signed out successfully');
     } catch (error) {
       logger.error('Error signing out:', error);
@@ -502,15 +502,15 @@ class SupabaseClient {
   async destroy() {
     try {
       this.stopReconnection();
-      
+
       if (this.client) {
         // Cerrar conexiones realtime si las hay
         this.client.removeAllChannels();
       }
-      
+
       this.client = null;
       this.initialized = false;
-      
+
       logger.info('Supabase client destroyed');
     } catch (error) {
       logger.error('Error destroying client:', error);

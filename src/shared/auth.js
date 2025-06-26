@@ -1,7 +1,7 @@
 /**
  * Módulo de Autenticación - Kit IA Emprendedor
  * Gestiona la autenticación con Supabase y el estado de sesión
- * 
+ *
  * @module auth
  */
 
@@ -47,7 +47,7 @@ function getSupabaseClient() {
     }
 
     logger.info('Initializing Supabase client');
-    
+
     // Crear cliente con opciones de auth
     supabaseClient = createClient(
       SUPABASE_CONFIG.url,
@@ -213,7 +213,7 @@ async function handleUserUpdate(session) {
 async function checkSubscription(userId) {
   try {
     const client = getSupabaseClient();
-    
+
     // Consultar estado de suscripción
     const { data, error } = await client
       .from('user_subscriptions')
@@ -262,7 +262,7 @@ function emitAuthEvent(event) {
         isAuthenticated: !!authState.session
       }
     });
-    
+
     window.dispatchEvent(customEvent);
   } catch (error) {
     logger.error('Error emitting auth event:', error);
@@ -285,12 +285,12 @@ export const auth = {
 
     try {
       logger.info('Initializing auth module');
-      
+
       const client = getSupabaseClient();
-      
+
       // Obtener sesión actual
       const { data: { session }, error } = await client.auth.getSession();
-      
+
       if (error) {
         throw error;
       }
@@ -316,12 +316,12 @@ export const auth = {
   async loginWithOAuth(provider) {
     try {
       logger.info(`Starting OAuth login with ${provider}`);
-      
+
       const client = getSupabaseClient();
-      
+
       // Configurar redirect URL
       const redirectTo = chrome.identity.getRedirectURL();
-      
+
       const { data, error } = await client.auth.signInWithOAuth({
         provider,
         options: {
@@ -352,14 +352,14 @@ export const auth = {
               // Extraer código de la URL de redirect
               const url = new URL(redirectUrl);
               const code = url.searchParams.get('code');
-              
+
               if (!code) {
                 throw new Error('No authorization code received');
               }
 
               // Intercambiar código por sesión
               const { data: session, error: sessionError } = await client.auth.exchangeCodeForSession(code);
-              
+
               if (sessionError) {
                 throw sessionError;
               }
@@ -386,12 +386,12 @@ export const auth = {
   async logout() {
     try {
       logger.info('Starting logout process');
-      
+
       const client = getSupabaseClient();
-      
+
       // Cerrar sesión en Supabase
       const { error } = await client.auth.signOut();
-      
+
       if (error) {
         throw error;
       }
@@ -458,11 +458,11 @@ export const auth = {
     try {
       authState.isRefreshing = true;
       logger.info('Refreshing session');
-      
+
       const client = getSupabaseClient();
-      
+
       const { data: { session }, error } = await client.auth.refreshSession();
-      
+
       if (error) {
         throw error;
       }
@@ -474,12 +474,12 @@ export const auth = {
       logger.info('Session refreshed successfully');
     } catch (error) {
       logger.error('Error refreshing session:', error);
-      
+
       // Si el refresh falla, probablemente el token expiró
       if (error.message?.includes('refresh_token') || error.message?.includes('expired')) {
         await this.logout();
       }
-      
+
       throw error;
     } finally {
       authState.isRefreshing = false;
@@ -520,7 +520,7 @@ export const auth = {
       // Verificar si el token está por expirar (5 minutos antes)
       const expiresAt = authState.session.expires_at;
       const expiresIn = expiresAt ? (expiresAt * 1000) - Date.now() : 0;
-      
+
       if (expiresIn < 5 * 60 * 1000) { // Menos de 5 minutos
         logger.info('Token expiring soon, refreshing...');
         await this.refreshSession();
@@ -548,7 +548,7 @@ export const auth = {
   async reset() {
     try {
       logger.info('Resetting auth module');
-      
+
       // Cerrar sesión si existe
       if (authState.session) {
         await this.logout();

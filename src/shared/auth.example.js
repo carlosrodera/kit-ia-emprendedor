@@ -13,35 +13,35 @@ export async function initializeAuthInServiceWorker() {
   try {
     // Inicializar el módulo
     await auth.initialize();
-    
+
     // Configurar auto-refresh de tokens
     setupAutoRefresh();
-    
+
     // Escuchar cambios de autenticación
     const unsubscribe = auth.onAuthStateChange((event, session) => {
       console.log('Auth state changed:', event);
-      
+
       switch (event) {
         case 'SIGNED_IN':
           console.log('User signed in:', session.user.email);
           // Sincronizar GPTs, cargar preferencias, etc.
           break;
-          
+
         case 'SIGNED_OUT':
           console.log('User signed out');
           // Limpiar UI, resetear estado, etc.
           break;
-          
+
         case 'TOKEN_REFRESHED':
           console.log('Token refreshed successfully');
           break;
       }
     });
-    
+
     // Verificar si hay sesión activa
     if (auth.isAuthenticated()) {
       console.log('User already authenticated:', auth.getCurrentUser());
-      
+
       // Verificar suscripción
       const hasSubscription = await auth.hasActiveSubscription();
       if (!hasSubscription) {
@@ -49,7 +49,6 @@ export async function initializeAuthInServiceWorker() {
         // Mostrar mensaje o limitar funcionalidades
       }
     }
-    
   } catch (error) {
     console.error('Error initializing auth:', error);
   }
@@ -62,18 +61,17 @@ export async function handleLoginInPopup() {
   try {
     // Mostrar loading
     showLoading(true);
-    
+
     // Intentar login con Google
     const result = await auth.loginWithOAuth('google');
-    
+
     console.log('Login successful:', result.user);
-    
+
     // Actualizar UI
     updateUIForAuthenticatedUser(result.user);
-    
+
     // Navegar al dashboard
     window.location.href = '/dashboard.html';
-    
   } catch (error) {
     console.error('Login failed:', error);
     showError('Error al iniciar sesión. Por favor, intenta de nuevo.');
@@ -92,21 +90,20 @@ export async function handleLogoutInSidebar() {
       '¿Estás seguro que deseas cerrar sesión?',
       'Se eliminarán todos tus datos locales.'
     );
-    
+
     if (!confirmed) return;
-    
+
     // Mostrar loading
     showLoading(true);
-    
+
     // Cerrar sesión
     await auth.logout();
-    
+
     // Actualizar UI
     updateUIForUnauthenticatedUser();
-    
+
     // Redirigir al login
     window.location.href = '/login.html';
-    
   } catch (error) {
     console.error('Logout failed:', error);
     showError('Error al cerrar sesión.');
@@ -126,7 +123,7 @@ export async function savePromptWithAuthCheck(promptData) {
       redirectToLogin();
       return;
     }
-    
+
     // Verificar estado del token
     const isValid = await auth.checkAuthStatus();
     if (!isValid) {
@@ -135,18 +132,17 @@ export async function savePromptWithAuthCheck(promptData) {
       redirectToLogin();
       return;
     }
-    
+
     // Verificar suscripción para features premium
     const hasSubscription = await auth.hasActiveSubscription();
     if (!hasSubscription && promptData.isPremium) {
       showUpgradeModal();
       return;
     }
-    
+
     // Proceder con el guardado
     await savePrompt(promptData);
     showSuccess('Prompt guardado correctamente');
-    
   } catch (error) {
     console.error('Error saving prompt:', error);
     showError('Error al guardar el prompt');
@@ -160,9 +156,9 @@ export function setupAuthListenerInContentScript() {
   // Escuchar eventos personalizados
   window.addEventListener(CUSTOM_EVENTS.AUTH_STATE_CHANGED, (event) => {
     const { detail } = event;
-    
+
     console.log('Auth state changed in content script:', detail);
-    
+
     if (detail.isAuthenticated) {
       // Mostrar botón de sidebar
       showSidebarButton();
@@ -180,19 +176,19 @@ export async function fetchUserGPTs() {
   try {
     // Obtener token de acceso
     const token = auth.getAccessToken();
-    
+
     if (!token) {
       throw new Error('No access token available');
     }
-    
+
     // Hacer llamada a API con el token
     const response = await fetch('https://api.kitiaemprendedor.com/gpts', {
       headers: {
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json'
       }
     });
-    
+
     if (!response.ok) {
       if (response.status === 401) {
         // Token inválido, intentar refresh
@@ -202,9 +198,8 @@ export async function fetchUserGPTs() {
       }
       throw new Error('API request failed');
     }
-    
+
     return await response.json();
-    
   } catch (error) {
     console.error('Error fetching GPTs:', error);
     throw error;
@@ -223,7 +218,7 @@ export function createAuthMiddleware() {
       'SYNC_GPTS',
       'ADD_FAVORITE'
     ];
-    
+
     if (authRequiredMessages.includes(message.type)) {
       // Verificar autenticación
       if (!auth.isAuthenticated()) {
@@ -233,7 +228,7 @@ export function createAuthMiddleware() {
         });
         return true;
       }
-      
+
       // Verificar validez del token
       const isValid = await auth.checkAuthStatus();
       if (!isValid) {
@@ -244,7 +239,7 @@ export function createAuthMiddleware() {
         return true;
       }
     }
-    
+
     // Continuar con el procesamiento normal
     return false;
   };
@@ -256,7 +251,7 @@ export function createAuthMiddleware() {
 export function cleanupAuth() {
   // Detener auto-refresh
   stopAutoRefresh();
-  
+
   // Reset del módulo si es necesario
   // auth.reset(); // Solo si queremos limpiar todo
 }

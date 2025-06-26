@@ -52,32 +52,31 @@ function setLoading(isLoading) {
  */
 async function handleEmailLogin(e) {
   e.preventDefault();
-  
+
   hideErrorMessage();
   setLoading(true);
-  
+
   try {
     const email = emailInput.value.trim();
     const password = passwordInput.value;
-    
+
     logger.info('Attempting email login', { email });
-    
+
     const { data, error } = await auth.signIn(email, password);
-    
+
     if (error) {
       throw error;
     }
-    
+
     logger.info('Login successful', { userId: data.user.id });
-    
+
     // Close the window and notify the extension
     chrome.runtime.sendMessage({
       type: 'AUTH_SUCCESS',
       user: data.user
     });
-    
+
     window.close();
-    
   } catch (error) {
     logger.error('Login failed', error);
     showErrorMessage(error.message || 'Error al iniciar sesión');
@@ -92,13 +91,12 @@ async function handleEmailLogin(e) {
 async function handleGoogleLogin() {
   hideErrorMessage();
   setLoading(true);
-  
+
   try {
     logger.info('Initiating Google OAuth login');
-    
+
     // Por ahora, mostrar mensaje ya que OAuth no está implementado en auth.js
     throw new Error('Login con Google no está disponible temporalmente');
-    
   } catch (error) {
     logger.error('Google login failed', error);
     showErrorMessage(error.message || 'Error al iniciar sesión con Google');
@@ -111,7 +109,7 @@ async function handleGoogleLogin() {
  */
 function handleSignupClick(e) {
   e.preventDefault();
-  
+
   // For now, show a message since we're not implementing signup
   showErrorMessage('El registro no está disponible en este momento. Contacta al administrador.');
 }

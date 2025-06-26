@@ -1,5 +1,5 @@
 // Content Script para Kit IA Emprendedor
-(function() {
+(function () {
   'use strict';
 
   // Configuración
@@ -11,7 +11,7 @@
   };
 
   // Estado del sidebar
-  let sidebarState = {
+  const sidebarState = {
     isOpen: false,
     iframe: null,
     container: null,
@@ -67,7 +67,7 @@
         <path d="M3 12H21M3 6H21M3 18H21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
       </svg>
     `;
-    
+
     button.style.cssText = `
       position: fixed;
       bottom: 100px;
@@ -101,14 +101,14 @@
     }
 
     const shouldShow = show !== undefined ? show : !sidebarState.isOpen;
-    
+
     if (shouldShow) {
       sidebarState.container.style.right = '0';
       sidebarState.isOpen = true;
-      
+
       // Ajustar el body para hacer espacio
       if (window.innerWidth > 768) {
-        document.body.style.marginRight = SIDEBAR_CONFIG.WIDTH + 'px';
+        document.body.style.marginRight = `${SIDEBAR_CONFIG.WIDTH}px`;
         document.body.style.transition = 'margin-right 0.3s ease-in-out';
       }
 
@@ -122,7 +122,7 @@
         `;
       }
     } else {
-      sidebarState.container.style.right = '-' + SIDEBAR_CONFIG.WIDTH + 'px';
+      sidebarState.container.style.right = `-${SIDEBAR_CONFIG.WIDTH}px`;
       sidebarState.isOpen = false;
       document.body.style.marginRight = '0';
 
@@ -136,7 +136,7 @@
           </svg>
         `;
       }
-      
+
       // Si no existe el botón flotante, recrearlo
       if (!sidebarState.floatingButton || !document.body.contains(sidebarState.floatingButton)) {
         createFloatingButton();
@@ -152,7 +152,7 @@
 
   function handleIframeMessage(event) {
     // Verificar origen
-    if (event.origin !== window.location.origin && 
+    if (event.origin !== window.location.origin &&
         !event.origin.startsWith('chrome-extension://')) {
       return;
     }
@@ -179,13 +179,13 @@
       case 'RESIZE_SIDEBAR':
         if (data && data.width && sidebarState.container) {
           const newWidth = Math.min(Math.max(data.width, SIDEBAR_CONFIG.MIN_WIDTH), SIDEBAR_CONFIG.MAX_WIDTH);
-          sidebarState.container.style.width = newWidth + 'px';
-          
+          sidebarState.container.style.width = `${newWidth}px`;
+
           // Solo actualizar margin si el sidebar está abierto
           if (sidebarState.isOpen && window.innerWidth > 768) {
-            document.body.style.marginRight = newWidth + 'px';
+            document.body.style.marginRight = `${newWidth}px`;
           }
-          
+
           // Actualizar configuración
           SIDEBAR_CONFIG.WIDTH = newWidth;
         }
@@ -207,18 +207,18 @@
         toggleSidebar(request.data?.show);
         sendResponse({ success: true });
         break;
-      
+
       case 'CHECK_SIDEBAR_STATE':
-        sendResponse({ 
-          success: true, 
-          data: { isOpen: sidebarState.isOpen } 
+        sendResponse({
+          success: true,
+          data: { isOpen: sidebarState.isOpen }
         });
         break;
-      
+
       case 'PING':
         sendResponse({ success: true, data: 'pong' });
         break;
-      
+
       default:
         sendResponse({ success: false, error: 'Unknown message type' });
     }
@@ -227,7 +227,7 @@
   });
 
   // Escuchar atajos de teclado
-  document.addEventListener('keydown', function(event) {
+  document.addEventListener('keydown', (event) => {
     // Alt + Shift + K para toggle del sidebar
     if (event.altKey && event.shiftKey && event.key === 'K') {
       event.preventDefault();
@@ -238,26 +238,26 @@
   // Función para insertar prompt en ChatGPT
   function insertPromptInTextarea(prompt) {
     // Buscar el textarea de ChatGPT
-    const textarea = document.querySelector('#prompt-textarea') || 
-                    document.querySelector('textarea[placeholder*="Message"]') || 
+    const textarea = document.querySelector('#prompt-textarea') ||
+                    document.querySelector('textarea[placeholder*="Message"]') ||
                     document.querySelector('textarea[data-id="root"]') ||
                     document.querySelector('[contenteditable="true"]');
-    
+
     if (textarea) {
       // Si es un textarea normal
       if (textarea.tagName === 'TEXTAREA') {
         textarea.value = prompt;
         textarea.dispatchEvent(new Event('input', { bubbles: true }));
         textarea.focus();
-      } 
+      }
       // Si es un div contenteditable (como ChatGPT)
       else if (textarea.contentEditable === 'true') {
         textarea.textContent = prompt;
-        
+
         // Disparar eventos para que ChatGPT detecte el cambio
         textarea.dispatchEvent(new Event('input', { bubbles: true }));
         textarea.dispatchEvent(new Event('focus', { bubbles: true }));
-        
+
         // Poner el cursor al final
         const range = document.createRange();
         const selection = window.getSelection();
@@ -265,10 +265,10 @@
         range.collapse(false);
         selection.removeAllRanges();
         selection.addRange(range);
-        
+
         textarea.focus();
       }
-      
+
       console.log('Prompt insertado en ChatGPT');
     } else {
       console.warn('No se encontró el textarea de ChatGPT');
@@ -289,7 +289,7 @@
   // Inicializar
   function init() {
     console.log('Kit IA Emprendedor content script loaded');
-    
+
     // Prevenir inyecciones duplicadas
     if (document.getElementById('kitia-sidebar-container')) {
       console.warn('Sidebar already injected, skipping initialization');
@@ -306,5 +306,4 @@
   } else {
     init();
   }
-
 })();

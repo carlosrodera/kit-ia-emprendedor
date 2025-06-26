@@ -12,12 +12,12 @@ const getPurify = () => {
   if (typeof global !== 'undefined' && global.DOMPurify) {
     return global.DOMPurify;
   }
-  
+
   // En el navegador, DOMPurify funciona directamente
   if (typeof window !== 'undefined') {
     return DOMPurify(window);
   }
-  
+
   // Fallback
   return DOMPurify;
 };
@@ -59,7 +59,7 @@ const REGEX = {
  */
 export function escapeHtml(str) {
   if (typeof str !== 'string') return '';
-  
+
   const map = {
     '&': '&amp;',
     '<': '&lt;',
@@ -67,7 +67,7 @@ export function escapeHtml(str) {
     '"': '&quot;',
     "'": '&#x27;'
   };
-  
+
   return str.replace(REGEX.DANGEROUS_CHARS, char => map[char]);
 }
 
@@ -79,7 +79,7 @@ export function escapeHtml(str) {
  */
 export function sanitizeHtml(html, options = {}) {
   if (typeof html !== 'string') return '';
-  
+
   // Configuración segura por defecto
   const defaultOptions = {
     ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'a', 'br', 'p', 'ul', 'ol', 'li'],
@@ -87,25 +87,25 @@ export function sanitizeHtml(html, options = {}) {
     ALLOW_DATA_ATTR: false,
     FORCE_BODY: true
   };
-  
+
   try {
     const purify = getPurify();
     return purify.sanitize(html, { ...defaultOptions, ...options });
   } catch (error) {
     // Fallback básico si DOMPurify falla
     // Eliminar solo los tags peligrosos más comunes
-    let cleaned = html
+    const cleaned = html
       .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
       .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
       .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
       .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '') // Eliminar event handlers
       .replace(/javascript:/gi, ''); // Eliminar javascript: URLs
-    
+
     // Si aún así no tenemos contenido, devolver el HTML escapado
     if (!cleaned.trim()) {
       return escapeHtml(html);
     }
-    
+
     return cleaned;
   }
 }
@@ -119,21 +119,21 @@ export function validatePromptTitle(title) {
   if (typeof title !== 'string') {
     return { valid: false, error: 'El título debe ser un texto' };
   }
-  
+
   const trimmed = title.trim();
-  
+
   if (trimmed.length < LIMITS.TITLE_MIN) {
     return { valid: false, error: `El título debe tener al menos ${LIMITS.TITLE_MIN} caracteres` };
   }
-  
+
   if (trimmed.length > LIMITS.TITLE_MAX) {
     return { valid: false, error: `El título no puede superar los ${LIMITS.TITLE_MAX} caracteres` };
   }
-  
+
   if (!REGEX.ALPHANUMERIC.test(trimmed)) {
     return { valid: false, error: 'El título solo puede contener letras, números, espacios, guiones y guiones bajos' };
   }
-  
+
   return { valid: true };
 }
 
@@ -146,17 +146,17 @@ export function validatePromptContent(content) {
   if (typeof content !== 'string') {
     return { valid: false, error: 'El contenido debe ser un texto' };
   }
-  
+
   const trimmed = content.trim();
-  
+
   if (trimmed.length < LIMITS.CONTENT_MIN) {
     return { valid: false, error: `El contenido debe tener al menos ${LIMITS.CONTENT_MIN} caracteres` };
   }
-  
+
   if (trimmed.length > LIMITS.CONTENT_MAX) {
     return { valid: false, error: `El contenido no puede superar los ${LIMITS.CONTENT_MAX} caracteres` };
   }
-  
+
   // No aplicamos restricciones de caracteres al contenido, solo lo sanitizamos
   return { valid: true };
 }
@@ -170,39 +170,39 @@ export function validateTags(tags) {
   if (!Array.isArray(tags)) {
     return { valid: false, error: 'Los tags deben ser un array' };
   }
-  
+
   if (tags.length > LIMITS.TAG_MAX_COUNT) {
     return { valid: false, error: `No se pueden agregar más de ${LIMITS.TAG_MAX_COUNT} tags` };
   }
-  
+
   for (let i = 0; i < tags.length; i++) {
     const tag = tags[i];
-    
+
     if (typeof tag !== 'string') {
       return { valid: false, error: `El tag #${i + 1} no es válido` };
     }
-    
+
     const trimmed = tag.trim();
-    
+
     if (trimmed.length === 0) {
       return { valid: false, error: `El tag #${i + 1} está vacío` };
     }
-    
+
     if (trimmed.length > LIMITS.TAG_MAX_LENGTH) {
       return { valid: false, error: `El tag "${trimmed}" supera los ${LIMITS.TAG_MAX_LENGTH} caracteres` };
     }
-    
+
     if (!REGEX.TAG.test(trimmed)) {
       return { valid: false, error: `El tag "${trimmed}" contiene caracteres no válidos` };
     }
   }
-  
+
   // Verificar tags duplicados (case-insensitive)
   const uniqueTags = new Set(tags.map(t => t.trim().toLowerCase()));
   if (uniqueTags.size !== tags.length) {
     return { valid: false, error: 'No se permiten tags duplicados' };
   }
-  
+
   return { valid: true };
 }
 
@@ -215,21 +215,21 @@ export function validateSearch(search) {
   if (typeof search !== 'string') {
     return { valid: false, error: 'La búsqueda debe ser un texto' };
   }
-  
+
   // Sanitizar: eliminar espacios múltiples y trim
   const sanitized = search.trim().replace(/\s+/g, ' ');
-  
+
   if (sanitized.length === 0) {
     return { valid: false, error: 'La búsqueda no puede estar vacía' };
   }
-  
+
   if (sanitized.length > LIMITS.SEARCH_MAX_LENGTH) {
     return { valid: false, error: `La búsqueda no puede superar los ${LIMITS.SEARCH_MAX_LENGTH} caracteres` };
   }
-  
+
   // Escapar caracteres especiales para prevenir inyecciones
   const escaped = escapeHtml(sanitized);
-  
+
   return { valid: true, sanitized: escaped };
 }
 
@@ -242,22 +242,22 @@ export function validateUrl(url) {
   if (typeof url !== 'string') {
     return { valid: false, error: 'La URL debe ser un texto' };
   }
-  
+
   const trimmed = url.trim();
-  
+
   if (trimmed.length === 0) {
     return { valid: false, error: 'La URL no puede estar vacía' };
   }
-  
+
   if (!REGEX.URL.test(trimmed)) {
     return { valid: false, error: 'La URL no es válida. Debe comenzar con http:// o https://' };
   }
-  
+
   // Validación adicional: no permitir localhost en producción
   if (trimmed.includes('localhost') || trimmed.includes('127.0.0.1')) {
     return { valid: false, error: 'Las URLs locales no están permitidas' };
   }
-  
+
   return { valid: true };
 }
 
@@ -270,34 +270,34 @@ export function validateEmail(email) {
   if (typeof email !== 'string') {
     return { valid: false, error: 'El email debe ser un texto' };
   }
-  
+
   const trimmed = email.trim().toLowerCase();
-  
+
   if (trimmed.length === 0) {
     return { valid: false, error: 'El email no puede estar vacío' };
   }
-  
+
   if (trimmed.length > LIMITS.EMAIL_MAX_LENGTH) {
     return { valid: false, error: 'El email es demasiado largo' };
   }
-  
+
   if (!REGEX.EMAIL.test(trimmed)) {
     return { valid: false, error: 'El formato del email no es válido' };
   }
-  
+
   // Validaciones adicionales
   const [localPart, domain] = trimmed.split('@');
-  
+
   // No permitir puntos consecutivos
   if (localPart.includes('..') || domain.includes('..')) {
     return { valid: false, error: 'El email contiene puntos consecutivos' };
   }
-  
+
   // No permitir que empiece o termine con punto
   if (localPart.startsWith('.') || localPart.endsWith('.')) {
     return { valid: false, error: 'El email no puede empezar o terminar con punto' };
   }
-  
+
   return { valid: true };
 }
 
@@ -310,11 +310,11 @@ export function validateEmail(email) {
  */
 export function validateType(value, type, options = {}) {
   const actualType = Array.isArray(value) ? 'array' : typeof value;
-  
+
   if (actualType !== type) {
     return { valid: false, error: `Se esperaba ${type} pero se recibió ${actualType}` };
   }
-  
+
   // Validaciones adicionales según el tipo
   switch (type) {
     case 'string':
@@ -328,7 +328,7 @@ export function validateType(value, type, options = {}) {
         return { valid: false, error: options.patternError || 'El formato no es válido' };
       }
       break;
-      
+
     case 'number':
       if (isNaN(value)) {
         return { valid: false, error: 'El valor no es un número válido' };
@@ -343,7 +343,7 @@ export function validateType(value, type, options = {}) {
         return { valid: false, error: 'El valor debe ser un número entero' };
       }
       break;
-      
+
     case 'array':
       if (options.minItems && value.length < options.minItems) {
         return { valid: false, error: `El array debe tener al menos ${options.minItems} elementos` };
@@ -352,7 +352,7 @@ export function validateType(value, type, options = {}) {
         return { valid: false, error: `El array no puede tener más de ${options.maxItems} elementos` };
       }
       break;
-      
+
     case 'object':
       if (value === null) {
         return { valid: false, error: 'El objeto no puede ser null' };
@@ -366,7 +366,7 @@ export function validateType(value, type, options = {}) {
       }
       break;
   }
-  
+
   return { valid: true };
 }
 
@@ -378,15 +378,15 @@ export function validateType(value, type, options = {}) {
  */
 export function sanitizeObject(obj, maxDepth = 5) {
   if (maxDepth <= 0) return obj;
-  
+
   if (typeof obj === 'string') {
     return escapeHtml(obj);
   }
-  
+
   if (Array.isArray(obj)) {
     return obj.map(item => sanitizeObject(item, maxDepth - 1));
   }
-  
+
   if (obj !== null && typeof obj === 'object') {
     const sanitized = {};
     for (const [key, value] of Object.entries(obj)) {
@@ -396,7 +396,7 @@ export function sanitizeObject(obj, maxDepth = 5) {
     }
     return sanitized;
   }
-  
+
   return obj;
 }
 
@@ -409,22 +409,22 @@ export function sanitizeObject(obj, maxDepth = 5) {
 export function validateForm(data, schema) {
   const errors = {};
   let isValid = true;
-  
+
   for (const [field, rules] of Object.entries(schema)) {
     const value = data[field];
-    
+
     // Validar requerido
     if (rules.required && (value === undefined || value === null || value === '')) {
       errors[field] = `${rules.label || field} es requerido`;
       isValid = false;
       continue;
     }
-    
+
     // Si no es requerido y está vacío, continuar
     if (!rules.required && (value === undefined || value === null || value === '')) {
       continue;
     }
-    
+
     // Validar según tipo
     if (rules.type) {
       const typeValidation = validateType(value, rules.type, rules.typeOptions);
@@ -434,7 +434,7 @@ export function validateForm(data, schema) {
         continue;
       }
     }
-    
+
     // Validador personalizado
     if (rules.validator) {
       const customValidation = rules.validator(value);
@@ -444,7 +444,7 @@ export function validateForm(data, schema) {
       }
     }
   }
-  
+
   return { valid: isValid, errors };
 }
 

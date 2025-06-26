@@ -1,15 +1,15 @@
 /**
  * Módulo de Storage - Kit IA Emprendedor
  * Encapsula toda la interacción con chrome.storage.local
- * 
+ *
  * @module storage
  */
 
-import { 
-  STORAGE_KEYS, 
-  STORAGE_LIMITS, 
+import {
+  STORAGE_KEYS,
+  STORAGE_LIMITS,
   ERROR_MESSAGES,
-  DEFAULT_PREFERENCES 
+  DEFAULT_PREFERENCES
 } from './constants.js';
 import { logger } from './logger.js';
 
@@ -348,7 +348,7 @@ export const promptStorage = {
     const prompts = await this.getAll();
     const lowerQuery = query.toLowerCase();
 
-    return prompts.filter(prompt => 
+    return prompts.filter(prompt =>
       prompt.title.toLowerCase().includes(lowerQuery) ||
       prompt.content.toLowerCase().includes(lowerQuery) ||
       (prompt.tags && prompt.tags.some(tag => tag.toLowerCase().includes(lowerQuery)))
@@ -380,7 +380,7 @@ export const favoritesStorage = {
     }
 
     const favorites = await this.getAll();
-    
+
     if (!favorites.includes(gptId)) {
       favorites.push(gptId);
       await storageManager.set({ [STORAGE_KEYS.FAVORITES]: favorites });
@@ -424,7 +424,7 @@ export const favoritesStorage = {
    */
   async toggle(gptId) {
     const isFav = await this.isFavorite(gptId);
-    
+
     if (isFav) {
       await this.remove(gptId);
     } else {
@@ -456,7 +456,7 @@ export const preferencesStorage = {
   async save(preferences) {
     const current = await this.getAll();
     const updated = { ...current, ...preferences };
-    
+
     await storageManager.set({ [STORAGE_KEYS.PREFERENCES]: updated });
     logger.info('Preferences saved');
   },
@@ -563,7 +563,7 @@ export const cacheStorage = {
     return {
       exists: true,
       timestamp: cache.timestamp,
-      age: age,
+      age,
       expired: age > STORAGE_LIMITS.MAX_CACHE_AGE,
       count: cache.count
     };
@@ -581,7 +581,7 @@ export const backupStorage = {
   async exportAll() {
     try {
       const allData = await storageManager.get(null);
-      
+
       // Añadir metadata
       const exportData = {
         version: '1.0',
@@ -619,19 +619,19 @@ export const backupStorage = {
       if (merge) {
         // Obtener datos actuales
         const currentData = await storageManager.get(null);
-        
+
         // Mezclar datos
         const mergedData = { ...currentData };
-        
+
         // Mezclar prompts manteniendo IDs únicos
         if (data.data[STORAGE_KEYS.PROMPTS] && currentData[STORAGE_KEYS.PROMPTS]) {
           const currentPrompts = currentData[STORAGE_KEYS.PROMPTS] || [];
           const importPrompts = data.data[STORAGE_KEYS.PROMPTS] || [];
           const existingIds = new Set(currentPrompts.map(p => p.id));
-          
+
           const newPrompts = importPrompts.filter(p => !existingIds.has(p.id));
           mergedData[STORAGE_KEYS.PROMPTS] = [...currentPrompts, ...newPrompts];
-          
+
           // Verificar límite
           if (mergedData[STORAGE_KEYS.PROMPTS].length > STORAGE_LIMITS.MAX_PROMPTS) {
             throw new Error(`Import would exceed maximum prompts limit (${STORAGE_LIMITS.MAX_PROMPTS})`);
@@ -673,7 +673,7 @@ export const backupStorage = {
       const url = URL.createObjectURL(blob);
 
       const filename = `kit-ia-backup-${new Date().toISOString().split('T')[0]}.json`;
-      
+
       // Crear enlace de descarga
       const a = document.createElement('a');
       a.href = url;
@@ -681,10 +681,10 @@ export const backupStorage = {
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      
+
       // Limpiar URL
       URL.revokeObjectURL(url);
-      
+
       logger.info('Backup downloaded:', filename);
     } catch (error) {
       logger.error('Error downloading backup:', error);
@@ -706,7 +706,7 @@ export const storageUtils = {
       // Verificar que podemos leer y escribir
       const testKey = '_health_check_';
       const testValue = Date.now();
-      
+
       await storageManager.set({ [testKey]: testValue });
       const result = await storageManager.get(testKey);
       await storageManager.remove(testKey);

@@ -1,5 +1,5 @@
 // Security utilities for Kit IA Emprendedor
-(function() {
+(function () {
   'use strict';
 
   // Exportar utilidades de seguridad
@@ -11,7 +11,7 @@
       if (typeof text !== 'string') {
         return '';
       }
-      
+
       const div = document.createElement('div');
       div.textContent = text;
       return div.innerHTML;
@@ -41,7 +41,7 @@
 
         if (element.nodeType === Node.ELEMENT_NODE) {
           const tagName = element.tagName.toLowerCase();
-          
+
           // Si el tag no está permitido, reemplazar por span
           if (!allowedTags.includes(tagName)) {
             const span = document.createElement('span');
@@ -89,7 +89,7 @@
       if (typeof id !== 'string') {
         return false;
       }
-      
+
       // Solo permitir letras, números, guiones y guiones bajos
       return /^[a-zA-Z0-9_-]+$/.test(id);
     },
@@ -116,7 +116,7 @@
      */
     createElement(tag, options = {}) {
       const element = document.createElement(tag);
-      
+
       // Añadir clases de forma segura
       if (options.className) {
         element.className = this.escapeHtml(options.className);
@@ -202,7 +202,7 @@
         document.body.appendChild(textArea);
         textArea.focus();
         textArea.select();
-        
+
         const result = document.execCommand('copy');
         document.body.removeChild(textArea);
         return result;
@@ -320,5 +320,4 @@
 
   // Alias para compatibilidad
   window.SecUtils = window.SecurityUtils;
-
 })();

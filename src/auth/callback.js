@@ -16,7 +16,7 @@ const retryButton = document.getElementById('retry-button');
 function showErrorMessage(message) {
   errorText.textContent = message;
   errorMessage.style.display = 'block';
-  
+
   // Hide loading elements
   document.querySelector('.loading').style.display = 'none';
   document.querySelector('h2').style.display = 'none';
@@ -29,31 +29,30 @@ function showErrorMessage(message) {
 async function handleCallback() {
   try {
     logger.info('Processing OAuth callback');
-    
+
     // Get the current session
     const session = await auth.getSession();
-    
+
     if (!session) {
       throw new Error('No se pudo obtener la sesión');
     }
-    
+
     logger.info('OAuth callback successful', { userId: session.user.id });
-    
+
     // Notify the extension about successful auth
     chrome.runtime.sendMessage({
       type: 'AUTH_SUCCESS',
       user: session.user,
-      session: session
+      session
     });
-    
+
     // Show success briefly then close
     document.querySelector('h2').textContent = '¡Autenticación exitosa!';
     document.querySelector('p').textContent = 'Esta ventana se cerrará automáticamente...';
-    
+
     setTimeout(() => {
       window.close();
     }, 1500);
-    
   } catch (error) {
     logger.error('OAuth callback failed', error);
     showErrorMessage(error.message || 'Error durante la autenticación');

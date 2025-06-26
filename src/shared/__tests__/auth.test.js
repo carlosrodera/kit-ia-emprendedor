@@ -77,9 +77,9 @@ describe('Auth Module', () => {
 
       const { createClient } = await import('@supabase/supabase-js');
       const mockClient = createClient();
-      mockClient.auth.getSession.mockResolvedValue({ 
-        data: { session: mockSession }, 
-        error: null 
+      mockClient.auth.getSession.mockResolvedValue({
+        data: { session: mockSession },
+        error: null
       });
 
       await auth.initialize();
@@ -92,9 +92,9 @@ describe('Auth Module', () => {
     it('should handle initialization without session', async () => {
       const { createClient } = await import('@supabase/supabase-js');
       const mockClient = createClient();
-      mockClient.auth.getSession.mockResolvedValue({ 
-        data: { session: null }, 
-        error: null 
+      mockClient.auth.getSession.mockResolvedValue({
+        data: { session: null },
+        error: null
       });
 
       await auth.initialize();
@@ -106,9 +106,9 @@ describe('Auth Module', () => {
     it('should handle initialization error', async () => {
       const { createClient } = await import('@supabase/supabase-js');
       const mockClient = createClient();
-      mockClient.auth.getSession.mockResolvedValue({ 
-        data: null, 
-        error: new Error('Network error') 
+      mockClient.auth.getSession.mockResolvedValue({
+        data: null,
+        error: new Error('Network error')
       });
 
       await expect(auth.initialize()).rejects.toThrow('Network error');
@@ -124,7 +124,7 @@ describe('Auth Module', () => {
 
       const { createClient } = await import('@supabase/supabase-js');
       const mockClient = createClient();
-      
+
       mockClient.auth.signInWithOAuth.mockResolvedValue({
         data: { url: 'https://accounts.google.com/oauth/authorize?...' },
         error: null
@@ -161,7 +161,7 @@ describe('Auth Module', () => {
       });
 
       await expect(auth.loginWithOAuth('google')).rejects.toThrow('User cancelled');
-      
+
       chrome.runtime.lastError = null;
     });
   });
@@ -170,7 +170,7 @@ describe('Auth Module', () => {
     it('should logout successfully and clear data', async () => {
       const { createClient } = await import('@supabase/supabase-js');
       const mockClient = createClient();
-      
+
       mockClient.auth.signOut.mockResolvedValue({ error: null });
 
       await auth.logout();
@@ -190,9 +190,9 @@ describe('Auth Module', () => {
     it('should handle logout error', async () => {
       const { createClient } = await import('@supabase/supabase-js');
       const mockClient = createClient();
-      
-      mockClient.auth.signOut.mockResolvedValue({ 
-        error: new Error('Logout failed') 
+
+      mockClient.auth.signOut.mockResolvedValue({
+        error: new Error('Logout failed')
       });
 
       await expect(auth.logout()).rejects.toThrow('Logout failed');
@@ -209,7 +209,7 @@ describe('Auth Module', () => {
 
       const { createClient } = await import('@supabase/supabase-js');
       const mockClient = createClient();
-      
+
       mockClient.auth.refreshSession.mockResolvedValue({
         data: { session: newSession },
         error: null
@@ -223,7 +223,7 @@ describe('Auth Module', () => {
     it('should handle refresh error and logout on token expiry', async () => {
       const { createClient } = await import('@supabase/supabase-js');
       const mockClient = createClient();
-      
+
       mockClient.auth.refreshSession.mockResolvedValue({
         data: null,
         error: new Error('refresh_token is expired')
@@ -246,10 +246,10 @@ describe('Auth Module', () => {
 
       const { createClient } = await import('@supabase/supabase-js');
       const mockClient = createClient();
-      
-      mockClient.auth.getSession.mockResolvedValue({ 
-        data: { session: mockSession }, 
-        error: null 
+
+      mockClient.auth.getSession.mockResolvedValue({
+        data: { session: mockSession },
+        error: null
       });
 
       // Mock subscription query
@@ -292,25 +292,25 @@ describe('Auth Module', () => {
       // Simulate auth state change
       const { createClient } = await import('@supabase/supabase-js');
       const mockClient = createClient();
-      
+
       // Get the callback that was passed to onAuthStateChange
       const authChangeCallback = mockClient.auth.onAuthStateChange.mock.calls[0]?.[0];
-      
+
       if (authChangeCallback) {
         const mockSession = {
           user: { id: '123', email: 'test@example.com' },
           access_token: 'token123'
         };
-        
+
         await authChangeCallback('SIGNED_IN', mockSession);
-        
+
         expect(listener).toHaveBeenCalledWith('SIGNED_IN', mockSession);
       }
 
       // Test unsubscribe
       unsubscribe();
       listener.mockClear();
-      
+
       if (authChangeCallback) {
         await authChangeCallback('SIGNED_OUT', null);
         expect(listener).not.toHaveBeenCalled();
@@ -320,12 +320,12 @@ describe('Auth Module', () => {
     it('should emit custom event on auth state change', async () => {
       const { createClient } = await import('@supabase/supabase-js');
       const mockClient = createClient();
-      
+
       const authChangeCallback = mockClient.auth.onAuthStateChange.mock.calls[0]?.[0];
-      
+
       if (authChangeCallback) {
         await authChangeCallback('SIGNED_IN', { user: { id: '123' } });
-        
+
         expect(window.dispatchEvent).toHaveBeenCalledWith(
           expect.objectContaining({
             type: CUSTOM_EVENTS.AUTH_STATE_CHANGED
@@ -345,9 +345,9 @@ describe('Auth Module', () => {
 
       const { createClient } = await import('@supabase/supabase-js');
       const mockClient = createClient();
-      mockClient.auth.getSession.mockResolvedValue({ 
-        data: { session: mockSession }, 
-        error: null 
+      mockClient.auth.getSession.mockResolvedValue({
+        data: { session: mockSession },
+        error: null
       });
 
       await auth.initialize();
@@ -365,10 +365,10 @@ describe('Auth Module', () => {
 
       const { createClient } = await import('@supabase/supabase-js');
       const mockClient = createClient();
-      
-      mockClient.auth.getSession.mockResolvedValue({ 
-        data: { session: mockSession }, 
-        error: null 
+
+      mockClient.auth.getSession.mockResolvedValue({
+        data: { session: mockSession },
+        error: null
       });
 
       mockClient.auth.refreshSession.mockResolvedValue({
@@ -387,22 +387,22 @@ describe('Auth Module', () => {
   describe('setupAutoRefresh', () => {
     it('should setup auto refresh interval', () => {
       vi.useFakeTimers();
-      
+
       setupAutoRefresh();
-      
+
       // Fast forward 30 minutes
       vi.advanceTimersByTime(30 * 60 * 1000);
-      
+
       // Auto refresh should have been called
       // Note: In real implementation, checkAuthStatus would be called
-      
+
       vi.useRealTimers();
     });
 
     it('should stop auto refresh', () => {
       setupAutoRefresh();
       stopAutoRefresh();
-      
+
       // Verify interval is cleared (implementation specific)
     });
   });
@@ -416,13 +416,13 @@ describe('Auth Module', () => {
 
       const { createClient } = await import('@supabase/supabase-js');
       const mockClient = createClient();
-      mockClient.auth.getSession.mockResolvedValue({ 
-        data: { session: mockSession }, 
-        error: null 
+      mockClient.auth.getSession.mockResolvedValue({
+        data: { session: mockSession },
+        error: null
       });
 
       await auth.initialize();
-      
+
       expect(auth.getAccessToken()).toBe('token123');
     });
 

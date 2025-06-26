@@ -2619,12 +2619,12 @@ if (!document.getElementById('kit-ia-notifications-styles')) {
     if (!window.DeviceManager) {
       const script = document.createElement('script');
       script.src = '../components/device-manager.js';
-      script.onload = () => {
+      script.addEventListener('load', () => {
         window.DeviceManager.showDeviceModal(deviceInfo);
-      };
-      script.onerror = () => {
+      });
+      script.addEventListener('error', () => {
         showToast('Error al cargar el gestor de dispositivos', 'error');
-      };
+      });
       document.head.appendChild(script);
     } else {
       window.DeviceManager.showDeviceModal(deviceInfo);

@@ -48,7 +48,7 @@ class Logger {
     const levels = ['debug', 'info', 'warn', 'error'];
     const currentLevelIndex = levels.indexOf(this.level);
     const messageLevelIndex = levels.indexOf(level);
-    
+
     return messageLevelIndex >= currentLevelIndex;
   }
 
@@ -135,10 +135,12 @@ class Logger {
       timestamp: new Date().toISOString(),
       module: this.module,
       message,
-      error: error ? {
-        message: error.message,
-        stack: error.stack
-      } : null,
+      error: error
+        ? {
+          message: error.message,
+          stack: error.stack
+        }
+        : null,
       data,
       userAgent: navigator.userAgent,
       extensionVersion: ENV.version
@@ -148,7 +150,7 @@ class Logger {
     chrome.storage.local.get(['error_logs'], (result) => {
       const logs = result.error_logs || [];
       logs.unshift(errorReport);
-      
+
       // Mantener solo los últimos 10
       if (logs.length > 10) {
         logs.splice(10);

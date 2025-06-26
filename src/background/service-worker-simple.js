@@ -1,7 +1,7 @@
 // Service Worker simplificado para Kit IA Emprendedor
 // Sin imports ES6 para compatibilidad con Chrome Extensions
 
-(function() {
+(function () {
   'use strict';
 
   // Estado del service worker
@@ -28,12 +28,12 @@
   // Listener de instalación
   chrome.runtime.onInstalled.addListener((details) => {
     logger.info('Extension installed:', details.reason);
-    
+
     if (details.reason === 'install') {
       // Primera instalación
       chrome.action.setBadgeBackgroundColor({ color: '#4F46E5' });
       chrome.action.setBadgeText({ text: '' });
-      
+
       // Abrir página de bienvenida
       chrome.tabs.create({
         url: chrome.runtime.getURL('auth/login.html?welcome=true')
@@ -44,7 +44,7 @@
   // Manejador principal de mensajes
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     logger.debug('Message received:', message.type);
-    
+
     // Manejar mensaje de forma asíncrona
     handleMessage(message, sender)
       .then(sendResponse)
@@ -52,7 +52,7 @@
         logger.error('Error handling message:', error);
         sendResponse({ success: false, error: error.message });
       });
-    
+
     // Indicar que la respuesta será asíncrona
     return true;
   });
@@ -60,26 +60,26 @@
   // Función para manejar mensajes
   async function handleMessage(message, sender) {
     const { type, data } = message;
-    
+
     switch (type) {
       case 'CHECK_AUTH':
         return checkAuth();
-        
+
       case 'LOGIN':
         return login(data);
-        
+
       case 'LOGOUT':
         return logout();
-        
+
       case 'GET_GPT_STATS':
         return getGPTStats();
-        
+
       case 'SYNC_GPTS':
         return syncGPTs();
-        
+
       case 'TOGGLE_SIDEBAR':
         return toggleSidebar(sender.tab);
-        
+
       default:
         throw new Error(`Unknown message type: ${type}`);
     }
@@ -90,11 +90,11 @@
     try {
       // Por ahora simulamos autenticación
       const stored = await chrome.storage.local.get(['user', 'session']);
-      
+
       if (stored.user && stored.session) {
         state.isAuthenticated = true;
         state.user = stored.user;
-        
+
         return {
           success: true,
           data: {
@@ -104,7 +104,7 @@
           }
         };
       }
-      
+
       return {
         success: true,
         data: {
@@ -125,26 +125,26 @@
   async function login(data) {
     try {
       logger.info('Login attempt');
-      
+
       // Por ahora simulamos login exitoso
       const mockUser = {
         id: 'user-123',
         email: 'user@example.com',
         avatar_url: 'https://ui-avatars.com/api/?name=User&background=4F46E5&color=fff'
       };
-      
+
       // Guardar en storage
       await chrome.storage.local.set({
         user: mockUser,
         session: { token: 'mock-token-123' }
       });
-      
+
       state.isAuthenticated = true;
       state.user = mockUser;
-      
+
       // Sincronizar GPTs
       await syncGPTs();
-      
+
       return {
         success: true,
         data: {
@@ -165,14 +165,14 @@
     try {
       // Limpiar storage
       await chrome.storage.local.remove(['user', 'session', 'gpts']);
-      
+
       state.isAuthenticated = false;
       state.user = null;
       state.gpts = [];
-      
+
       // Limpiar badge
       chrome.action.setBadgeText({ text: '' });
-      
+
       return { success: true };
     } catch (error) {
       logger.error('Logout error:', error);
@@ -187,7 +187,7 @@
   async function getGPTStats() {
     try {
       const stored = await chrome.storage.local.get(['gpts', 'favorites', 'prompts']);
-      
+
       return {
         success: true,
         data: {
@@ -208,7 +208,7 @@
   async function syncGPTs() {
     try {
       logger.info('Syncing GPTs');
-      
+
       // Por ahora usamos datos mock
       const mockGPTs = [
         {
@@ -236,14 +236,14 @@
           prompt: 'Eres un desarrollador web experto...'
         }
       ];
-      
+
       // Guardar en storage
       await chrome.storage.local.set({ gpts: mockGPTs });
       state.gpts = mockGPTs;
-      
+
       // Actualizar badge
       chrome.action.setBadgeText({ text: mockGPTs.length.toString() });
-      
+
       return {
         success: true,
         data: mockGPTs
@@ -263,21 +263,21 @@
       if (!tab || !tab.id) {
         throw new Error('No active tab');
       }
-      
+
       // Verificar si la URL es válida
-      const isValidUrl = tab.url && 
+      const isValidUrl = tab.url &&
         (tab.url.startsWith('http://') || tab.url.startsWith('https://')) &&
         !tab.url.includes('chrome.google.com/webstore');
-      
+
       if (!isValidUrl) {
         throw new Error('Cannot inject sidebar on this page');
       }
-      
+
       // Enviar mensaje al content script
       await chrome.tabs.sendMessage(tab.id, {
         type: 'TOGGLE_SIDEBAR'
       });
-      
+
       return { success: true };
     } catch (error) {
       logger.error('Error toggling sidebar:', error);
@@ -291,11 +291,11 @@
   // Listener para comandos
   chrome.commands.onCommand.addListener(async (command) => {
     logger.debug('Command received:', command);
-    
+
     if (command === 'toggle-sidebar') {
       try {
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-        
+
         if (tab && tab.id) {
           await chrome.tabs.sendMessage(tab.id, {
             type: 'TOGGLE_SIDEBAR'
@@ -310,5 +310,4 @@
   // Log de carga exitosa
   logger.info('Service Worker loaded successfully');
   logger.info('Extension version:', chrome.runtime.getManifest().version);
-
 })();

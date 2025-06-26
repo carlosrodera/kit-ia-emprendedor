@@ -23,13 +23,13 @@ export function validatePromptData(promptData) {
   if (!titleValidation.valid) {
     return { success: false, error: titleValidation.error };
   }
-  
+
   // Validar contenido
   const contentValidation = validatePromptContent(promptData.content);
   if (!contentValidation.valid) {
     return { success: false, error: contentValidation.error };
   }
-  
+
   // Validar tags si existen
   if (promptData.tags) {
     const tagsValidation = validateTags(promptData.tags);
@@ -37,7 +37,7 @@ export function validatePromptData(promptData) {
       return { success: false, error: tagsValidation.error };
     }
   }
-  
+
   // Sanitizar el contenido antes de guardarlo
   const sanitizedData = {
     ...promptData,
@@ -45,7 +45,7 @@ export function validatePromptData(promptData) {
     content: sanitizeHtml(promptData.content.trim()),
     tags: promptData.tags?.map(tag => escapeHtml(tag.trim()))
   };
-  
+
   return { success: true, data: sanitizedData };
 }
 
@@ -54,14 +54,14 @@ export function validatePromptData(promptData) {
  */
 export function processSearch(searchTerm) {
   const validation = validateSearch(searchTerm);
-  
+
   if (!validation.valid) {
     return {
       success: false,
       error: validation.error
     };
   }
-  
+
   // Usar el término sanitizado para la búsqueda
   return {
     success: true,
@@ -108,7 +108,7 @@ export function validateSettingsForm(formData) {
       type: 'boolean'
     }
   };
-  
+
   return validateForm(formData, schema);
 }
 
@@ -126,19 +126,17 @@ export function prepareUserContent(content) {
     SANITIZE_DOM: true,
     ADD_ATTR: ['target', 'rel'],
     transformTags: {
-      'a': (tagName, attribs) => {
-        return {
-          tagName: 'a',
-          attribs: {
-            ...attribs,
-            target: '_blank',
-            rel: 'noopener noreferrer'
-          }
-        };
-      }
+      a: (tagName, attribs) => ({
+        tagName: 'a',
+        attribs: {
+          ...attribs,
+          target: '_blank',
+          rel: 'noopener noreferrer'
+        }
+      })
     }
   };
-  
+
   return sanitizeHtml(content, sanitizeOptions);
 }
 
@@ -151,45 +149,45 @@ export class FormValidator {
     this.errors = {};
     this.touched = new Set();
   }
-  
+
   validateField(fieldName, value) {
     this.touched.add(fieldName);
-    
+
     const fieldSchema = this.schema[fieldName];
     if (!fieldSchema) return;
-    
+
     // Validar campo individual
     const tempData = { [fieldName]: value };
     const tempSchema = { [fieldName]: fieldSchema };
     const result = validateForm(tempData, tempSchema);
-    
+
     if (!result.valid) {
       this.errors[fieldName] = result.errors[fieldName];
     } else {
       delete this.errors[fieldName];
     }
-    
+
     return !this.errors[fieldName];
   }
-  
+
   validateAll(data) {
     const result = validateForm(data, this.schema);
     this.errors = result.errors;
-    
+
     // Marcar todos los campos como tocados
     Object.keys(this.schema).forEach(field => this.touched.add(field));
-    
+
     return result.valid;
   }
-  
+
   getError(fieldName) {
     return this.touched.has(fieldName) ? this.errors[fieldName] : null;
   }
-  
+
   isValid() {
     return Object.keys(this.errors).length === 0;
   }
-  
+
   reset() {
     this.errors = {};
     this.touched.clear();
@@ -202,11 +200,11 @@ export class FormValidator {
 export function createValidationMiddleware(schema) {
   return (data) => {
     const validation = validateForm(data, schema);
-    
+
     if (!validation.valid) {
       throw new ValidationError('Datos inválidos', validation.errors);
     }
-    
+
     return data;
   };
 }
@@ -224,7 +222,7 @@ class ValidationError extends Error {
  */
 export function useValidation(schema) {
   const validator = new FormValidator(schema);
-  
+
   return {
     validate: (field, value) => validator.validateField(field, value),
     validateAll: (data) => validator.validateAll(data),
@@ -244,11 +242,11 @@ export const examples = {
       content: 'Crea una campaña de marketing digital para...',
       tags: ['marketing', 'digital', 'campaña']
     };
-    
+
     const result = validatePromptData(promptData);
     console.log('Validación de prompt:', result);
   },
-  
+
   // Ejemplo de búsqueda
   searchExample: () => {
     const searches = [
@@ -257,13 +255,13 @@ export const examples = {
       '   espacios   múltiples   ',
       ''
     ];
-    
+
     searches.forEach(term => {
       const result = processSearch(term);
       console.log(`Búsqueda "${term}":`, result);
     });
   },
-  
+
   // Ejemplo de formulario
   formExample: () => {
     const formData = {
@@ -272,7 +270,7 @@ export const examples = {
       theme: 'dark',
       notifications: true
     };
-    
+
     const result = validateSettingsForm(formData);
     console.log('Validación de formulario:', result);
   }

@@ -42,29 +42,44 @@
         <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none">
           <path d="M21 21L15 15M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z" stroke="currentColor" stroke-width="2"/>
         </svg>
-        <input type="text" class="search-input" id="search-input" placeholder="Buscar GPTs...">
+        <input type="text" class="search-input" id="search-input" placeholder="Buscar GPTs y prompts...">
       </div>
     </div>
 
     <!-- Tabs -->
     <nav class="tabs">
-      <button class="tab active" data-tab="all">Todos</button>
+      <button class="tab active" data-tab="all">GPTs</button>
       <button class="tab" data-tab="favorites">Favoritos</button>
       <button class="tab" data-tab="prompts">Mis Prompts</button>
     </nav>
 
-    <!-- Toolbar -->
+    <!-- Toolbar compacto -->
     <div class="toolbar">
-      <div class="filters">
-        <select class="filter-select" id="category-filter">
-          <option value="all">Todas las categorías</option>
-          <option value="Creative">Creativo</option>
-          <option value="Productivity">Productividad</option>
-          <option value="Programming">Programación</option>
-          <option value="Writing">Escritura</option>
-          <option value="Research">Investigación</option>
-        </select>
+      <div class="category-filter-wrapper">
+        <input type="text" 
+               class="category-filter-input" 
+               id="category-filter-input" 
+               placeholder="Todas las categorías"
+               readonly>
+        <svg class="dropdown-icon" width="16" height="16" viewBox="0 0 24 24" fill="none">
+          <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <div class="category-dropdown" id="category-dropdown" style="display: none;">
+          <input type="text" 
+                 class="category-search-input" 
+                 id="category-search" 
+                 placeholder="Buscar categoría...">
+          <div class="category-options" id="category-options">
+            <div class="category-option" data-value="all">Todas las categorías</div>
+            <div class="category-option" data-value="Creative">Creativo</div>
+            <div class="category-option" data-value="Productivity">Productividad</div>
+            <div class="category-option" data-value="Programming">Programación</div>
+            <div class="category-option" data-value="Writing">Escritura</div>
+            <div class="category-option" data-value="Research">Investigación</div>
+          </div>
+        </div>
       </div>
+      
       <div class="view-toggle">
         <button class="view-btn active" data-view="grid" title="Vista cuadrícula">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -94,7 +109,6 @@
     <footer class="footer">
       <div class="footer-content">
         <p class="version">Kit IA Emprendedor v1.0.0</p>
-        <a href="#" class="footer-link" id="upgrade-link">Actualizar a Pro</a>
       </div>
     </footer>
   </div>

@@ -318,7 +318,7 @@ class NotificationManager {
 
     // Crear elemento DOM
     const element = this.createNotificationElement(notification);
-    
+
     // Limitar notificaciones visibles
     this.enforceMaxVisible();
 
@@ -527,7 +527,7 @@ class NotificationManager {
   async updateBadge() {
     if (typeof chrome !== 'undefined' && chrome.action) {
       const unreadCount = this.getUnreadCount();
-      
+
       try {
         if (unreadCount > 0) {
           await chrome.action.setBadgeText({ text: String(unreadCount) });

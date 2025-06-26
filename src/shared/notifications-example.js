@@ -59,7 +59,7 @@ function showUniqueNotification() {
 function updateNotification() {
   // Primero cerrar la notificación anterior
   notificationManager.dismiss('sync-status');
-  
+
   // Mostrar nueva con el mismo ID
   notificationManager.show({
     id: 'sync-status',
