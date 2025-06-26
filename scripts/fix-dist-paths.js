@@ -76,4 +76,19 @@ if (existsSync(callbackPath)) {
   console.log('✅ Arreglado: auth/callback.html');
 }
 
+// 5. Arreglar rutas en popup/popup.html
+const popupPath = join(distPath, 'popup', 'popup.html');
+if (existsSync(popupPath)) {
+  let content = readFileSync(popupPath, 'utf8');
+  
+  // Arreglar ruta del CSS
+  content = content.replace(
+    'href="../style"',
+    'href="../style.css"'
+  );
+  
+  writeFileSync(popupPath, content);
+  console.log('✅ Arreglado: popup/popup.html');
+}
+
 console.log('✨ Rutas arregladas correctamente');
