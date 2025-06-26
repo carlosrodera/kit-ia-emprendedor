@@ -91,6 +91,8 @@ async function loadInitialData() {
     const gptsResponse = await chrome.runtime.sendMessage({ type: 'GET_GPTS' });
     if (gptsResponse.success) {
       state.gpts = gptsResponse.data;
+      // Actualizar opciones de categorías después de cargar GPTs
+      updateCategoryOptions();
     }
 
     // Obtener favoritos
@@ -171,12 +173,8 @@ function getFilteredItems() {
   if (state.currentTab !== 'prompts' && state.currentCategory !== 'all') {
     console.log('[Panel] Filtering by category:', state.currentCategory);
     console.log('[Panel] GPTs before filter:', items.length);
-    // Normalizar comparación para evitar problemas de case-sensitivity
-    const normalizedCategory = state.currentCategory.toLowerCase();
     items = items.filter(gpt => {
-      const gptCategory = (gpt.category || '').toLowerCase();
-      console.log(`[Panel] Comparing: "${gptCategory}" === "${normalizedCategory}"`);
-      return gptCategory === normalizedCategory;
+      return gpt.category === state.currentCategory;
     });
     console.log('[Panel] GPTs after filter:', items.length);
   }
@@ -235,20 +233,33 @@ function createGPTCard(gpt) {
   `;
 
   // Event listeners
-  card.querySelector('.favorite-btn').addEventListener('click', (e) => {
-    e.stopPropagation();
-    toggleFavorite(gpt.id);
-  });
+  const favoriteBtn = card.querySelector('.favorite-btn');
+  if (favoriteBtn) {
+    favoriteBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      console.log('[Panel] Favorite button clicked for GPT:', gpt.id);
+      await toggleFavorite(gpt.id);
+    });
+  }
 
-  card.querySelector('.open-same-tab').addEventListener('click', (e) => {
-    e.stopPropagation();
-    openGPT(gpt.url, false);
-  });
+  const openSameTabBtn = card.querySelector('.open-same-tab');
+  if (openSameTabBtn) {
+    openSameTabBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      openGPT(gpt.url, false);
+    });
+  }
 
-  card.querySelector('.open-new-tab').addEventListener('click', (e) => {
-    e.stopPropagation();
-    openGPT(gpt.url, true);
-  });
+  const openNewTabBtn = card.querySelector('.open-new-tab');
+  if (openNewTabBtn) {
+    openNewTabBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      openGPT(gpt.url, true);
+    });
+  }
 
   return card;
 }
@@ -284,20 +295,33 @@ function createGPTListItem(gpt) {
   `;
 
   // Event listeners
-  item.querySelector('.favorite-btn').addEventListener('click', (e) => {
-    e.stopPropagation();
-    toggleFavorite(gpt.id);
-  });
+  const favoriteBtn = item.querySelector('.favorite-btn');
+  if (favoriteBtn) {
+    favoriteBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      console.log('[Panel] Favorite button clicked for GPT:', gpt.id);
+      await toggleFavorite(gpt.id);
+    });
+  }
 
-  item.querySelector('.open-same-tab').addEventListener('click', (e) => {
-    e.stopPropagation();
-    openGPT(gpt.url, false);
-  });
+  const openSameTabBtn = item.querySelector('.open-same-tab');
+  if (openSameTabBtn) {
+    openSameTabBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      openGPT(gpt.url, false);
+    });
+  }
 
-  item.querySelector('.open-new-tab').addEventListener('click', (e) => {
-    e.stopPropagation();
-    openGPT(gpt.url, true);
-  });
+  const openNewTabBtn = item.querySelector('.open-new-tab');
+  if (openNewTabBtn) {
+    openNewTabBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      openGPT(gpt.url, true);
+    });
+  }
 
   return item;
 }
@@ -444,6 +468,9 @@ function handleViewChange(view) {
 function setupCategoryDropdown() {
   const wrapper = elements.categoryFilterInput.parentElement;
 
+  // Generar opciones de categorías dinámicamente
+  updateCategoryOptions();
+
   // Click en el input para abrir/cerrar
   elements.categoryFilterInput.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -483,6 +510,42 @@ function setupCategoryDropdown() {
   // Prevenir que el dropdown se cierre al hacer click dentro
   elements.categoryDropdown.addEventListener('click', (e) => {
     e.stopPropagation();
+  });
+}
+
+/**
+ * Actualiza las opciones de categorías basado en los GPTs disponibles
+ */
+function updateCategoryOptions() {
+  // Obtener categorías únicas de los GPTs
+  const categories = [...new Set(state.gpts.map(gpt => gpt.category))].filter(Boolean);
+  
+  // Mapeo de categorías en inglés a español
+  const categoryTranslations = {
+    'Creative': 'Creativo',
+    'Productivity': 'Productividad',
+    'Programming': 'Programación',
+    'Writing': 'Escritura',
+    'Research': 'Investigación'
+  };
+  
+  // Limpiar opciones existentes
+  elements.categoryOptions.innerHTML = '';
+  
+  // Añadir opción "Todas las categorías"
+  const allOption = document.createElement('div');
+  allOption.className = 'category-option';
+  allOption.dataset.value = 'all';
+  allOption.textContent = 'Todas las categorías';
+  elements.categoryOptions.appendChild(allOption);
+  
+  // Añadir categorías disponibles
+  categories.forEach(category => {
+    const option = document.createElement('div');
+    option.className = 'category-option';
+    option.dataset.value = category;
+    option.textContent = categoryTranslations[category] || category;
+    elements.categoryOptions.appendChild(option);
   });
 }
 
@@ -533,18 +596,24 @@ function selectCategory(value, text) {
 async function toggleFavorite(gptId) {
   console.log('[Panel] Toggle favorite called for:', gptId);
   try {
+    // Obtener todos los botones de favorito para este GPT (puede haber múltiples)
+    const buttons = document.querySelectorAll(`[data-gpt-id="${gptId}"]`);
+    const isCurrentlyFavorite = state.favorites.includes(gptId);
+    
     // Actualización optimista - cambiar UI inmediatamente
-    const btn = document.querySelector(`[data-gpt-id="${gptId}"]`);
-    if (btn) {
-      const isCurrentlyFavorite = btn.classList.contains('active');
-      btn.classList.toggle('active');
-
-      // Actualizar estado local temporalmente
+    buttons.forEach(btn => {
       if (isCurrentlyFavorite) {
-        state.favorites = state.favorites.filter(id => id !== gptId);
+        btn.classList.remove('active');
       } else {
-        state.favorites = [...state.favorites, gptId];
+        btn.classList.add('active');
       }
+    });
+
+    // Actualizar estado local temporalmente
+    if (isCurrentlyFavorite) {
+      state.favorites = state.favorites.filter(id => id !== gptId);
+    } else {
+      state.favorites = [...state.favorites, gptId];
     }
 
     const response = await chrome.runtime.sendMessage({
@@ -565,18 +634,27 @@ async function toggleFavorite(gptId) {
     } else {
       console.error('[Panel] Toggle favorite failed:', response);
       // Revertir cambio optimista si falla
-      if (btn) {
-        btn.classList.toggle('active');
-      }
+      buttons.forEach(btn => {
+        if (isCurrentlyFavorite) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
       showToast('Error al actualizar favorito', 'error');
     }
   } catch (error) {
     console.error('[Panel] Error toggling favorite:', error);
     // Revertir cambio optimista si hay error
-    const btn = document.querySelector(`[data-gpt-id="${gptId}"]`);
-    if (btn) {
-      btn.classList.toggle('active');
-    }
+    const buttons = document.querySelectorAll(`[data-gpt-id="${gptId}"]`);
+    const isCurrentlyFavorite = state.favorites.includes(gptId);
+    buttons.forEach(btn => {
+      if (isCurrentlyFavorite) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
     showToast('Error al actualizar favorito', 'error');
   }
 }

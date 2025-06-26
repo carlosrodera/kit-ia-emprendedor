@@ -16,6 +16,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     root: 'src',
+    base: './', // Usar rutas relativas para Chrome Extension
     build: {
       outDir: '../dist',
       emptyOutDir: true,
@@ -41,8 +42,8 @@ export default defineConfig(({ mode }) => {
       // Configuración para Chrome Extension
       rollupOptions: {
         input: {
-          // Service Worker (background script) - usando versión simplificada por ahora
-          'service-worker': resolve(__dirname, 'src/background/service-worker-simple.js'),
+          // Service Worker (background script)
+          'service-worker': resolve(__dirname, 'src/background/service-worker.js'),
           
           // Content Script
           'content-script': resolve(__dirname, 'src/content/content-script.js'),

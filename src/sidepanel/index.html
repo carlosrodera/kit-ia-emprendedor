@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kit IA Emprendedor</title>
+  <title>GPTs y Prompts</title>
   <link rel="stylesheet" href="sidepanel.css">
 </head>
 <body>
@@ -55,45 +55,42 @@
 
     <!-- Toolbar compacto -->
     <div class="toolbar">
-      <div class="category-filter-wrapper">
-        <input type="text" 
-               class="category-filter-input" 
-               id="category-filter-input" 
-               placeholder="Todas las categorías"
-               readonly>
-        <svg class="dropdown-icon" width="16" height="16" viewBox="0 0 24 24" fill="none">
-          <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <div class="category-dropdown" id="category-dropdown" style="display: none;">
+      <div class="toolbar-left">
+        <div class="category-filter-wrapper">
           <input type="text" 
-                 class="category-search-input" 
-                 id="category-search" 
-                 placeholder="Buscar categoría...">
-          <div class="category-options" id="category-options">
-            <div class="category-option" data-value="all">Todas las categorías</div>
-            <div class="category-option" data-value="Creative">Creativo</div>
-            <div class="category-option" data-value="Productivity">Productividad</div>
-            <div class="category-option" data-value="Programming">Programación</div>
-            <div class="category-option" data-value="Writing">Escritura</div>
-            <div class="category-option" data-value="Research">Investigación</div>
+                 class="category-filter-input" 
+                 id="category-filter-input" 
+                 placeholder="Todas las categorías"
+                 readonly>
+          <svg class="dropdown-icon" width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <div class="category-dropdown" id="category-dropdown" style="display: none;">
+            <input type="text" 
+                   class="category-search-input" 
+                   id="category-search" 
+                   placeholder="Buscar categoría...">
+            <div class="category-options" id="category-options">
+              <!-- Las categorías se generarán dinámicamente -->
+            </div>
           </div>
         </div>
-      </div>
-      
-      <div class="view-toggle">
-        <button class="view-btn active" data-view="grid" title="Vista cuadrícula">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <rect x="3" y="3" width="7" height="7" stroke="currentColor" stroke-width="2"/>
-            <rect x="14" y="3" width="7" height="7" stroke="currentColor" stroke-width="2"/>
-            <rect x="3" y="14" width="7" height="7" stroke="currentColor" stroke-width="2"/>
-            <rect x="14" y="14" width="7" height="7" stroke="currentColor" stroke-width="2"/>
-          </svg>
-        </button>
-        <button class="view-btn" data-view="list" title="Vista lista">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <path d="M8 6H21M8 12H21M8 18H21M3 6H3.01M3 12H3.01M3 18H3.01" stroke="currentColor" stroke-width="2"/>
-          </svg>
-        </button>
+        
+        <div class="view-toggle">
+          <button class="view-btn active" data-view="grid" title="Vista cuadrícula">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <rect x="3" y="3" width="7" height="7" stroke="currentColor" stroke-width="2"/>
+              <rect x="14" y="3" width="7" height="7" stroke="currentColor" stroke-width="2"/>
+              <rect x="3" y="14" width="7" height="7" stroke="currentColor" stroke-width="2"/>
+              <rect x="14" y="14" width="7" height="7" stroke="currentColor" stroke-width="2"/>
+            </svg>
+          </button>
+          <button class="view-btn" data-view="list" title="Vista lista">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M8 6H21M8 12H21M8 18H21M3 6H3.01M3 12H3.01M3 18H3.01" stroke="currentColor" stroke-width="2"/>
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
 
@@ -108,7 +105,7 @@
     <!-- Footer -->
     <footer class="footer">
       <div class="footer-content">
-        <p class="version">Kit IA Emprendedor v1.0.0</p>
+        <p class="footer-text">Made with ❤️ by <a href="https://carlosrodera.com" target="_blank" class="footer-link">Carlos Rodera</a></p>
       </div>
     </footer>
   </div>
