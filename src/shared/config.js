@@ -6,7 +6,7 @@
  */
 
 // Detectar entorno
-const isDevelopment = process.env.NODE_ENV === 'development' ||
+const isDevelopment = import.meta.env.DEV || 
                      chrome.runtime.getManifest().version.includes('0.1');
 
 /**
@@ -14,15 +14,13 @@ const isDevelopment = process.env.NODE_ENV === 'development' ||
  * Proyecto: EVO (Kit IA Emprendedor)
  */
 export const SUPABASE_CONFIG = {
-  url: process.env.VITE_SUPABASE_URL || 'https://nktqqsbebhoedgookfzu.supabase.co',
+  url: import.meta.env.VITE_SUPABASE_URL || 'https://nktqqsbebhoedgookfzu.supabase.co',
   // Esta key es pública y segura de exponer en el cliente
   // IMPORTANTE: Configurar VITE_SUPABASE_ANON_KEY en .env antes de producción
-  anonKey: process.env.VITE_SUPABASE_ANON_KEY || (() => {
-    if (isDevelopment) {
-      console.warn('[Config] ⚠️ Using development Supabase key. Configure .env for production!');
-      return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5rdHFxc2JlYmhvZWRnb29rZnp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzNzYyMTEsImV4cCI6MjA2NTk1MjIxMX0.YmsU1VKwHkuFHFLCBW56KlGinvToSzHXtwSmkl5uhK4';
-    }
-    throw new Error('Supabase anon key not configured. Please set VITE_SUPABASE_ANON_KEY in .env file');
+  anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY || (() => {
+    // Fallback con la key real para desarrollo
+    console.warn('[Config] ⚠️ Using fallback Supabase key');
+    return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5rdHFxc2JlYmhvZWRnb29rZnp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzNzYyMTEsImV4cCI6MjA2NTk1MjIxMX0.YmsU1VKwHkuFHFLCBW56KlGinvToSzHXtwSmkl5uhK4';
   })(),
   options: {
     auth: {
@@ -133,8 +131,8 @@ export const DEV_CONFIG = {
   enableDevTools: isDevelopment,
 
   // Testing
-  mockData: false,
-  bypassAuth: false
+  mockData: import.meta.env.VITE_MOCK_DATA === 'true',
+  bypassAuth: import.meta.env.VITE_BYPASS_AUTH === 'true'
 };
 
 /**

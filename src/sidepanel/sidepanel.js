@@ -54,16 +54,24 @@ async function initializeModules() {
     // Inicializar module loader
     await moduleLoader.init();
     
-    // Cargar módulo de autenticación
+    // Cargar módulo de autenticación directamente
     try {
       const authPath = chrome.runtime.getURL('shared/auth.js');
       const authImport = await import(authPath);
       authModule = authImport.auth;
+      
+      // Verificar que el módulo se cargó correctamente
+      if (!authModule) {
+        throw new Error('Auth module not found in import');
+      }
+      
       await authModule.initialize();
-      console.log('[Panel] Auth module loaded');
+      console.log('[Panel] Auth module loaded successfully');
     } catch (authError) {
       console.error('[Panel] Failed to load auth module:', authError);
-      // Continuar sin auth por ahora
+      console.error('[Panel] Auth error details:', authError.stack);
+      // No continuar sin auth - es crítico
+      throw authError;
     }
     
     // Cargar módulo de favoritos

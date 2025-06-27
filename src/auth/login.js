@@ -2,16 +2,14 @@
  * Login page script
  */
 
-import auth from '@shared/auth.js';
-import { error as showError, info as showInfo } from '@shared/notifications.js';
-import { logger } from '@shared/logger.js';
+import { auth } from '../shared/auth.js';
+import { logger } from '../shared/logger.js';
 
 // DOM elements
 const form = document.getElementById('login-form');
 const emailInput = document.getElementById('email');
 const passwordInput = document.getElementById('password');
 const loginBtn = document.getElementById('login-btn');
-const googleBtn = document.getElementById('google-btn');
 const signupLink = document.getElementById('signup-link');
 const errorMessage = document.getElementById('error-message');
 
@@ -36,12 +34,10 @@ function hideErrorMessage() {
 function setLoading(isLoading) {
   if (isLoading) {
     loginBtn.disabled = true;
-    googleBtn.disabled = true;
     loginBtn.querySelector('.btn-text').style.display = 'none';
     loginBtn.querySelector('.btn-loading').style.display = 'inline-block';
   } else {
     loginBtn.disabled = false;
-    googleBtn.disabled = false;
     loginBtn.querySelector('.btn-text').style.display = 'inline-block';
     loginBtn.querySelector('.btn-loading').style.display = 'none';
   }
@@ -62,44 +58,27 @@ async function handleEmailLogin(e) {
 
     logger.info('Attempting email login', { email });
 
-    const { data, error } = await auth.signIn(email, password);
-
-    if (error) {
-      throw error;
+    // Inicializar auth module si no está disponible
+    if (!auth.isInitialized) {
+      await auth.initialize();
     }
 
-    logger.info('Login successful', { userId: data.user.id });
+    const result = await auth.signInWithEmail(email, password);
+
+    logger.info('Login successful', { userId: result.user.id });
 
     // Close the window and notify the extension
     chrome.runtime.sendMessage({
       type: 'AUTH_SUCCESS',
-      user: data.user
+      user: result.user
     });
 
-    window.close();
+    // Redirect back to main panel
+    window.location.href = chrome.runtime.getURL('sidepanel/index.html');
   } catch (error) {
     logger.error('Login failed', error);
     showErrorMessage(error.message || 'Error al iniciar sesión');
   } finally {
-    setLoading(false);
-  }
-}
-
-/**
- * Handle Google OAuth login
- */
-async function handleGoogleLogin() {
-  hideErrorMessage();
-  setLoading(true);
-
-  try {
-    logger.info('Initiating Google OAuth login');
-
-    // Por ahora, mostrar mensaje ya que OAuth no está implementado en auth.js
-    throw new Error('Login con Google no está disponible temporalmente');
-  } catch (error) {
-    logger.error('Google login failed', error);
-    showErrorMessage(error.message || 'Error al iniciar sesión con Google');
     setLoading(false);
   }
 }
@@ -116,7 +95,6 @@ function handleSignupClick(e) {
 
 // Event listeners
 form.addEventListener('submit', handleEmailLogin);
-googleBtn.addEventListener('click', handleGoogleLogin);
 signupLink.addEventListener('click', handleSignupClick);
 
 // Auto-focus email field
