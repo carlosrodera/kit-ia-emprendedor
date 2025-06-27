@@ -27,7 +27,9 @@ const state = {
   currentUser: null,
   // Multi-select state
   isSelectMode: false,
-  selectedPrompts: new Set()
+  selectedPrompts: new Set(),
+  // Sort state
+  sortBy: 'name-asc'
 };
 
 // Elementos del DOM
@@ -138,8 +140,8 @@ async function initializeFallbackFavorites() {
  * @returns {Promise<boolean>} true si está autenticado
  */
 async function checkAuthentication() {
-  // TEMPORAL: Modo desarrollo mientras arreglamos el problema de env vars
-  const DEV_MODE = true; // Temporalmente activado para continuar desarrollo
+  // DEV_MODE desactivado - usando autenticación real
+  const DEV_MODE = false;
   
   if (DEV_MODE) {
     console.warn('[Panel] 🔧 DEVELOPMENT MODE - Auth bypassed temporalmente');
@@ -178,6 +180,9 @@ async function checkAuthentication() {
     
     // Actualizar avatar del usuario
     updateUserAvatar();
+    
+    // Cargar datos después de verificar autenticación
+    loadInitialData();
     
     return true;
   } catch (error) {
@@ -517,10 +522,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Configurar event listeners
   setupEventListeners();
 
-  // Cargar datos iniciales
-  await loadInitialData();
-
-  // Renderizar UI
+  // Renderizar UI (los datos ya se cargaron en checkAuthentication)
   renderContent();
 });
 
@@ -541,6 +543,7 @@ function cacheElements() {
   elements.notificationsBadge = document.getElementById('notifications-badge');
   elements.userProfileBtn = document.getElementById('user-profile-btn');
   elements.userInitials = document.getElementById('user-initials');
+  elements.sortSelect = document.getElementById('sort-select');
 }
 
 /**
@@ -571,6 +574,11 @@ function setupEventListeners() {
   // Botones de header
   document.getElementById('notifications-btn').addEventListener('click', handleNotifications);
   elements.userProfileBtn.addEventListener('click', handleUserProfile);
+  
+  // Ordenamiento
+  if (elements.sortSelect) {
+    elements.sortSelect.addEventListener('change', handleSortChange);
+  }
 }
 
 /**
@@ -632,6 +640,9 @@ function renderContent() {
 
   if (state.currentTab === 'prompts') {
     renderPrompts(items);
+  } else if (state.currentTab === 'favorites') {
+    // En favoritos, renderizar mixto (GPTs y Prompts)
+    renderMixedFavorites(items);
   } else {
     renderGPTs(items);
   }
@@ -646,20 +657,28 @@ function getFilteredItems() {
   // Seleccionar items según tab
   switch (state.currentTab) {
     case 'favorites':
-      items = state.gpts.filter(gpt => favoritesManager.isFavorite(gpt.id));
+      // Combinar GPTs favoritos y prompts favoritos
+      const favoriteGpts = state.gpts.filter(gpt => favoritesManager.isFavorite(gpt.id));
+      const favoritePrompts = state.prompts.filter(prompt => prompt.favorite);
+      
+      // Agregar tipo a cada item para distinguir en el renderizado
+      items = [
+        ...favoriteGpts.map(gpt => ({ ...gpt, itemType: 'gpt' })),
+        ...favoritePrompts.map(prompt => ({ ...prompt, itemType: 'prompt' }))
+      ];
       break;
     case 'prompts':
-      items = state.prompts;
+      items = state.prompts.map(prompt => ({ ...prompt, itemType: 'prompt' }));
       break;
     default:
-      items = state.gpts;
+      items = state.gpts.map(gpt => ({ ...gpt, itemType: 'gpt' }));
   }
 
   // Aplicar búsqueda
   if (state.searchQuery) {
     const query = state.searchQuery.toLowerCase();
     items = items.filter(item => {
-      const searchText = `${item.name} ${item.description} ${(item.tags || []).join(' ')}`.toLowerCase();
+      const searchText = `${item.name} ${item.description || item.content || ''} ${(item.tags || []).join(' ')}`.toLowerCase();
       return searchText.includes(query);
     });
   }
@@ -667,14 +686,87 @@ function getFilteredItems() {
   // Aplicar filtro de categoría (solo para GPTs)
   if (state.currentTab !== 'prompts' && state.currentCategory !== 'all') {
     console.log('[Panel] Filtering by category:', state.currentCategory);
-    console.log('[Panel] GPTs before filter:', items.length);
-    items = items.filter(gpt => {
-      return gpt.category === state.currentCategory;
+    console.log('[Panel] Items before filter:', items.length);
+    items = items.filter(item => {
+      // Solo filtrar GPTs por categoría
+      return item.itemType !== 'gpt' || item.category === state.currentCategory;
     });
-    console.log('[Panel] GPTs after filter:', items.length);
+    console.log('[Panel] Items after filter:', items.length);
   }
 
+  // Aplicar ordenamiento
+  items = sortItems(items);
+
   return items;
+}
+
+/**
+ * Ordena los items según el criterio seleccionado
+ */
+function sortItems(items) {
+  const sortBy = state.sortBy;
+  
+  switch (sortBy) {
+    case 'name-asc':
+      return items.sort((a, b) => a.name.localeCompare(b.name, 'es'));
+    
+    case 'name-desc':
+      return items.sort((a, b) => b.name.localeCompare(a.name, 'es'));
+    
+    case 'category':
+      return items.sort((a, b) => {
+        // Primero por categoría, luego por nombre
+        const catCompare = (a.category || '').localeCompare(b.category || '', 'es');
+        if (catCompare !== 0) return catCompare;
+        return a.name.localeCompare(b.name, 'es');
+      });
+    
+    case 'recent':
+      // Ordenar por fecha de creación (más recientes primero)
+      return items.sort((a, b) => {
+        const dateA = new Date(a.created_at || 0);
+        const dateB = new Date(b.created_at || 0);
+        return dateB - dateA;
+      });
+    
+    case 'favorites':
+      // Favoritos primero, luego por nombre
+      return items.sort((a, b) => {
+        const aFav = a.itemType === 'prompt' ? a.favorite : favoritesManager.isFavorite(a.id);
+        const bFav = b.itemType === 'prompt' ? b.favorite : favoritesManager.isFavorite(b.id);
+        
+        if (aFav && !bFav) return -1;
+        if (!aFav && bFav) return 1;
+        return a.name.localeCompare(b.name, 'es');
+      });
+    
+    default:
+      return items;
+  }
+}
+
+/**
+ * Renderiza favoritos mixtos (GPTs y Prompts)
+ */
+function renderMixedFavorites(items) {
+  const isGrid = state.currentView === 'grid';
+  const container = document.createElement('div');
+  container.className = isGrid ? 'gpts-grid' : 'gpts-list';
+
+  items.forEach(item => {
+    let element;
+    if (item.itemType === 'prompt') {
+      // Crear tarjeta de prompt
+      element = createPromptCard(item);
+    } else {
+      // Crear tarjeta de GPT
+      element = isGrid ? createGPTCard(item) : createGPTListItem(item);
+    }
+    container.appendChild(element);
+  });
+
+  elements.content.innerHTML = '';
+  elements.content.appendChild(container);
 }
 
 /**
@@ -938,22 +1030,29 @@ function createMultiSelectToolbar() {
     </div>
     ${state.isSelectMode && state.selectedPrompts.size > 0 ? `
       <div class="multi-select-actions">
-        <button class="btn-text" id="select-all">Seleccionar todos</button>
-        <button class="btn-text" id="deselect-all">Deseleccionar todos</button>
-        <button class="btn btn-secondary" id="export-selected">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <path d="M21 15V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V15" stroke="currentColor" stroke-width="2"/>
+        <button class="btn-text" id="select-all">Todo</button>
+        <button class="btn-text" id="deselect-all">Ninguno</button>
+        <button class="btn btn-secondary" id="copy-selected" title="Copiar contenido">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+            <path d="M8 5H6C4.9 5 4 5.9 4 7V19C4 20.1 4.9 21 6 21H16C17.1 21 18 20.1 18 19V17" stroke="currentColor" stroke-width="2"/>
+            <path d="M8 5C8 3.9 8.9 3 10 3H18C19.1 3 20 3.9 20 5V15C20 16.1 19.1 17 18 17H10C8.9 17 8 16.1 8 15V5Z" stroke="currentColor" stroke-width="2"/>
+          </svg>
+          Copiar
+        </button>
+        <button class="btn btn-secondary" id="export-selected" title="Exportar a TXT">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+            <path d="M21 15V19C21 20.1 20.1 21 19 21H5C3.9 21 3 20.1 3 19V15" stroke="currentColor" stroke-width="2"/>
             <path d="M7 10L12 15L17 10" stroke="currentColor" stroke-width="2"/>
             <path d="M12 15V3" stroke="currentColor" stroke-width="2"/>
           </svg>
-          Exportar seleccionados
+          Exportar
         </button>
-        <button class="btn btn-danger" id="delete-selected">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+        <button class="btn btn-danger" id="delete-selected" title="Eliminar seleccionados">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
             <path d="M3 6H5H21" stroke="currentColor" stroke-width="2"/>
-            <path d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" stroke-width="2"/>
+            <path d="M8 6V4C8 3.5 8.5 3 9 3H15C15.5 3 16 3.5 16 4V6M19 6V20C19 20.5 18.5 21 18 21H6C5.5 21 5 20.5 5 20V6H19Z" stroke="currentColor" stroke-width="2"/>
           </svg>
-          Eliminar seleccionados
+          Eliminar
         </button>
       </div>
     ` : ''}
@@ -973,6 +1072,11 @@ function createMultiSelectToolbar() {
   const deselectAllBtn = toolbar.querySelector('#deselect-all');
   if (deselectAllBtn) {
     deselectAllBtn.addEventListener('click', deselectAllPrompts);
+  }
+
+  const copyBtn = toolbar.querySelector('#copy-selected');
+  if (copyBtn) {
+    copyBtn.addEventListener('click', copySelectedPrompts);
   }
 
   const exportBtn = toolbar.querySelector('#export-selected');
@@ -1056,6 +1160,14 @@ function handleViewChange(view) {
   document.querySelector(`[data-view="${view}"]`).classList.add('active');
 
   // Re-renderizar
+  renderContent();
+}
+
+/**
+ * Maneja cambio de ordenamiento
+ */
+function handleSortChange(e) {
+  state.sortBy = e.target.value;
   renderContent();
 }
 
@@ -1468,6 +1580,43 @@ function deselectAllPrompts() {
 }
 
 /**
+ * Copia el contenido de los prompts seleccionados al portapapeles
+ */
+function copySelectedPrompts() {
+  const selectedPromptsList = state.prompts.filter(p => 
+    state.selectedPrompts.has(p.id)
+  );
+  
+  if (selectedPromptsList.length === 0) {
+    showToast('No hay prompts seleccionados', 'error');
+    return;
+  }
+  
+  // Crear contenido para copiar
+  let content = '';
+  selectedPromptsList.forEach((prompt, index) => {
+    if (index > 0) content += '\n\n---\n\n';
+    content += `${prompt.name}\n\n`;
+    content += prompt.content;
+    if (prompt.tags && prompt.tags.length > 0) {
+      content += `\n\nTags: ${prompt.tags.join(', ')}`;
+    }
+  });
+  
+  // Copiar al portapapeles
+  navigator.clipboard.writeText(content)
+    .then(() => {
+      showToast(`✓ ${selectedPromptsList.length} prompts copiados al portapapeles`);
+      // Limpiar selección
+      deselectAllPrompts();
+    })
+    .catch(err => {
+      console.error('[Panel] Error copiando:', err);
+      showToast('Error al copiar prompts', 'error');
+    });
+}
+
+/**
  * Exporta los prompts seleccionados a un archivo TXT
  */
 function exportSelectedPrompts() {
@@ -1711,18 +1860,6 @@ function showUserProfileModal() {
  * Maneja el logout del usuario
  */
 async function handleLogout() {
-  // TEMPORAL: Modo desarrollo mientras arreglamos el problema de env vars
-  const DEV_MODE = true; // Debe coincidir con el valor en checkAuthentication
-  
-  if (DEV_MODE) {
-    showToast('Cerrando sesión (modo desarrollo)...', 'info');
-    // En modo desarrollo, simplemente recargar para "cerrar sesión"
-    setTimeout(() => {
-      location.reload();
-    }, 500);
-    return;
-  }
-  
   if (!authModule) {
     showToast('Sistema de autenticación no disponible', 'error');
     return;

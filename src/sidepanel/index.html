@@ -48,8 +48,8 @@
     <!-- Tabs -->
     <nav class="tabs">
       <button class="tab active" data-tab="all">GPTs</button>
-      <button class="tab" data-tab="favorites">Favoritos</button>
       <button class="tab" data-tab="prompts">Mis Prompts</button>
+      <button class="tab" data-tab="favorites">Favoritos</button>
     </nav>
 
     <!-- Toolbar compacto -->
@@ -89,6 +89,16 @@
               <path d="M8 6H21M8 12H21M8 18H21M3 6H3.01M3 12H3.01M3 18H3.01" stroke="currentColor" stroke-width="2"/>
             </svg>
           </button>
+        </div>
+        
+        <div class="sort-dropdown-wrapper">
+          <select class="sort-select" id="sort-select">
+            <option value="name-asc">Nombre (A-Z)</option>
+            <option value="name-desc">Nombre (Z-A)</option>
+            <option value="category">Categoría</option>
+            <option value="recent">Más recientes</option>
+            <option value="favorites">Favoritos primero</option>
+          </select>
         </div>
       </div>
     </div>

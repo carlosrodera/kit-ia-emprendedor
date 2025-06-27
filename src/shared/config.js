@@ -14,7 +14,7 @@ const isDevelopment = process.env.NODE_ENV === 'development' ||
  * Proyecto: EVO (Kit IA Emprendedor)
  */
 export const SUPABASE_CONFIG = {
-  url: 'https://nktqqsbebhoedgookfzu.supabase.co',
+  url: process.env.VITE_SUPABASE_URL || 'https://nktqqsbebhoedgookfzu.supabase.co',
   // Esta key es pública y segura de exponer en el cliente
   // IMPORTANTE: Configurar VITE_SUPABASE_ANON_KEY en .env antes de producción
   anonKey: process.env.VITE_SUPABASE_ANON_KEY || (() => {

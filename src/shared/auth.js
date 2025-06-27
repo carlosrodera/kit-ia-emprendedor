@@ -214,23 +214,45 @@ async function checkSubscription(userId) {
   try {
     const client = getSupabaseClient();
 
-    // Consultar estado de suscripción
-    const { data, error } = await client
+    // Primero consultar en la tabla users para obtener subscription_tier
+    const { data: userData, error: userError } = await client
+      .from('users')
+      .select('subscription_tier')
+      .eq('id', userId)
+      .single();
+
+    if (userError && userError.code !== 'PGRST116') {
+      throw userError;
+    }
+
+    // Luego consultar suscripción detallada si existe
+    const { data: subscriptionData, error: subError } = await client
       .from('user_subscriptions')
       .select('*')
       .eq('user_id', userId)
       .eq('status', 'active')
       .single();
 
-    if (error && error.code !== 'PGRST116') { // PGRST116 = No rows found
-      throw error;
+    // No lanzar error si no existe suscripción (usuario free)
+    if (subError && subError.code !== 'PGRST116') {
+      logger.warn('Error querying subscriptions:', subError);
     }
 
-    authState.subscription = data;
-    return data;
+    // Crear objeto de suscripción combinado
+    const subscription = {
+      tier: userData?.subscription_tier || 'free',
+      status: subscriptionData?.status || 'free',
+      ...subscriptionData
+    };
+
+    authState.subscription = subscription;
+    return subscription;
   } catch (error) {
     logger.error('Error checking subscription:', error);
-    return null;
+    // Para usuarios gratuitos, retornar suscripción básica
+    const freeSubscription = { tier: 'free', status: 'free' };
+    authState.subscription = freeSubscription;
+    return freeSubscription;
   }
 }
 
