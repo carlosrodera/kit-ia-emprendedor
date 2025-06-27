@@ -1,7 +1,16 @@
 /**
  * Kit IA Emprendedor - Side Panel Controller
- * Gestiona toda la UI del panel lateral
+ * Gestiona toda la UI del panel lateral usando arquitectura modular
+ * 
+ * @author Kit IA Emprendedor
+ * @version 2.0.0
+ * @since 2025-01-21
  */
+
+// Módulos globales
+let favoritesManager = null;
+let moduleLoader = null;
+let authModule = null;
 
 // Estado de la aplicación
 const state = {
@@ -12,15 +21,495 @@ const state = {
   gpts: [],
   favorites: [],
   prompts: [],
-  isLoading: true
+  isLoading: true,
+  modulesLoaded: false,
+  isAuthenticated: false,
+  currentUser: null,
+  // Multi-select state
+  isSelectMode: false,
+  selectedPrompts: new Set()
 };
 
 // Elementos del DOM
 const elements = {};
 
-// Inicialización
+/**
+ * Inicializa el sistema de módulos
+ * DEBE ejecutarse antes que cualquier otra funcionalidad
+ * 
+ * @async
+ * @returns {Promise<boolean>} true si se inicializaron correctamente
+ */
+async function initializeModules() {
+  try {
+    console.log('[Panel] Loading modules...');
+    
+    // Cargar module loader usando ruta absoluta
+    const moduleLoaderPath = chrome.runtime.getURL('sidepanel/modules/module-loader.js');
+    const loaderModule = await import(moduleLoaderPath);
+    moduleLoader = loaderModule.moduleLoader;
+    
+    // Inicializar module loader
+    await moduleLoader.init();
+    
+    // Cargar módulo de autenticación
+    try {
+      const authPath = chrome.runtime.getURL('shared/auth.js');
+      const authImport = await import(authPath);
+      authModule = authImport.auth;
+      await authModule.initialize();
+      console.log('[Panel] Auth module loaded');
+    } catch (authError) {
+      console.error('[Panel] Failed to load auth module:', authError);
+      // Continuar sin auth por ahora
+    }
+    
+    // Cargar módulo de favoritos
+    const favoritesModule = await moduleLoader.load('favorites');
+    favoritesManager = favoritesModule.favoritesManager;
+    
+    // Inicializar favoritos
+    await favoritesManager.init();
+    
+    state.modulesLoaded = true;
+    console.log('[Panel] Modules loaded successfully');
+    
+    return true;
+    
+  } catch (error) {
+    console.error('[Panel] Failed to load modules:', error);
+    
+    // Fallback: usar implementación simple en línea
+    await initializeFallbackFavorites();
+    
+    return false;
+  }
+}
+
+/**
+ * Implementación fallback simple de favoritos
+ * Se usa si falla la carga modular
+ * 
+ * @async
+ */
+async function initializeFallbackFavorites() {
+  console.log('[Panel] Using fallback favorites implementation');
+  
+  // Implementación mínima inline
+  const favorites = new Set();
+  
+  // Cargar desde storage
+  try {
+    const result = await chrome.storage.local.get('favorites');
+    if (result.favorites && Array.isArray(result.favorites)) {
+      result.favorites.forEach(id => favorites.add(id));
+    }
+  } catch (error) {
+    console.error('[Panel] Fallback favorites load failed:', error);
+  }
+  
+  // Crear objeto compatible con API de FavoritesManager
+  favoritesManager = {
+    isFavorite: (id) => favorites.has(id),
+    toggle: async (id) => {
+      const wasRemoved = favorites.delete(id);
+      if (!wasRemoved) {
+        favorites.add(id);
+      }
+      
+      // Guardar en storage
+      try {
+        await chrome.storage.local.set({ favorites: Array.from(favorites) });
+      } catch (error) {
+        console.error('[Panel] Fallback save failed:', error);
+      }
+      
+      return favorites.has(id);
+    },
+    getAll: () => Array.from(favorites),
+    init: async () => true
+  };
+  
+  state.modulesLoaded = true;
+}
+
+/**
+ * Verifica el estado de autenticación
+ * @returns {Promise<boolean>} true si está autenticado
+ */
+async function checkAuthentication() {
+  // TEMPORAL: Modo desarrollo mientras arreglamos el problema de env vars
+  const DEV_MODE = true; // Temporalmente activado para continuar desarrollo
+  
+  if (DEV_MODE) {
+    console.warn('[Panel] 🔧 DEVELOPMENT MODE - Auth bypassed temporalmente');
+    state.isAuthenticated = true;
+    state.currentUser = {
+      email: 'dev@kitiaemprendedor.com',
+      id: 'dev-user-001',
+      created_at: new Date().toISOString()
+    };
+    updateUserAvatar();
+    
+    // Cargar GPTs desde el service worker
+    loadInitialData();
+    return true;
+  }
+  
+  if (!authModule) {
+    console.error('[Panel] Auth module not loaded - BLOCKING ACCESS');
+    showAuthRequiredScreen();
+    return false; // BLOQUEAR acceso sin auth
+  }
+  
+  try {
+    const isAuthenticated = authModule.isAuthenticated();
+    const user = authModule.getCurrentUser();
+    
+    console.log('[Panel] Auth status:', { isAuthenticated, user: user?.email });
+    
+    state.isAuthenticated = isAuthenticated;
+    state.currentUser = user;
+    
+    if (!isAuthenticated) {
+      showLoginScreen();
+      return false;
+    }
+    
+    // Actualizar avatar del usuario
+    updateUserAvatar();
+    
+    return true;
+  } catch (error) {
+    console.error('[Panel] Error checking authentication:', error);
+    showAuthRequiredScreen();
+    return false; // BLOQUEAR acceso en caso de error
+  }
+}
+
+/**
+ * Muestra pantalla de error de autenticación
+ */
+function showAuthRequiredScreen() {
+  const errorHtml = `
+    <div class="auth-error-screen">
+      <div class="auth-error-container">
+        <div class="auth-error-header">
+          <img src="../assets/icons/icon-128.svg" alt="Kit IA Emprendedor" width="64" height="64">
+          <h1>Kit IA Emprendedor</h1>
+          <h2>🔒 Producto Premium</h2>
+          <p>Se requiere autenticación para acceder</p>
+        </div>
+        
+        <div class="auth-error-content">
+          <div class="error-message">
+            <h3>⚠️ Error de Sistema</h3>
+            <p>No se pudo cargar el módulo de autenticación.</p>
+            <p>Por favor, recarga la extensión o contacta soporte.</p>
+          </div>
+          
+          <div class="auth-error-actions">
+            <button id="reload-extension-btn" class="btn-primary">
+              🔄 Recargar Extensión
+            </button>
+            <button id="open-login-page-btn" class="btn-secondary">
+              🔑 Abrir Login
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // Reemplazar todo el contenido del panel
+  document.body.innerHTML = errorHtml;
+  
+  // Configurar event listeners
+  const reloadBtn = document.getElementById('reload-extension-btn');
+  const openLoginBtn = document.getElementById('open-login-page-btn');
+  
+  if (reloadBtn) {
+    reloadBtn.addEventListener('click', () => location.reload());
+  }
+  
+  if (openLoginBtn) {
+    openLoginBtn.addEventListener('click', () => {
+      const loginUrl = chrome.runtime.getURL('auth/login.html');
+      chrome.tabs.create({ url: loginUrl });
+    });
+  }
+}
+
+/**
+ * Muestra la pantalla de login
+ */
+function showLoginScreen() {
+  const loginHtml = `
+    <div class="login-screen">
+      <div class="login-container">
+        <div class="login-header">
+          <img src="../assets/icons/icon-128.svg" alt="Kit IA Emprendedor" width="64" height="64">
+          <h1>Kit IA Emprendedor</h1>
+          <p>Accede a tu cuenta premium</p>
+        </div>
+        
+        <div class="login-content">
+          <form id="login-form" class="auth-form">
+            <div class="form-group">
+              <label for="email">Email</label>
+              <input 
+                type="email" 
+                id="email" 
+                name="email" 
+                placeholder="tu@email.com"
+                required
+                autocomplete="email"
+              />
+            </div>
+            
+            <div class="form-group">
+              <label for="password">Contraseña</label>
+              <input 
+                type="password" 
+                id="password" 
+                name="password" 
+                placeholder="••••••••"
+                required
+                autocomplete="current-password"
+              />
+            </div>
+            
+            <button type="submit" class="btn btn-primary" id="login-btn">
+              Iniciar Sesión
+            </button>
+          </form>
+          
+          <div class="auth-divider">
+            <span>¿No tienes cuenta?</span>
+          </div>
+          
+          <button id="show-register-btn" class="btn btn-secondary">
+            Crear Cuenta
+          </button>
+          
+          <div class="auth-footer">
+            <a href="#" id="forgot-password-link">¿Olvidaste tu contraseña?</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // Reemplazar todo el contenido del panel
+  document.body.innerHTML = loginHtml;
+  
+  // Configurar event listeners para login
+  setupLoginEventListeners();
+}
+
+/**
+ * Configura event listeners para la pantalla de login
+ */
+function setupLoginEventListeners() {
+  const loginForm = document.getElementById('login-form');
+  const showRegisterBtn = document.getElementById('show-register-btn');
+  const forgotPasswordLink = document.getElementById('forgot-password-link');
+  
+  if (loginForm) {
+    loginForm.addEventListener('submit', handleEmailLogin);
+  }
+  
+  if (showRegisterBtn) {
+    showRegisterBtn.addEventListener('click', showRegisterScreen);
+  }
+  
+  if (forgotPasswordLink) {
+    forgotPasswordLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      showToast('Función de recuperación próximamente', 'info');
+    });
+  }
+}
+
+/**
+ * Maneja login con email y password
+ */
+async function handleEmailLogin(e) {
+  e.preventDefault();
+  
+  const email = document.getElementById('email').value;
+  const password = document.getElementById('password').value;
+  
+  if (!authModule) {
+    showToast('Sistema de autenticación no disponible', 'error');
+    return;
+  }
+  
+  try {
+    showToast('Iniciando sesión...', 'info');
+    await authModule.signInWithEmail(email, password);
+    
+    // Actualizar estado y avatar
+    state.isAuthenticated = true;
+    state.currentUser = authModule.getCurrentUser();
+    updateUserAvatar();
+    
+    // Recargar la página después del login exitoso
+    location.reload();
+  } catch (error) {
+    console.error('[Panel] Email login error:', error);
+    showToast(error.message || 'Error al iniciar sesión', 'error');
+  }
+}
+
+/**
+ * Muestra pantalla de registro
+ */
+function showRegisterScreen() {
+  const registerHtml = `
+    <div class="login-screen">
+      <div class="login-container">
+        <div class="login-header">
+          <img src="../assets/icons/icon-128.svg" alt="Kit IA Emprendedor" width="64" height="64">
+          <h1>Kit IA Emprendedor</h1>
+          <p>Crea tu cuenta premium</p>
+        </div>
+        
+        <div class="login-content">
+          <form id="register-form" class="auth-form">
+            <div class="form-group">
+              <label for="register-email">Email</label>
+              <input 
+                type="email" 
+                id="register-email" 
+                name="email" 
+                placeholder="tu@email.com"
+                required
+                autocomplete="email"
+              />
+            </div>
+            
+            <div class="form-group">
+              <label for="register-password">Contraseña</label>
+              <input 
+                type="password" 
+                id="register-password" 
+                name="password" 
+                placeholder="Mínimo 8 caracteres"
+                required
+                minlength="8"
+                autocomplete="new-password"
+              />
+            </div>
+            
+            <div class="form-group">
+              <label for="register-password-confirm">Confirmar Contraseña</label>
+              <input 
+                type="password" 
+                id="register-password-confirm" 
+                name="password-confirm" 
+                placeholder="Repite la contraseña"
+                required
+                minlength="8"
+                autocomplete="new-password"
+              />
+            </div>
+            
+            <button type="submit" class="btn btn-primary" id="register-btn">
+              Crear Cuenta
+            </button>
+          </form>
+          
+          <div class="auth-divider">
+            <span>¿Ya tienes cuenta?</span>
+          </div>
+          
+          <button id="show-login-btn" class="btn btn-secondary">
+            Iniciar Sesión
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  document.body.innerHTML = registerHtml;
+  setupRegisterEventListeners();
+}
+
+/**
+ * Configura event listeners para registro
+ */
+function setupRegisterEventListeners() {
+  const registerForm = document.getElementById('register-form');
+  const showLoginBtn = document.getElementById('show-login-btn');
+  
+  if (registerForm) {
+    registerForm.addEventListener('submit', handleEmailRegister);
+  }
+  
+  if (showLoginBtn) {
+    showLoginBtn.addEventListener('click', showLoginScreen);
+  }
+}
+
+/**
+ * Maneja registro con email
+ */
+async function handleEmailRegister(e) {
+  e.preventDefault();
+  
+  const email = document.getElementById('register-email').value;
+  const password = document.getElementById('register-password').value;
+  const passwordConfirm = document.getElementById('register-password-confirm').value;
+  
+  if (password !== passwordConfirm) {
+    showToast('Las contraseñas no coinciden', 'error');
+    return;
+  }
+  
+  if (!authModule) {
+    showToast('Sistema de autenticación no disponible', 'error');
+    return;
+  }
+  
+  try {
+    showToast('Creando cuenta...', 'info');
+    await authModule.signUpWithEmail(email, password);
+    
+    showToast('Cuenta creada exitosamente', 'success');
+    
+    // Cambiar a pantalla de login
+    setTimeout(() => {
+      showLoginScreen();
+    }, 1500);
+  } catch (error) {
+    console.error('[Panel] Email register error:', error);
+    showToast(error.message || 'Error al crear cuenta', 'error');
+  }
+}
+
+/**
+ * Abre la página de login completa
+ */
+function handleOpenLoginPage() {
+  const loginUrl = chrome.runtime.getURL('auth/login.html');
+  chrome.tabs.create({ url: loginUrl });
+}
+
+// Inicialización principal
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('[Panel] Initializing...');
+
+  // Inicializar módulos primero
+  await initializeModules();
+  
+  // Verificar autenticación antes de continuar
+  const isAuthenticated = await checkAuthentication();
+  
+  if (!isAuthenticated) {
+    // La función showLoginScreen ya se ejecutó en checkAuthentication
+    return;
+  }
 
   // Cachear elementos DOM
   cacheElements();
@@ -50,6 +539,8 @@ function cacheElements() {
   elements.promptModal = document.getElementById('prompt-modal');
   elements.promptForm = document.getElementById('prompt-form');
   elements.notificationsBadge = document.getElementById('notifications-badge');
+  elements.userProfileBtn = document.getElementById('user-profile-btn');
+  elements.userInitials = document.getElementById('user-initials');
 }
 
 /**
@@ -79,7 +570,7 @@ function setupEventListeners() {
 
   // Botones de header
   document.getElementById('notifications-btn').addEventListener('click', handleNotifications);
-  document.getElementById('settings-btn').addEventListener('click', handleSettings);
+  elements.userProfileBtn.addEventListener('click', handleUserProfile);
 }
 
 /**
@@ -89,16 +580,20 @@ async function loadInitialData() {
   try {
     // Obtener GPTs
     const gptsResponse = await chrome.runtime.sendMessage({ type: 'GET_GPTS' });
+    console.log('[Panel] GPTs loaded:', gptsResponse);
     if (gptsResponse.success) {
       state.gpts = gptsResponse.data;
       // Actualizar opciones de categorías después de cargar GPTs
       updateCategoryOptions();
     }
 
-    // Obtener favoritos
-    const favsResponse = await chrome.runtime.sendMessage({ type: 'GET_FAVORITES' });
-    if (favsResponse.success) {
-      state.favorites = favsResponse.data;
+    // Obtener favoritos del manager
+    try {
+      state.favorites = favoritesManager.getAll();
+      console.log('[Panel] Current favorites:', state.favorites);
+    } catch (error) {
+      console.warn('[Panel] Error getting favorites:', error);
+      state.favorites = [];
     }
 
     // Obtener prompts
@@ -151,7 +646,7 @@ function getFilteredItems() {
   // Seleccionar items según tab
   switch (state.currentTab) {
     case 'favorites':
-      items = state.gpts.filter(gpt => state.favorites.includes(gpt.id));
+      items = state.gpts.filter(gpt => favoritesManager.isFavorite(gpt.id));
       break;
     case 'prompts':
       items = state.prompts;
@@ -203,7 +698,9 @@ function renderGPTs(gpts) {
  * Crea una tarjeta de GPT
  */
 function createGPTCard(gpt) {
-  const isFavorite = state.favorites.includes(gpt.id);
+  // Verificar estado actual del favorito directamente del manager
+  const isFavorite = favoritesManager.isFavorite(gpt.id);
+  console.log(`[Panel] Creating card for ${gpt.id}, isFavorite: ${isFavorite}, manager has: ${favoritesManager.getAll().join(', ')}`);
 
   const card = document.createElement('div');
   card.className = 'gpt-card';
@@ -211,7 +708,9 @@ function createGPTCard(gpt) {
     <div class="gpt-card-header">
       <h3 class="gpt-card-title">${escapeHtml(gpt.name)}</h3>
       <button class="favorite-btn ${isFavorite ? 'active' : ''}" data-gpt-id="${gpt.id}">
-        ⭐
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+        </svg>
       </button>
     </div>
     <p class="gpt-card-description">${escapeHtml(gpt.description)}</p>
@@ -232,15 +731,10 @@ function createGPTCard(gpt) {
     </div>
   `;
 
-  // Event listeners
+  // Event listeners - Usar delegación mejorada
   const favoriteBtn = card.querySelector('.favorite-btn');
   if (favoriteBtn) {
-    favoriteBtn.addEventListener('click', async (e) => {
-      e.stopPropagation();
-      e.preventDefault();
-      console.log('[Panel] Favorite button clicked for GPT:', gpt.id);
-      await toggleFavorite(gpt.id);
-    });
+    favoriteBtn.addEventListener('click', handleFavoriteClick);
   }
 
   const openSameTabBtn = card.querySelector('.open-same-tab');
@@ -268,7 +762,9 @@ function createGPTCard(gpt) {
  * Crea un item de lista de GPT
  */
 function createGPTListItem(gpt) {
-  const isFavorite = state.favorites.includes(gpt.id);
+  // Verificar estado actual del favorito directamente del manager
+  const isFavorite = favoritesManager.isFavorite(gpt.id);
+  console.log(`[Panel] Creating list item for ${gpt.id}, isFavorite: ${isFavorite}, manager has: ${favoritesManager.getAll().join(', ')}`);
 
   const item = document.createElement('div');
   item.className = 'gpt-list-item';
@@ -279,7 +775,9 @@ function createGPTListItem(gpt) {
     </div>
     <div class="gpt-list-actions">
       <button class="favorite-btn ${isFavorite ? 'active' : ''}" data-gpt-id="${gpt.id}">
-        ⭐
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+        </svg>
       </button>
       <button class="open-btn open-same-tab" data-gpt-url="${escapeHtml(gpt.url)}" title="Abrir en esta pestaña">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -294,15 +792,10 @@ function createGPTListItem(gpt) {
     </div>
   `;
 
-  // Event listeners
+  // Event listeners - Usar delegación mejorada
   const favoriteBtn = item.querySelector('.favorite-btn');
   if (favoriteBtn) {
-    favoriteBtn.addEventListener('click', async (e) => {
-      e.stopPropagation();
-      e.preventDefault();
-      console.log('[Panel] Favorite button clicked for GPT:', gpt.id);
-      await toggleFavorite(gpt.id);
-    });
+    favoriteBtn.addEventListener('click', handleFavoriteClick);
   }
 
   const openSameTabBtn = item.querySelector('.open-same-tab');
@@ -333,6 +826,10 @@ function renderPrompts(prompts) {
   const container = document.createElement('div');
   container.className = 'prompts-container';
 
+  // Barra de herramientas para multi-selección
+  const toolbar = createMultiSelectToolbar();
+  container.appendChild(toolbar);
+
   prompts.forEach(prompt => {
     container.appendChild(createPromptCard(prompt));
   });
@@ -354,33 +851,66 @@ function renderPrompts(prompts) {
 function createPromptCard(prompt) {
   const card = document.createElement('div');
   card.className = 'prompt-card';
+  if (state.selectedPrompts.has(prompt.id)) {
+    card.classList.add('selected');
+  }
+  
   card.innerHTML = `
-    <div class="prompt-header">
-      <h3 class="prompt-title">${escapeHtml(prompt.name)}</h3>
-      <div class="prompt-actions">
-        <button class="icon-btn" title="Copiar" data-action="copy" data-prompt-id="${prompt.id}">
-          📋
-        </button>
-        <button class="icon-btn" title="Editar" data-action="edit" data-prompt-id="${prompt.id}">
-          ✏️
-        </button>
-        <button class="icon-btn" title="Eliminar" data-action="delete" data-prompt-id="${prompt.id}">
-          🗑️
-        </button>
+    ${state.isSelectMode ? `
+      <input type="checkbox" 
+             class="prompt-checkbox" 
+             data-prompt-id="${prompt.id}"
+             ${state.selectedPrompts.has(prompt.id) ? 'checked' : ''}>
+    ` : ''}
+    <div class="prompt-content-wrapper ${state.isSelectMode ? 'with-checkbox' : ''}">
+      <div class="prompt-header">
+        <h3 class="prompt-title">${escapeHtml(prompt.name)}</h3>
+        <div class="prompt-actions">
+          <button class="favorite-btn prompt-favorite ${prompt.favorite ? 'active' : ''}" 
+                  title="${prompt.favorite ? 'Quitar de favoritos' : 'Añadir a favoritos'}" 
+                  data-prompt-id="${prompt.id}">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+            </svg>
+          </button>
+          <button class="icon-btn" title="Copiar" data-action="copy" data-prompt-id="${prompt.id}">
+            📋
+          </button>
+          <button class="icon-btn" title="Editar" data-action="edit" data-prompt-id="${prompt.id}">
+            ✏️
+          </button>
+          <button class="icon-btn" title="Eliminar" data-action="delete" data-prompt-id="${prompt.id}">
+            🗑️
+          </button>
+        </div>
       </div>
+      <p class="prompt-content">${escapeHtml(prompt.content)}</p>
+      ${prompt.tags && prompt.tags.length > 0
+      ? `
+        <div class="prompt-tags">
+          ${prompt.tags.map(tag => `<span class="prompt-tag">${escapeHtml(tag)}</span>`).join('')}
+        </div>
+      `
+      : ''}
     </div>
-    <p class="prompt-content">${escapeHtml(prompt.content)}</p>
-    ${prompt.tags && prompt.tags.length > 0
-    ? `
-      <div class="prompt-tags">
-        ${prompt.tags.map(tag => `<span class="prompt-tag">${escapeHtml(tag)}</span>`).join('')}
-      </div>
-    `
-    : ''}
   `;
 
-  // Event listeners
-  card.querySelectorAll('.prompt-actions button').forEach(btn => {
+  // Event listener para checkbox
+  const checkbox = card.querySelector('.prompt-checkbox');
+  if (checkbox) {
+    checkbox.addEventListener('change', (e) => {
+      handlePromptSelection(prompt.id, e.target.checked);
+    });
+  }
+
+  // Event listener para el botón de favorito
+  const favoriteBtn = card.querySelector('.prompt-favorite');
+  if (favoriteBtn) {
+    favoriteBtn.addEventListener('click', handlePromptFavoriteClick);
+  }
+  
+  // Event listeners para las demás acciones
+  card.querySelectorAll('.prompt-actions button:not(.prompt-favorite)').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const action = btn.dataset.action;
       const promptId = btn.dataset.promptId;
@@ -389,6 +919,73 @@ function createPromptCard(prompt) {
   });
 
   return card;
+}
+
+/**
+ * Crea la barra de herramientas para multi-selección
+ */
+function createMultiSelectToolbar() {
+  const toolbar = document.createElement('div');
+  toolbar.className = 'multi-select-toolbar';
+  toolbar.innerHTML = `
+    <div class="multi-select-left">
+      <button class="btn-text ${state.isSelectMode ? 'active' : ''}" id="toggle-select-mode">
+        ${state.isSelectMode ? 'Cancelar selección' : 'Seleccionar múltiples'}
+      </button>
+      ${state.isSelectMode ? `
+        <span class="selection-count">${state.selectedPrompts.size} seleccionados</span>
+      ` : ''}
+    </div>
+    ${state.isSelectMode && state.selectedPrompts.size > 0 ? `
+      <div class="multi-select-actions">
+        <button class="btn-text" id="select-all">Seleccionar todos</button>
+        <button class="btn-text" id="deselect-all">Deseleccionar todos</button>
+        <button class="btn btn-secondary" id="export-selected">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M21 15V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V15" stroke="currentColor" stroke-width="2"/>
+            <path d="M7 10L12 15L17 10" stroke="currentColor" stroke-width="2"/>
+            <path d="M12 15V3" stroke="currentColor" stroke-width="2"/>
+          </svg>
+          Exportar seleccionados
+        </button>
+        <button class="btn btn-danger" id="delete-selected">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M3 6H5H21" stroke="currentColor" stroke-width="2"/>
+            <path d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" stroke-width="2"/>
+          </svg>
+          Eliminar seleccionados
+        </button>
+      </div>
+    ` : ''}
+  `;
+
+  // Event listeners
+  const toggleBtn = toolbar.querySelector('#toggle-select-mode');
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', toggleSelectMode);
+  }
+
+  const selectAllBtn = toolbar.querySelector('#select-all');
+  if (selectAllBtn) {
+    selectAllBtn.addEventListener('click', selectAllPrompts);
+  }
+
+  const deselectAllBtn = toolbar.querySelector('#deselect-all');
+  if (deselectAllBtn) {
+    deselectAllBtn.addEventListener('click', deselectAllPrompts);
+  }
+
+  const exportBtn = toolbar.querySelector('#export-selected');
+  if (exportBtn) {
+    exportBtn.addEventListener('click', exportSelectedPrompts);
+  }
+
+  const deleteBtn = toolbar.querySelector('#delete-selected');
+  if (deleteBtn) {
+    deleteBtn.addEventListener('click', deleteSelectedPrompts);
+  }
+
+  return toolbar;
 }
 
 /**
@@ -593,69 +1190,164 @@ function selectCategory(value, text) {
   renderContent();
 }
 
-async function toggleFavorite(gptId) {
-  console.log('[Panel] Toggle favorite called for:', gptId);
+
+/**
+ * Actualiza TODAS las estrellas de favoritos para un GPT específico
+ * @param {string} gptId - ID del GPT
+ * @param {boolean} isFavorite - Si es favorito o no
+ */
+function updateAllFavoriteButtons(gptId, isFavorite) {
+  // Buscar TODOS los botones de favorito para este GPT
+  const favoriteButtons = document.querySelectorAll(`button.favorite-btn[data-gpt-id="${gptId}"]`);
+  
+  console.log(`[Panel] Updating ${favoriteButtons.length} favorite buttons for GPT ${gptId}`);
+  
+  favoriteButtons.forEach(button => {
+    if (isFavorite) {
+      button.classList.add('active');
+      console.log(`[Panel] Added active class to button for ${gptId}`);
+    } else {
+      button.classList.remove('active');
+      console.log(`[Panel] Removed active class from button for ${gptId}`);
+    }
+  });
+}
+
+/**
+ * Actualiza TODAS las estrellas de favoritos para un Prompt específico
+ * @param {string} promptId - ID del Prompt
+ * @param {boolean} isFavorite - Si es favorito o no
+ */
+function updateAllPromptFavoriteButtons(promptId, isFavorite) {
+  // Buscar TODOS los botones de favorito para este Prompt
+  const favoriteButtons = document.querySelectorAll(`button.prompt-favorite[data-prompt-id="${promptId}"]`);
+  
+  console.log(`[Panel] Updating ${favoriteButtons.length} favorite buttons for Prompt ${promptId}`);
+  
+  favoriteButtons.forEach(button => {
+    if (isFavorite) {
+      button.classList.add('active');
+      button.title = 'Quitar de favoritos';
+    } else {
+      button.classList.remove('active');
+      button.title = 'Añadir a favoritos';
+    }
+  });
+}
+
+/**
+ * Manejador unificado para clicks en favoritos
+ */
+async function handleFavoriteClick(e) {
+  e.stopPropagation();
+  e.preventDefault();
+  
+  const button = e.currentTarget;
+  const gptId = button.dataset.gptId;
+  
+  if (!gptId) {
+    console.error('[Panel] No GPT ID found on button');
+    return;
+  }
+  
+  console.log('[Panel] Favorite clicked:', gptId);
+  
+  // Desactivar TODOS los botones de este GPT temporalmente
+  const allButtons = document.querySelectorAll(`button.favorite-btn[data-gpt-id="${gptId}"]`);
+  allButtons.forEach(btn => btn.disabled = true);
+  
   try {
-    // Obtener todos los botones de favorito para este GPT (puede haber múltiples)
-    const buttons = document.querySelectorAll(`[data-gpt-id="${gptId}"]`);
-    const isCurrentlyFavorite = state.favorites.includes(gptId);
+    // Debug state ANTES del toggle
+    console.log('[Panel] BEFORE toggle:', {
+      gptId,
+      wasFavorite: favoritesManager.isFavorite(gptId),
+      buttonClass: button.className
+    });
     
-    // Actualización optimista - cambiar UI inmediatamente
-    buttons.forEach(btn => {
-      if (isCurrentlyFavorite) {
-        btn.classList.remove('active');
-      } else {
-        btn.classList.add('active');
-      }
+    // Toggle en el manager
+    const isFavorite = await favoritesManager.toggle(gptId);
+    
+    // Debug state DESPUÉS del toggle
+    console.log('[Panel] AFTER toggle:', {
+      gptId,
+      isNowFavorite: isFavorite,
+      managerConfirms: favoritesManager.isFavorite(gptId)
     });
-
-    // Actualizar estado local temporalmente
-    if (isCurrentlyFavorite) {
-      state.favorites = state.favorites.filter(id => id !== gptId);
+    
+    // Actualizar estado local inmediatamente
+    state.favorites = favoritesManager.getAll();
+    
+    // Si estamos en favoritos y se eliminó, re-renderizar para quitar el item
+    if (state.currentTab === 'favorites' && !isFavorite) {
+      console.log('[Panel] Re-rendering favorites because item was removed');
+      // Usar setTimeout para dar tiempo a que se actualice el storage
+      setTimeout(() => renderContent(), 100);
     } else {
-      state.favorites = [...state.favorites, gptId];
+      // Si no necesitamos re-renderizar, actualizar TODAS las estrellas de este GPT
+      updateAllFavoriteButtons(gptId, isFavorite);
     }
-
-    const response = await chrome.runtime.sendMessage({
-      type: 'TOGGLE_FAVORITE',
-      gptId
-    });
-
-    console.log('[Panel] Toggle favorite response:', response);
-
-    if (response && response.success) {
-      state.favorites = response.data;
-      console.log('[Panel] Updated favorites:', state.favorites);
-
-      // Si estamos en la pestaña de favoritos, re-renderizar para actualizar la lista
-      if (state.currentTab === 'favorites') {
-        renderContent();
-      }
-    } else {
-      console.error('[Panel] Toggle favorite failed:', response);
-      // Revertir cambio optimista si falla
-      buttons.forEach(btn => {
-        if (isCurrentlyFavorite) {
-          btn.classList.add('active');
-        } else {
-          btn.classList.remove('active');
-        }
-      });
-      showToast('Error al actualizar favorito', 'error');
-    }
+    
+    // Mostrar feedback visual
+    showToast(isFavorite ? '⭐ Añadido a favoritos' : '💫 Eliminado de favoritos');
+    
   } catch (error) {
     console.error('[Panel] Error toggling favorite:', error);
-    // Revertir cambio optimista si hay error
-    const buttons = document.querySelectorAll(`[data-gpt-id="${gptId}"]`);
-    const isCurrentlyFavorite = state.favorites.includes(gptId);
-    buttons.forEach(btn => {
-      if (isCurrentlyFavorite) {
-        btn.classList.add('active');
-      } else {
-        btn.classList.remove('active');
-      }
-    });
     showToast('Error al actualizar favorito', 'error');
+  } finally {
+    // Re-habilitar TODOS los botones
+    allButtons.forEach(btn => btn.disabled = false);
+  }
+}
+
+/**
+ * Manejador para clicks en favoritos de prompts
+ */
+async function handlePromptFavoriteClick(e) {
+  e.stopPropagation();
+  e.preventDefault();
+  
+  const button = e.currentTarget;
+  const promptId = button.dataset.promptId;
+  
+  if (!promptId) {
+    console.error('[Panel] No Prompt ID found on button');
+    return;
+  }
+  
+  console.log('[Panel] Prompt favorite clicked:', promptId);
+  
+  // Desactivar el botón temporalmente
+  button.disabled = true;
+  
+  try {
+    // Hacer toggle del favorito
+    const response = await chrome.runtime.sendMessage({
+      type: 'TOGGLE_PROMPT_FAVORITE',
+      promptId: promptId
+    });
+    
+    if (response.success) {
+      const updatedPrompt = response.data;
+      console.log('[Panel] Prompt favorite toggled:', updatedPrompt);
+      
+      // Actualizar el prompt en el estado local
+      const promptIndex = state.prompts.findIndex(p => p.id === promptId);
+      if (promptIndex > -1) {
+        state.prompts[promptIndex] = updatedPrompt;
+      }
+      
+      // Actualizar la UI
+      updateAllPromptFavoriteButtons(promptId, updatedPrompt.favorite);
+      
+      // Mostrar feedback
+      showToast(updatedPrompt.favorite ? '⭐ Prompt añadido a favoritos' : '💫 Prompt eliminado de favoritos');
+    }
+  } catch (error) {
+    console.error('[Panel] Error toggling prompt favorite:', error);
+    showToast('Error al actualizar favorito', 'error');
+  } finally {
+    // Re-habilitar el botón
+    button.disabled = false;
   }
 }
 
@@ -710,6 +1402,158 @@ async function handlePromptAction(action, promptId) {
         }
       }
       break;
+  }
+}
+
+// Multi-select Functions
+
+/**
+ * Alterna el modo de selección múltiple
+ */
+function toggleSelectMode() {
+  state.isSelectMode = !state.isSelectMode;
+  
+  // Limpiar selección al salir del modo
+  if (!state.isSelectMode) {
+    state.selectedPrompts.clear();
+  }
+  
+  // Re-renderizar para mostrar/ocultar checkboxes
+  renderContent();
+}
+
+/**
+ * Maneja la selección/deselección de un prompt
+ */
+function handlePromptSelection(promptId, isSelected) {
+  if (isSelected) {
+    state.selectedPrompts.add(promptId);
+  } else {
+    state.selectedPrompts.delete(promptId);
+  }
+  
+  // Actualizar la clase visual
+  const checkbox = document.querySelector(`.prompt-checkbox[data-prompt-id="${promptId}"]`);
+  if (checkbox) {
+    const card = checkbox.closest('.prompt-card');
+    if (card) {
+      card.classList.toggle('selected', isSelected);
+    }
+  }
+  
+  // Re-renderizar la toolbar para actualizar el contador
+  renderContent();
+}
+
+/**
+ * Selecciona todos los prompts visibles
+ */
+function selectAllPrompts() {
+  const filteredData = getFilteredData();
+  
+  if (state.currentTab === 'prompts') {
+    filteredData.forEach(prompt => {
+      state.selectedPrompts.add(prompt.id);
+    });
+    renderContent();
+  }
+}
+
+/**
+ * Deselecciona todos los prompts
+ */
+function deselectAllPrompts() {
+  state.selectedPrompts.clear();
+  renderContent();
+}
+
+/**
+ * Exporta los prompts seleccionados a un archivo TXT
+ */
+function exportSelectedPrompts() {
+  const selectedPromptsList = state.prompts.filter(p => 
+    state.selectedPrompts.has(p.id)
+  );
+  
+  if (selectedPromptsList.length === 0) {
+    showToast('No hay prompts seleccionados', 'error');
+    return;
+  }
+  
+  // Crear contenido del archivo
+  let content = '=== KIT IA EMPRENDEDOR - PROMPTS EXPORTADOS ===\n';
+  content += `Fecha: ${new Date().toLocaleString('es-ES')}\n`;
+  content += `Total: ${selectedPromptsList.length} prompts\n`;
+  content += '\n' + '='.repeat(50) + '\n\n';
+  
+  selectedPromptsList.forEach((prompt, index) => {
+    content += `PROMPT ${index + 1}: ${prompt.name}\n`;
+    content += '-'.repeat(prompt.name.length + 10) + '\n';
+    content += prompt.content + '\n';
+    
+    if (prompt.tags && prompt.tags.length > 0) {
+      content += `\nTags: ${prompt.tags.join(', ')}\n`;
+    }
+    
+    content += '\n' + '='.repeat(50) + '\n\n';
+  });
+  
+  // Crear blob y descargar
+  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `prompts_kit_ia_${new Date().toISOString().split('T')[0]}.txt`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  
+  showToast(`\u2713 ${selectedPromptsList.length} prompts exportados`);
+  
+  // Limpiar selección
+  deselectAllPrompts();
+}
+
+/**
+ * Elimina los prompts seleccionados
+ */
+async function deleteSelectedPrompts() {
+  const selectedCount = state.selectedPrompts.size;
+  
+  if (selectedCount === 0) {
+    showToast('No hay prompts seleccionados', 'error');
+    return;
+  }
+  
+  if (!confirm(`¿Eliminar ${selectedCount} prompts seleccionados?`)) {
+    return;
+  }
+  
+  try {
+    // Eliminar cada prompt seleccionado
+    for (const promptId of state.selectedPrompts) {
+      const response = await chrome.runtime.sendMessage({
+        type: 'DELETE_PROMPT',
+        id: promptId
+      });
+      
+      if (response.success) {
+        // Eliminar del estado local
+        state.prompts = state.prompts.filter(p => p.id !== promptId);
+      }
+    }
+    
+    showToast(`\u2713 ${selectedCount} prompts eliminados`);
+    
+    // Limpiar selección y salir del modo
+    state.selectedPrompts.clear();
+    state.isSelectMode = false;
+    renderContent();
+    
+  } catch (error) {
+    console.error('[Panel] Error deleting prompts:', error);
+    showToast('Error al eliminar prompts', 'error');
   }
 }
 
@@ -785,8 +1629,157 @@ async function handleNotifications() {
   }
 }
 
-function handleSettings() {
-  showToast('Configuración próximamente');
+/**
+ * Maneja click en el perfil de usuario
+ */
+function handleUserProfile() {
+  if (!authModule || !state.isAuthenticated) {
+    showToast('Usuario no autenticado', 'error');
+    return;
+  }
+  
+  showUserProfileModal();
+}
+
+/**
+ * Muestra el modal de perfil de usuario
+ */
+function showUserProfileModal() {
+  const user = state.currentUser;
+  
+  const profileHtml = `
+    <div class="modal" id="profile-modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Perfil de Usuario</h2>
+          <button class="modal-close" id="profile-modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="profile-info">
+            <div class="profile-avatar">
+              <div class="user-avatar large">
+                <span class="user-initials">${getUserInitials(user?.email)}</span>
+              </div>
+            </div>
+            <div class="profile-details">
+              <h3>${user?.email || 'Usuario'}</h3>
+              <p class="profile-email">${user?.email || 'Sin email'}</p>
+              <p class="profile-joined">Miembro desde: ${formatDate(user?.created_at)}</p>
+            </div>
+          </div>
+          
+          <div class="profile-actions">
+            <button class="btn btn-danger" id="logout-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M9 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H9" stroke="currentColor" stroke-width="2"/>
+                <path d="M16 17L21 12L16 7" stroke="currentColor" stroke-width="2"/>
+                <path d="M21 12H9" stroke="currentColor" stroke-width="2"/>
+              </svg>
+              Cerrar sesión
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // Añadir al DOM
+  document.body.insertAdjacentHTML('beforeend', profileHtml);
+  
+  // Configurar event listeners
+  const modal = document.getElementById('profile-modal');
+  const closeBtn = document.getElementById('profile-modal-close');
+  const logoutBtn = document.getElementById('logout-btn');
+  
+  if (closeBtn) {
+    closeBtn.addEventListener('click', () => modal.remove());
+  }
+  
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', handleLogout);
+  }
+  
+  // Cerrar al hacer click fuera
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      modal.remove();
+    }
+  });
+}
+
+/**
+ * Maneja el logout del usuario
+ */
+async function handleLogout() {
+  // TEMPORAL: Modo desarrollo mientras arreglamos el problema de env vars
+  const DEV_MODE = true; // Debe coincidir con el valor en checkAuthentication
+  
+  if (DEV_MODE) {
+    showToast('Cerrando sesión (modo desarrollo)...', 'info');
+    // En modo desarrollo, simplemente recargar para "cerrar sesión"
+    setTimeout(() => {
+      location.reload();
+    }, 500);
+    return;
+  }
+  
+  if (!authModule) {
+    showToast('Sistema de autenticación no disponible', 'error');
+    return;
+  }
+  
+  try {
+    showToast('Cerrando sesión...', 'info');
+    await authModule.logout();
+    
+    // Recargar la página para mostrar login
+    location.reload();
+  } catch (error) {
+    console.error('[Panel] Logout error:', error);
+    showToast('Error al cerrar sesión', 'error');
+  }
+}
+
+/**
+ * Obtiene las iniciales del usuario
+ */
+function getUserInitials(email) {
+  if (!email) return '?';
+  
+  const parts = email.split('@')[0].split('.');
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+  
+  return email.substring(0, 2).toUpperCase();
+}
+
+/**
+ * Actualiza el avatar del usuario en el header
+ */
+function updateUserAvatar() {
+  if (state.currentUser && elements.userInitials) {
+    const initials = getUserInitials(state.currentUser.email);
+    elements.userInitials.textContent = initials;
+  }
+}
+
+/**
+ * Formatea una fecha para mostrar
+ */
+function formatDate(dateString) {
+  if (!dateString) return 'Desconocido';
+  
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('es-ES', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  } catch (error) {
+    return 'Desconocido';
+  }
 }
 
 function updateNotificationsBadge(count) {
@@ -872,8 +1865,9 @@ function formatTime(timestamp) {
 
 // Utilidades
 function escapeHtml(text) {
+  if (!text) return '';
   const div = document.createElement('div');
-  div.textContent = text;
+  div.textContent = String(text);
   return div.innerHTML;
 }
 
@@ -915,3 +1909,24 @@ function showToast(message, type = 'success') {
 
 // Hacer showPromptModal global para el botón en empty state
 window.showPromptModal = showPromptModal;
+
+// Listener para cambios en storage (sincronización entre pestañas)
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName === 'local' && changes.favorites) {
+    console.log('[Panel] Favorites changed externally');
+    // Solo actualizar si el cambio viene de otra pestaña/ventana
+    // para evitar re-render innecesario cuando cambiamos favoritos localmente
+    const currentFavorites = favoritesManager.getAll();
+    const newFavorites = changes.favorites.newValue || [];
+    
+    // Comparar arrays para ver si realmente cambió
+    const hasChanged = JSON.stringify(currentFavorites.sort()) !== JSON.stringify(newFavorites.sort());
+    
+    if (hasChanged) {
+      favoritesManager.init().then(() => {
+        state.favorites = favoritesManager.getAll();
+        renderContent();
+      });
+    }
+  }
+});

@@ -26,9 +26,9 @@ export default defineConfig(({ mode }) => {
       minify: isProd ? 'terser' : false,
       terserOptions: isProd ? {
         compress: {
-          drop_console: true,
+          drop_console: false, // Mantener console.log para debugging
           drop_debugger: true,
-          pure_funcs: ['console.log', 'console.debug']
+          pure_funcs: ['console.debug']
         },
         mangle: {
           toplevel: true
@@ -54,6 +54,17 @@ export default defineConfig(({ mode }) => {
           // Side Panel JS
           'sidepanel-js': resolve(__dirname, 'src/sidepanel/sidepanel.js'),
           
+          // Side Panel Modules
+          'module-loader': resolve(__dirname, 'src/sidepanel/modules/module-loader.js'),
+          'favorites-module': resolve(__dirname, 'src/sidepanel/modules/favorites.js'),
+          
+          // Shared Modules
+          'auth': resolve(__dirname, 'src/shared/auth.js'),
+          'config': resolve(__dirname, 'src/shared/config.js'),
+          'constants': resolve(__dirname, 'src/shared/constants.js'),
+          'logger': resolve(__dirname, 'src/shared/logger.js'),
+          'storage': resolve(__dirname, 'src/shared/storage.js'),
+          
           // HTML pages
           'popup-html': resolve(__dirname, 'src/popup/popup.html'),
           'sidepanel-html': resolve(__dirname, 'src/sidepanel/index.html'),
@@ -61,7 +72,9 @@ export default defineConfig(({ mode }) => {
           'auth-callback': resolve(__dirname, 'src/auth/callback.html')
         },
         output: {
-          // Para content scripts y service worker - IIFE format
+          // ES modules para compatibilidad con Chrome Extensions modernas
+          format: 'es',
+          inlineDynamicImports: false, // Permitir múltiples entry points
           entryFileNames: (chunkInfo) => {
             if (chunkInfo.name === 'service-worker') {
               return 'background/[name].js';
@@ -74,6 +87,16 @@ export default defineConfig(({ mode }) => {
             }
             if (chunkInfo.name === 'sidepanel-js') {
               return 'sidepanel/sidepanel.js';
+            }
+            if (chunkInfo.name === 'module-loader') {
+              return 'sidepanel/modules/module-loader.js';
+            }
+            if (chunkInfo.name === 'favorites-module') {
+              return 'sidepanel/modules/favorites.js';
+            }
+            // Shared modules
+            if (['auth', 'config', 'constants', 'logger', 'storage'].includes(chunkInfo.name)) {
+              return `shared/${chunkInfo.name}.js`;
             }
             return '[name]/[name].js';
           },
@@ -96,8 +119,29 @@ export default defineConfig(({ mode }) => {
           moduleSideEffects: false
         },
         
-        // Optimizaciones
-        preserveEntrySignatures: false
+        // Optimizaciones para módulos
+        preserveEntrySignatures: 'strict',
+        
+        // Configuración específica para Chrome Extensions
+        plugins: [
+          // Plugin personalizado para resolver módulos internos
+          {
+            name: 'chrome-extension-modules',
+            generateBundle(options, bundle) {
+              // Procesar módulos para Chrome Extensions
+              Object.keys(bundle).forEach(fileName => {
+                const chunk = bundle[fileName];
+                if (chunk.type === 'chunk' && fileName.includes('sidepanel')) {
+                  // Asegurar que los módulos se resuelvan correctamente
+                  chunk.code = chunk.code.replace(
+                    /import\s+.*?from\s+['"]\.\/modules\/(.*?)['"];?/g,
+                    '// Module $1 will be loaded via module loader'
+                  );
+                }
+              });
+            }
+          }
+        ]
       },
       
       // Target Chrome 120+

@@ -15,9 +15,15 @@ const isDevelopment = process.env.NODE_ENV === 'development' ||
  */
 export const SUPABASE_CONFIG = {
   url: 'https://nktqqsbebhoedgookfzu.supabase.co',
-  // IMPORTANTE: Reemplazar con tu anon key real
   // Esta key es pública y segura de exponer en el cliente
-  anonKey: process.env.VITE_SUPABASE_ANON_KEY || 'YOUR_ANON_KEY_HERE',
+  // IMPORTANTE: Configurar VITE_SUPABASE_ANON_KEY en .env antes de producción
+  anonKey: process.env.VITE_SUPABASE_ANON_KEY || (() => {
+    if (isDevelopment) {
+      console.warn('[Config] ⚠️ Using development Supabase key. Configure .env for production!');
+      return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5rdHFxc2JlYmhvZWRnb29rZnp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzNzYyMTEsImV4cCI6MjA2NTk1MjIxMX0.YmsU1VKwHkuFHFLCBW56KlGinvToSzHXtwSmkl5uhK4';
+    }
+    throw new Error('Supabase anon key not configured. Please set VITE_SUPABASE_ANON_KEY in .env file');
+  })(),
   options: {
     auth: {
       autoRefreshToken: true,
@@ -192,3 +198,6 @@ export default {
   isDevelopment,
   version: chrome.runtime.getManifest().version
 };
+
+// Exportar isDevelopment como export nombrado también
+export { isDevelopment };

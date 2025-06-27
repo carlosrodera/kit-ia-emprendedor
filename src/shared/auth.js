@@ -309,6 +309,66 @@ export const auth = {
   },
 
   /**
+   * Inicia sesión con email y password
+   * @param {string} email - Email del usuario
+   * @param {string} password - Contraseña del usuario
+   * @returns {Promise<Object>} Resultado del login
+   */
+  async signInWithEmail(email, password) {
+    try {
+      logger.info('Starting email/password login');
+      
+      const client = getSupabaseClient();
+      
+      const { data, error } = await client.auth.signInWithPassword({
+        email,
+        password
+      });
+      
+      if (error) {
+        logger.error('Email login error:', error);
+        throw error;
+      }
+      
+      logger.info('Email login successful');
+      return { session: data.session, user: data.user };
+    } catch (error) {
+      logger.error('Email login error:', error);
+      throw error;
+    }
+  },
+  
+  /**
+   * Registra un nuevo usuario con email y password
+   * @param {string} email - Email del usuario
+   * @param {string} password - Contraseña del usuario
+   * @returns {Promise<Object>} Resultado del registro
+   */
+  async signUpWithEmail(email, password) {
+    try {
+      logger.info('Starting email/password signup');
+      
+      const client = getSupabaseClient();
+      
+      const { data, error } = await client.auth.signUp({
+        email,
+        password
+      });
+      
+      if (error) {
+        logger.error('Email signup error:', error);
+        throw error;
+      }
+      
+      logger.info('Email signup successful');
+      return { session: data.session, user: data.user };
+    } catch (error) {
+      logger.error('Email signup error:', error);
+      throw error;
+    }
+  },
+
+  /**
    * Inicia sesión con OAuth
    * @param {'google' | 'github'} provider - Proveedor OAuth
    * @returns {Promise<Object>} Resultado del login

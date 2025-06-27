@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Favoritos - Kit IA Emprendedor</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .test-container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 20px;
+    }
+    .test-section {
+      margin-bottom: 30px;
+      padding: 15px;
+      background: #f9f9f9;
+      border-radius: 4px;
+    }
+    .test-btn {
+      padding: 8px 16px;
+      margin: 5px;
+      background: #10a37f;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .test-btn:hover {
+      background: #0e8f6f;
+    }
+    .log {
+      background: #333;
+      color: #0f0;
+      padding: 10px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      max-height: 200px;
+      overflow-y: auto;
+      margin-top: 10px;
+    }
+    .status {
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 4px;
+    }
+    .status.success {
+      background: #d4edda;
+      color: #155724;
+    }
+    .status.error {
+      background: #f8d7da;
+      color: #721c24;
+    }
+    .favorite-demo {
+      display: flex;
+      gap: 20px;
+      margin: 20px 0;
+    }
+    .favorite-demo button {
+      background: none;
+      border: none;
+      color: #a8a8a8;
+      cursor: pointer;
+      padding: 4px;
+      transition: all 0.2s;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .favorite-demo button svg {
+      width: 20px;
+      height: 20px;
+    }
+    .favorite-demo button:hover {
+      transform: scale(1.2);
+    }
+    .favorite-demo button.active {
+      color: #fbbf24;
+    }
+  </style>
+</head>
+<body>
+  <div class="test-container">
+    <h1>🧪 Test de Favoritos</h1>
+    
+    <div class="test-section">
+      <h2>Demostración Visual</h2>
+      <p>Así es como deberían verse las estrellas:</p>
+      <div class="favorite-demo">
+        <div>
+          <button class="favorite-btn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+            </svg>
+          </button>
+          <p>No favorito (gris)</p>
+        </div>
+        <div>
+          <button class="favorite-btn active">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+            </svg>
+          </button>
+          <p>Favorito (amarillo)</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="test-section">
+      <h2>Tests de Funcionalidad</h2>
+      <button class="test-btn" onclick="testFavorites()">Ejecutar Todos los Tests</button>
+      <button class="test-btn" onclick="clearStorage()">Limpiar Storage</button>
+      <button class="test-btn" onclick="checkCurrentState()">Ver Estado Actual</button>
+      <div id="status"></div>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+
+  <script>
+    const log = (message, isError = false) => {
+      const logDiv = document.getElementById('log');
+      const timestamp = new Date().toLocaleTimeString();
+      const color = isError ? '#f44' : '#0f0';
+      logDiv.innerHTML += `<div style="color: ${color}">[${timestamp}] ${message}</div>`;
+      logDiv.scrollTop = logDiv.scrollHeight;
+    };
+
+    const showStatus = (message, isError = false) => {
+      const statusDiv = document.getElementById('status');
+      statusDiv.className = `status ${isError ? 'error' : 'success'}`;
+      statusDiv.textContent = message;
+    };
+
+    async function testFavorites() {
+      log('=== Iniciando Tests de Favoritos ===');
+      
+      try {
+        // Test 1: Verificar que el storage está disponible
+        log('Test 1: Verificando Chrome Storage...');
+        const test1 = await chrome.storage.local.get('favorites');
+        log('✓ Chrome Storage disponible');
+        
+        // Test 2: Limpiar y verificar estado inicial
+        log('Test 2: Estado inicial...');
+        await chrome.storage.local.set({ favorites: [] });
+        const test2 = await chrome.storage.local.get('favorites');
+        if (test2.favorites.length === 0) {
+          log('✓ Estado inicial correcto (vacío)');
+        } else {
+          throw new Error('Estado inicial incorrecto');
+        }
+        
+        // Test 3: Agregar favoritos
+        log('Test 3: Agregando favoritos...');
+        await chrome.storage.local.set({ favorites: ['gpt-1', 'gpt-3'] });
+        const test3 = await chrome.storage.local.get('favorites');
+        if (test3.favorites.length === 2) {
+          log('✓ Favoritos agregados correctamente');
+          log(`  Favoritos: ${test3.favorites.join(', ')}`);
+        } else {
+          throw new Error('Error al agregar favoritos');
+        }
+        
+        // Test 4: Verificar que solo gpt-1 y gpt-3 son favoritos
+        log('Test 4: Verificando estado individual...');
+        const favSet = new Set(test3.favorites);
+        const gpts = ['gpt-1', 'gpt-2', 'gpt-3', 'gpt-4'];
+        gpts.forEach(gpt => {
+          const isFav = favSet.has(gpt);
+          log(`  ${gpt}: ${isFav ? '⭐ FAVORITO' : '☆ No favorito'}`);
+        });
+        
+        showStatus('✅ Todos los tests pasaron correctamente', false);
+        
+      } catch (error) {
+        log(`❌ Error: ${error.message}`, true);
+        showStatus(`❌ Error en los tests: ${error.message}`, true);
+      }
+    }
+
+    async function clearStorage() {
+      try {
+        await chrome.storage.local.set({ favorites: [] });
+        log('✓ Storage limpiado');
+        showStatus('Storage limpiado correctamente', false);
+      } catch (error) {
+        log(`❌ Error limpiando storage: ${error.message}`, true);
+        showStatus(`Error: ${error.message}`, true);
+      }
+    }
+
+    async function checkCurrentState() {
+      try {
+        const data = await chrome.storage.local.get(['favorites', 'gpts']);
+        log('=== Estado Actual ===');
+        log(`Favoritos guardados: ${data.favorites ? data.favorites.length : 0}`);
+        if (data.favorites && data.favorites.length > 0) {
+          log(`IDs: ${data.favorites.join(', ')}`);
+        }
+        
+        if (data.gpts) {
+          log(`Total GPTs: ${data.gpts.length}`);
+        }
+        
+        showStatus('Estado verificado - ver log', false);
+      } catch (error) {
+        log(`❌ Error: ${error.message}`, true);
+        showStatus(`Error: ${error.message}`, true);
+      }
+    }
+
+    // Toggle visual de demostración
+    document.querySelectorAll('.favorite-demo button').forEach(btn => {
+      btn.addEventListener('click', function() {
+        this.classList.toggle('active');
+      });
+    });
+  </script>
+</body>
+</html>

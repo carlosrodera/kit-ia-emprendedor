@@ -2,15 +2,16 @@
  * Sistema de logging para la extensión
  */
 
-import { DEV_CONFIG } from './config.js';
+import { DEV_CONFIG, isDevelopment } from './config.js';
 
 class Logger {
   constructor(module = 'General') {
     this.module = module;
-    this.enabled = DEV_CONFIG?.enableLogging ?? true;
-    this.level = DEV_CONFIG?.logLevel ?? 'error';
+    // Solo habilitar logging en desarrollo
+    this.enabled = isDevelopment && (DEV_CONFIG?.enableLogging ?? true);
+    this.level = DEV_CONFIG?.logLevel ?? (isDevelopment ? 'debug' : 'error');
     this.includeTimestamp = true;
-    this.includeStackTrace = DEV_CONFIG?.showDebugInfo ?? false;
+    this.includeStackTrace = isDevelopment && (DEV_CONFIG?.showDebugInfo ?? false);
   }
 
   /**
@@ -103,8 +104,7 @@ class Logger {
    * Log de nivel error
    */
   error(message, error = null, data = null) {
-    if (!this.enabled || !this.shouldLog('error')) return;
-
+    // Los errores siempre se loguean, incluso en producción
     const formattedMessage = this.formatMessage('error', message, data);
     console.error(formattedMessage);
 
@@ -115,12 +115,12 @@ class Logger {
       }
     }
 
-    if (data) {
+    if (data && isDevelopment) {
       console.error('Additional data:', data);
     }
 
-    // En producción, podríamos enviar errores a un servicio de monitoreo
-    if (ENV.isProduction) {
+    // En producción, reportar errores para monitoreo
+    if (!isDevelopment) {
       this.reportError(message, error, data);
     }
   }
@@ -143,7 +143,7 @@ class Logger {
         : null,
       data,
       userAgent: navigator.userAgent,
-      extensionVersion: ENV.version
+      extensionVersion: chrome.runtime.getManifest().version
     };
 
     // Guardar últimos 10 errores

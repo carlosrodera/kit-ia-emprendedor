@@ -94,8 +94,8 @@ const OFFICIAL_GPTS = [
 ];
 
 // Inicialización
-chrome.runtime.onInstalled.addListener(async ({ reason }) => {
-  console.log('[SW] Extension installed:', reason);
+chrome.runtime.onInstalled.addListener(async ({ reason, previousVersion }) => {
+  console.log('[SW] Extension installed:', reason, 'Previous version:', previousVersion);
 
   if (reason === 'install') {
     // Inicializar datos por defecto
@@ -104,10 +104,27 @@ chrome.runtime.onInstalled.addListener(async ({ reason }) => {
       favorites: [],
       prompts: [],
       settings: {
-        theme: 'dark',
+        theme: 'dark', // Dark mode con acentos verdes
         defaultView: 'grid'
       }
     });
+    console.log('[SW] Initial data set');
+  } else if (reason === 'update') {
+    // Verificar y limpiar datos en actualizaciones
+    const data = await chrome.storage.local.get(['favorites', 'gpts', 'prompts']);
+    console.log('[SW] Current storage data:', data);
+    
+    // Asegurar que favorites es un array
+    if (!Array.isArray(data.favorites)) {
+      await chrome.storage.local.set({ favorites: [] });
+      console.log('[SW] Reset favorites to empty array');
+    }
+    
+    // Asegurar que GPTs existen
+    if (!data.gpts || !Array.isArray(data.gpts)) {
+      await chrome.storage.local.set({ gpts: OFFICIAL_GPTS });
+      console.log('[SW] Reset GPTs to defaults');
+    }
   }
 });
 
@@ -159,17 +176,32 @@ async function handleMessage(request) {
       return { success: true, data: favorites || [] };
 
     case 'TOGGLE_FAVORITE':
+      if (!request.gptId) {
+        throw new Error('GPT ID is required');
+      }
+      
       const favResult = await chrome.storage.local.get('favorites');
-      const favs = favResult.favorites || [];
+      let favs = favResult.favorites || [];
+      
+      // Asegurar que es un array
+      if (!Array.isArray(favs)) {
+        console.warn('[SW] Favorites was not an array, resetting');
+        favs = [];
+      }
+      
       const index = favs.indexOf(request.gptId);
+      console.log('[SW] Toggle favorite:', request.gptId, 'Current index:', index);
 
       if (index > -1) {
         favs.splice(index, 1);
+        console.log('[SW] Removed from favorites');
       } else {
         favs.push(request.gptId);
+        console.log('[SW] Added to favorites');
       }
 
       await chrome.storage.local.set({ favorites: favs });
+      console.log('[SW] Updated favorites:', favs);
       return { success: true, data: favs };
 
     case 'GET_PROMPTS':
@@ -190,6 +222,7 @@ async function handleMessage(request) {
         // Crear nuevo
         request.data.id = `prompt-${Date.now()}`;
         request.data.created_at = new Date().toISOString();
+        request.data.favorite = false; // Inicializar como no favorito
         allPrompts.push(request.data);
       }
 
@@ -203,6 +236,24 @@ async function handleMessage(request) {
 
       await chrome.storage.local.set({ prompts: remainingPrompts });
       return { success: true };
+
+    case 'TOGGLE_PROMPT_FAVORITE':
+      if (!request.promptId) {
+        throw new Error('Prompt ID is required');
+      }
+      
+      const promptFavResult = await chrome.storage.local.get('prompts');
+      const promptList = promptFavResult.prompts || [];
+      
+      const promptIndex = promptList.findIndex(p => p.id === request.promptId);
+      if (promptIndex > -1) {
+        promptList[promptIndex].favorite = !promptList[promptIndex].favorite;
+        await chrome.storage.local.set({ prompts: promptList });
+        console.log('[SW] Toggled prompt favorite:', request.promptId, promptList[promptIndex].favorite);
+        return { success: true, data: promptList[promptIndex] };
+      }
+      
+      throw new Error('Prompt not found');
 
     // Autenticación (placeholder)
     case 'AUTH_CHECK':
@@ -228,6 +279,15 @@ async function handleMessage(request) {
 
     case 'MARK_NOTIFICATION_READ':
       return await markNotificationRead(request.userId, request.notificationId);
+
+    case 'SYNC_FAVORITES':
+      // Sincronizar favoritos desde el panel
+      if (Array.isArray(request.favorites)) {
+        await chrome.storage.local.set({ favorites: request.favorites });
+        console.log('[SW] Favorites synced:', request.favorites);
+        return { success: true };
+      }
+      throw new Error('Invalid favorites data');
 
     default:
       throw new Error(`Unknown message type: ${request.type}`);
