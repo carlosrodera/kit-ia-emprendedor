@@ -60,6 +60,7 @@ export default defineConfig(({ mode }) => {
           
           // Shared Modules
           'auth': resolve(__dirname, 'src/shared/auth.js'),
+          'chrome-auth': resolve(__dirname, 'src/shared/chrome-auth.js'),
           'config': resolve(__dirname, 'src/shared/config.js'),
           'constants': resolve(__dirname, 'src/shared/constants.js'),
           'logger': resolve(__dirname, 'src/shared/logger.js'),
@@ -95,7 +96,7 @@ export default defineConfig(({ mode }) => {
               return 'sidepanel/modules/favorites.js';
             }
             // Shared modules
-            if (['auth', 'config', 'constants', 'logger', 'storage'].includes(chunkInfo.name)) {
+            if (['auth', 'chrome-auth', 'config', 'constants', 'logger', 'storage'].includes(chunkInfo.name)) {
               return `shared/${chunkInfo.name}.js`;
             }
             return '[name]/[name].js';

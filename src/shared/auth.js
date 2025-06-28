@@ -40,53 +40,101 @@ const authListeners = new Set();
  * @returns {import('@supabase/supabase-js').SupabaseClient}
  */
 function getSupabaseClient() {
+  console.log('[AUTH-CLIENT] getSupabaseClient called', { hasClient: !!supabaseClient });
+  
   if (!supabaseClient) {
     // Validar configuración
+    console.log('[AUTH-CLIENT] Validating config...', {
+      url: SUPABASE_CONFIG.url,
+      hasKey: !!SUPABASE_CONFIG.anonKey,
+      keyLength: SUPABASE_CONFIG.anonKey?.length
+    });
+    
     if (!SUPABASE_CONFIG.url || !SUPABASE_CONFIG.anonKey || SUPABASE_CONFIG.anonKey === 'YOUR_ANON_KEY_HERE') {
       throw new Error('Supabase configuration is missing or invalid. Please check config.js');
     }
 
     logger.info('Initializing Supabase client');
+    console.log('[AUTH-CLIENT] Creating Supabase client...');
 
     // Crear cliente con opciones de auth
-    supabaseClient = createClient(
-      SUPABASE_CONFIG.url,
-      SUPABASE_CONFIG.anonKey,
-      {
-        auth: {
-          ...SUPABASE_CONFIG.options.auth,
-          storage: {
-            // Usar chrome.storage para persistir sesión
-            getItem: async (key) => {
-              try {
-                const result = await chrome.storage.local.get(key);
-                return result[key] || null;
-              } catch (error) {
-                logger.error('Error getting auth storage item:', error);
-                return null;
-              }
-            },
-            setItem: async (key, value) => {
-              try {
-                await chrome.storage.local.set({ [key]: value });
-              } catch (error) {
-                logger.error('Error setting auth storage item:', error);
-              }
-            },
-            removeItem: async (key) => {
-              try {
-                await chrome.storage.local.remove(key);
-              } catch (error) {
-                logger.error('Error removing auth storage item:', error);
-              }
+    try {
+      // Crear un storage adapter más simple
+      const chromeStorageAdapter = {
+        getItem: async (key) => {
+          console.log('[AUTH-STORAGE] getItem called:', key);
+          try {
+            // Añadir pequeño delay para evitar race conditions
+            await new Promise(resolve => setTimeout(resolve, 10));
+            const result = await chrome.storage.local.get(key);
+            const value = result[key] || null;
+            console.log('[AUTH-STORAGE] getItem result:', { key, hasValue: !!value });
+            return value;
+          } catch (error) {
+            console.error('[AUTH-STORAGE] getItem error:', error);
+            return null;
+          }
+        },
+        setItem: async (key, value) => {
+          console.log('[AUTH-STORAGE] setItem called:', key);
+          try {
+            await chrome.storage.local.set({ [key]: value });
+            console.log('[AUTH-STORAGE] setItem success:', key);
+          } catch (error) {
+            console.error('[AUTH-STORAGE] setItem error:', error);
+          }
+        },
+        removeItem: async (key) => {
+          console.log('[AUTH-STORAGE] removeItem called:', key);
+          try {
+            await chrome.storage.local.remove(key);
+            console.log('[AUTH-STORAGE] removeItem success:', key);
+          } catch (error) {
+            console.error('[AUTH-STORAGE] removeItem error:', error);
+          }
+        }
+      };
+      
+      supabaseClient = createClient(
+        SUPABASE_CONFIG.url,
+        SUPABASE_CONFIG.anonKey,
+        {
+          auth: {
+            autoRefreshToken: true,
+            persistSession: true,
+            detectSessionInUrl: false,
+            flowType: 'pkce',
+            storage: chromeStorageAdapter,
+            // Añadir configuración adicional para Chrome Extensions
+            storageKey: 'sb-auth-token',
+            debug: true
+          },
+          // Deshabilitar funciones que no necesitamos
+          realtime: {
+            enabled: false
+          },
+          global: {
+            headers: {
+              'x-client-info': 'kit-ia-emprendedor-extension'
             }
           }
         }
-      }
-    );
+      );
+      
+      console.log('[AUTH-CLIENT] Supabase client created successfully');
 
-    // Configurar listener de cambios de auth
-    supabaseClient.auth.onAuthStateChange(handleAuthStateChange);
+      // Configurar listener de cambios de auth de forma asíncrona
+      console.log('[AUTH-CLIENT] Setting up auth state change listener...');
+      // NO bloquear en el listener
+      setTimeout(() => {
+        supabaseClient.auth.onAuthStateChange(handleAuthStateChange);
+        console.log('[AUTH-CLIENT] Auth state change listener configured');
+      }, 100);
+      
+    } catch (error) {
+      console.error('[AUTH-CLIENT] Error creating Supabase client:', error, error.stack);
+      throw error;
+    }
   }
 
   return supabaseClient;
@@ -315,31 +363,61 @@ export const auth = {
    * @returns {Promise<void>}
    */
   async initialize() {
+    console.log('[AUTH] Starting initialize() method');
+    
     if (authState.isInitialized) {
       logger.debug('Auth already initialized');
+      console.log('[AUTH] Already initialized, returning early');
       return;
     }
 
     try {
       logger.info('Initializing auth module');
+      console.log('[AUTH] Step 1: Getting Supabase client...');
 
       const client = getSupabaseClient();
+      console.log('[AUTH] Step 2: Supabase client obtained');
 
-      // Obtener sesión actual
-      const { data: { session }, error } = await client.auth.getSession();
-
-      if (error) {
-        throw error;
-      }
-
-      if (session) {
-        await handleAuthStateChange('INITIAL_SESSION', session);
+      // Obtener sesión actual con timeout específico
+      console.log('[AUTH] Step 3: Calling client.auth.getSession()...');
+      
+      try {
+        // Añadir timeout específico para getSession
+        const getSessionPromise = client.auth.getSession();
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('getSession timeout after 5 seconds')), 5000);
+        });
+        
+        const result = await Promise.race([getSessionPromise, timeoutPromise]);
+        
+        if (result && 'data' in result) {
+          const { data: { session }, error } = result;
+          console.log('[AUTH] Step 4: getSession completed', { hasSession: !!session, hasError: !!error });
+          
+          if (error) {
+            console.error('[AUTH] getSession error:', error);
+            // NO lanzar error, continuar sin sesión
+            console.log('[AUTH] Continuing without session due to error');
+          } else if (session) {
+            console.log('[AUTH] Step 5: Session found, handling auth state change...');
+            await handleAuthStateChange('INITIAL_SESSION', session);
+            console.log('[AUTH] Step 6: Auth state change handled');
+          } else {
+            console.log('[AUTH] Step 5: No session found');
+          }
+        }
+      } catch (timeoutError) {
+        console.error('[AUTH] getSession timed out:', timeoutError);
+        console.log('[AUTH] Continuing without session check');
+        // NO lanzar error, permitir que la extensión funcione sin auth
       }
 
       authState.isInitialized = true;
       logger.info('Auth module initialized');
+      console.log('[AUTH] Step 7: Auth initialization complete');
     } catch (error) {
       logger.error('Error initializing auth:', error);
+      console.error('[AUTH] Initialize error:', error, error.stack);
       authState.isInitialized = false;
       throw error;
     }

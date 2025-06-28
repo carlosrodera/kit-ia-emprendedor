@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test de Autenticación - Kit IA Emprendedor</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 600px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 30px;
+    }
+    .test-section {
+      margin-bottom: 30px;
+      padding: 20px;
+      background: #f8f9fa;
+      border-radius: 6px;
+    }
+    button {
+      background: #0066cc;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-right: 10px;
+      margin-bottom: 10px;
+    }
+    button:hover {
+      background: #0052a3;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .status {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 14px;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    .info {
+      background: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+    }
+    .warning {
+      background: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffeeba;
+    }
+    input {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧪 Test de Autenticación</h1>
+    
+    <div class="test-section">
+      <h2>1. Estado Actual</h2>
+      <button id="checkStatus">Verificar Estado</button>
+      <button id="getSession">Obtener Sesión</button>
+      <button id="getUser">Obtener Usuario</button>
+      <div id="statusResult" class="status info" style="display:none;"></div>
+    </div>
+
+    <div class="test-section">
+      <h2>2. Login con Email</h2>
+      <input type="email" id="email" placeholder="email@ejemplo.com" value="test@example.com">
+      <input type="password" id="password" placeholder="contraseña" value="test123">
+      <button id="loginEmail">Login con Email</button>
+      <div id="emailResult" class="status" style="display:none;"></div>
+    </div>
+
+    <div class="test-section">
+      <h2>3. Login OAuth</h2>
+      <button id="loginGoogle">Login con Google</button>
+      <button id="loginGithub">Login con GitHub</button>
+      <div id="oauthResult" class="status" style="display:none;"></div>
+    </div>
+
+    <div class="test-section">
+      <h2>4. Cerrar Sesión</h2>
+      <button id="logout">Cerrar Sesión</button>
+      <div id="logoutResult" class="status" style="display:none;"></div>
+    </div>
+
+    <div class="test-section">
+      <h2>5. Logs de Consola</h2>
+      <button id="clearLogs">Limpiar Logs</button>
+      <div id="consoleLogs" class="status info" style="display:none;">
+        Los logs aparecerán aquí...
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="test-auth.js"></script>
+</body>
+</html>

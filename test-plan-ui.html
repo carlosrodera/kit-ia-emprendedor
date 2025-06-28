@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Plan UI - Kit IA Emprendedor</title>
+  <link rel="stylesheet" href="src/sidepanel/sidepanel.css">
+  <link rel="stylesheet" href="src/sidepanel/styles/plan-ui.css">
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      background: #f3f4f6;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    .test-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .test-section {
+      background: white;
+      padding: 24px;
+      margin-bottom: 24px;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .test-section h2 {
+      margin-top: 0;
+      color: #1f2937;
+    }
+    .plan-selector {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .plan-selector button {
+      padding: 8px 16px;
+      border: 2px solid #e5e7eb;
+      background: white;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .plan-selector button.active {
+      background: #3b82f6;
+      color: white;
+      border-color: #3b82f6;
+    }
+    .demo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 16px;
+    }
+    .demo-prompt {
+      padding: 16px;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      background: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="test-container">
+    <h1>🧪 Test Plan UI Components</h1>
+    
+    <!-- Plan Selector -->
+    <div class="test-section">
+      <h2>Selector de Plan (para testing)</h2>
+      <div class="plan-selector">
+        <button onclick="changePlan('free')">Plan Free</button>
+        <button onclick="changePlan('lite')" class="active">Plan Lite</button>
+        <button onclick="changePlan('premium')">Plan Premium</button>
+      </div>
+      <p id="current-plan">Plan actual: <strong>LITE</strong></p>
+    </div>
+
+    <!-- Plan Badges -->
+    <div class="test-section">
+      <h2>Plan Badges</h2>
+      <div style="display: flex; gap: 16px; align-items: center;">
+        <div id="badge-container"></div>
+        <span>← Badge del plan actual</span>
+      </div>
+    </div>
+
+    <!-- Usage Indicators -->
+    <div class="test-section">
+      <h2>Indicadores de Uso</h2>
+      <div id="usage-indicators" style="max-width: 400px;"></div>
+    </div>
+
+    <!-- Upgrade CTAs -->
+    <div class="test-section">
+      <h2>CTAs de Upgrade</h2>
+      <div id="upgrade-ctas"></div>
+    </div>
+
+    <!-- GPT Cards con restricciones -->
+    <div class="test-section">
+      <h2>GPT Cards con Restricciones de Plan</h2>
+      <div class="demo-grid" id="gpt-cards"></div>
+    </div>
+
+    <!-- Plan Info Panel -->
+    <div class="test-section">
+      <h2>Panel de Información del Plan</h2>
+      <div id="plan-info-panel"></div>
+    </div>
+
+    <!-- Funciones con restricciones -->
+    <div class="test-section">
+      <h2>Funciones con Restricciones</h2>
+      <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+        <button class="btn btn-primary" id="export-btn">
+          📥 Exportar (Lite+)
+        </button>
+        <button class="btn btn-secondary" id="multiselect-btn">
+          ☑️ Multi-selección (Lite+)
+        </button>
+        <button class="btn btn-secondary" id="custom-cat-btn">
+          📁 Categorías personalizadas (Premium)
+        </button>
+        <button class="btn btn-secondary" id="sync-btn">
+          ☁️ Sincronización (Lite+)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    // Importar módulos
+    import { planManager } from './src/shared/plan-manager.js';
+    import planUI from './src/sidepanel/components/plan-ui.js';
+    
+    // Estado actual
+    let currentPlan = 'lite';
+    
+    // Función para cambiar plan (mock)
+    window.changePlan = async function(plan) {
+      currentPlan = plan;
+      await planManager.updateUserPlan(plan);
+      
+      // Actualizar UI
+      document.querySelectorAll('.plan-selector button').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      event.target.classList.add('active');
+      
+      document.getElementById('current-plan').innerHTML = `Plan actual: <strong>${plan.toUpperCase()}</strong>`;
+      
+      // Re-renderizar todo
+      renderAll();
+    };
+    
+    // Renderizar todos los componentes
+    function renderAll() {
+      // Badge
+      const badgeContainer = document.getElementById('badge-container');
+      badgeContainer.innerHTML = '';
+      badgeContainer.appendChild(planUI.createPlanBadge());
+      
+      // Usage indicators
+      const usageContainer = document.getElementById('usage-indicators');
+      usageContainer.innerHTML = '';
+      
+      planManager.getUsageStats().then(stats => {
+        usageContainer.appendChild(
+          planUI.createUsageIndicator('Prompts guardados', stats.prompts.used, stats.prompts.limit)
+        );
+        usageContainer.appendChild(
+          planUI.createUsageIndicator('Favoritos', stats.favorites.used, stats.favorites.limit)
+        );
+        usageContainer.appendChild(
+          planUI.createUsageIndicator('GPTs usados hoy', stats.gptUsageToday.used, stats.gptUsageToday.limit)
+        );
+      });
+      
+      // Upgrade CTAs
+      const ctaContainer = document.getElementById('upgrade-ctas');
+      ctaContainer.innerHTML = '<h3>CTA Genérico:</h3>';
+      const genericCTA = planUI.createUpgradeCTA('generic');
+      if (genericCTA) ctaContainer.appendChild(genericCTA);
+      
+      ctaContainer.innerHTML += '<h3 style="margin-top: 24px;">CTA GPT Bloqueado:</h3>';
+      const lockedCTA = planUI.createUpgradeCTA('gpt_locked');
+      if (lockedCTA) ctaContainer.appendChild(lockedCTA);
+      
+      // GPT Cards
+      renderGPTCards();
+      
+      // Plan Info Panel
+      const infoPanel = document.getElementById('plan-info-panel');
+      infoPanel.innerHTML = '';
+      infoPanel.appendChild(planUI.createPlanInfoPanel());
+      
+      // Aplicar restricciones a botones
+      planUI.applyPlanRestrictions(document.getElementById('export-btn'), 'exportEnabled');
+      planUI.applyPlanRestrictions(document.getElementById('multiselect-btn'), 'multiSelectEnabled');
+      planUI.applyPlanRestrictions(document.getElementById('custom-cat-btn'), 'customCategories');
+      planUI.applyPlanRestrictions(document.getElementById('sync-btn'), 'syncEnabled');
+    }
+    
+    // Renderizar GPT cards de ejemplo
+    function renderGPTCards() {
+      const container = document.getElementById('gpt-cards');
+      container.innerHTML = '';
+      
+      const sampleGPTs = [
+        { 
+          id: 'gpt-1', 
+          name: 'GPT Básico', 
+          description: 'Disponible para todos los planes',
+          category: 'General',
+          tier: 'basic',
+          url: '#'
+        },
+        { 
+          id: 'gpt-2', 
+          name: 'GPT Lite', 
+          description: 'Requiere plan Lite o superior',
+          category: 'Productividad',
+          tier: 'lite',
+          url: '#'
+        },
+        { 
+          id: 'gpt-3', 
+          name: 'GPT Premium', 
+          description: 'Solo para usuarios Premium',
+          category: 'Avanzado',
+          tier: 'premium',
+          url: '#'
+        }
+      ];
+      
+      sampleGPTs.forEach(gpt => {
+        const hasAccess = 
+          gpt.tier === 'basic' ||
+          (gpt.tier === 'lite' && planManager.hasPlan('lite')) ||
+          (gpt.tier === 'premium' && planManager.hasPlan('premium'));
+        
+        const card = document.createElement('div');
+        card.className = 'gpt-card';
+        if (gpt.tier === 'lite') card.classList.add('lite-only');
+        if (gpt.tier === 'premium') card.classList.add('premium-only');
+        if (!hasAccess) card.classList.add('locked');
+        
+        card.innerHTML = `
+          <div class="gpt-card-content">
+            <div class="gpt-card-header">
+              <h3 class="gpt-card-title">${gpt.name}</h3>
+              <button class="favorite-btn" ${!hasAccess ? 'disabled' : ''}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                </svg>
+              </button>
+            </div>
+            <p class="gpt-card-description">${gpt.description}</p>
+            <div class="gpt-card-footer">
+              <span class="gpt-card-badge">${gpt.category}</span>
+            </div>
+          </div>
+          ${!hasAccess ? planUI.createLockedOverlay('gpt', gpt.tier).outerHTML : ''}
+        `;
+        
+        container.appendChild(card);
+      });
+    }
+    
+    // Inicializar
+    async function init() {
+      await planManager.initialize();
+      renderAll();
+    }
+    
+    init();
+  </script>
+</body>
+</html>

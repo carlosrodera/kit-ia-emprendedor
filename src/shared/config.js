@@ -26,7 +26,7 @@ export const SUPABASE_CONFIG = {
     auth: {
       autoRefreshToken: true,
       persistSession: true,
-      detectSessionInUrl: true,
+      detectSessionInUrl: false, // IMPORTANTE: false en Chrome Extensions
       flowType: 'pkce'
     },
     realtime: {

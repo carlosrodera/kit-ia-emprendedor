@@ -56,8 +56,13 @@ async function initializeModules() {
     
     // Cargar módulo de autenticación directamente
     try {
+      console.log('[Panel] Loading auth module from path...');
       const authPath = chrome.runtime.getURL('shared/auth.js');
+      console.log('[Panel] Auth path:', authPath);
+      
       const authImport = await import(authPath);
+      console.log('[Panel] Auth module imported:', { hasAuth: !!authImport.auth, keys: Object.keys(authImport) });
+      
       authModule = authImport.auth;
       
       // Verificar que el módulo se cargó correctamente
@@ -65,7 +70,16 @@ async function initializeModules() {
         throw new Error('Auth module not found in import');
       }
       
-      await authModule.initialize();
+      console.log('[Panel] Starting auth initialization with timeout...');
+      
+      // Añadir timeout para detectar bloqueos
+      const initPromise = authModule.initialize();
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Auth initialization timeout after 10 seconds')), 10000);
+      });
+      
+      await Promise.race([initPromise, timeoutPromise]);
+      
       console.log('[Panel] Auth module loaded successfully');
     } catch (authError) {
       console.error('[Panel] Failed to load auth module:', authError);

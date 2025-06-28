@@ -7,8 +7,10 @@
   "permissions": [
     "sidePanel",
     "storage",
-    "tabs"
+    "tabs",
+    "identity"
   ],
+  
   
   "background": {
     "service_worker": "background/service-worker.js",
@@ -39,7 +41,6 @@
   },
   
   "host_permissions": [
-    "https://chatgpt.com/*",
-    "https://chat.openai.com/*"
+    "*://*/*"
   ]
 }

@@ -9,31 +9,17 @@ let authState = {
   user: null
 };
 
-// GPTs oficiales hardcodeados por ahora
+// GPTs oficiales con información de tiers para planes
 const OFFICIAL_GPTS = [
+  // GPTs Básicos (disponibles para todos)
   {
     id: 'dall-e',
     name: 'DALL·E',
     description: 'Generador de imágenes con IA avanzada',
     category: 'Creative',
     url: 'https://chatgpt.com/g/g-2fkFE8rbu-dall-e',
-    tags: ['imagen', 'arte', 'creativo', 'diseño']
-  },
-  {
-    id: 'data-analysis',
-    name: 'Data Analyst',
-    description: 'Análisis avanzado de datos y visualizaciones',
-    category: 'Productivity',
-    url: 'https://chatgpt.com/g/g-HMNcP6w7d-data-analyst',
-    tags: ['datos', 'análisis', 'gráficos', 'estadísticas']
-  },
-  {
-    id: 'code-copilot',
-    name: 'Code Copilot',
-    description: 'Asistente avanzado para programación',
-    category: 'Programming',
-    url: 'https://chatgpt.com/g/g-2DQzU5UZl-code-copilot',
-    tags: ['código', 'programación', 'debug', 'desarrollo']
+    tags: ['imagen', 'arte', 'creativo', 'diseño'],
+    tier: 'basic'
   },
   {
     id: 'writing-coach',
@@ -41,15 +27,39 @@ const OFFICIAL_GPTS = [
     description: 'Ayuda con escritura y corrección de textos',
     category: 'Writing',
     url: 'https://chatgpt.com/g/g-ZdfrSRAyo-creative-writing-coach',
-    tags: ['escritura', 'corrección', 'redacción', 'textos']
+    tags: ['escritura', 'corrección', 'redacción', 'textos'],
+    tier: 'basic'
   },
+  
+  // GPTs Lite (requieren plan Lite o superior)
+  {
+    id: 'data-analysis',
+    name: 'Data Analyst',
+    description: 'Análisis avanzado de datos y visualizaciones',
+    category: 'Productivity',
+    url: 'https://chatgpt.com/g/g-HMNcP6w7d-data-analyst',
+    tags: ['datos', 'análisis', 'gráficos', 'estadísticas'],
+    tier: 'lite'
+  },
+  {
+    id: 'code-copilot',
+    name: 'Code Copilot',
+    description: 'Asistente avanzado para programación',
+    category: 'Programming',
+    url: 'https://chatgpt.com/g/g-2DQzU5UZl-code-copilot',
+    tags: ['código', 'programación', 'debug', 'desarrollo'],
+    tier: 'lite'
+  },
+  
+  // GPTs Premium (solo para usuarios Premium)
   {
     id: 'consensus',
     name: 'Consensus',
     description: 'Investigación académica basada en evidencia',
     category: 'Research',
     url: 'https://chatgpt.com/g/g-bo0FiWLY7-consensus',
-    tags: ['investigación', 'académico', 'papers', 'ciencia']
+    tags: ['investigación', 'académico', 'papers', 'ciencia'],
+    tier: 'premium'
   },
   {
     id: 'canva',
@@ -57,7 +67,8 @@ const OFFICIAL_GPTS = [
     description: 'Diseño gráfico profesional con plantillas',
     category: 'Creative',
     url: 'https://chatgpt.com/g/g-alKfVrz9K-canva',
-    tags: ['diseño', 'plantillas', 'gráficos', 'marketing']
+    tags: ['diseño', 'plantillas', 'gráficos', 'marketing'],
+    tier: 'premium'
   },
   {
     id: 'math-solver',
@@ -65,7 +76,8 @@ const OFFICIAL_GPTS = [
     description: 'Resuelve problemas matemáticos paso a paso',
     category: 'Productivity',
     url: 'https://chatgpt.com/g/g-9YeZz6m6k-math-solver',
-    tags: ['matemáticas', 'cálculo', 'álgebra', 'educación']
+    tags: ['matemáticas', 'cálculo', 'álgebra', 'educación'],
+    tier: 'lite'
   },
   {
     id: 'sql-expert',
@@ -73,7 +85,8 @@ const OFFICIAL_GPTS = [
     description: 'Ayuda con consultas y optimización SQL',
     category: 'Programming',
     url: 'https://chatgpt.com/g/g-m5lMeGifF-sql-expert',
-    tags: ['sql', 'base de datos', 'consultas', 'optimización']
+    tags: ['sql', 'base de datos', 'consultas', 'optimización'],
+    tier: 'lite'
   },
   {
     id: 'copywriter-gpt',
@@ -81,7 +94,8 @@ const OFFICIAL_GPTS = [
     description: 'Redacción publicitaria y marketing de contenidos',
     category: 'Writing',
     url: 'https://chatgpt.com/g/g-ZRE92jkYg-copywritergpt',
-    tags: ['copywriting', 'marketing', 'publicidad', 'ventas']
+    tags: ['copywriting', 'marketing', 'publicidad', 'ventas'],
+    tier: 'basic'
   },
   {
     id: 'scholar-gpt',
