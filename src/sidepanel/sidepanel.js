@@ -99,11 +99,8 @@ async function initializeModules() {
       logger.error('[Panel] Failed to load Chrome auth module:', authError);
       logger.error('[Panel] Auth error details:', authError.stack);
       
-      // Mostrar error específico al usuario
-      const errorMessage = authError.message || 'Error desconocido al cargar autenticación';
-      showToast(`Error de autenticación: ${errorMessage}`, 'error');
-      
       // No continuar sin auth - es crítico
+      // El error será manejado en el DOMContentLoaded
       throw authError;
     }
     
@@ -756,27 +753,51 @@ async function handleEmailRegister(e) {
 
 // Inicialización principal
 document.addEventListener('DOMContentLoaded', async () => {
-  logger.debug('[Panel] Initializing...');
+  logger.debug('[Panel] DOM Content Loaded - Starting initialization...');
 
-  // Inicializar módulos primero
-  await initializeModules();
-  
-  // Verificar autenticación antes de continuar
-  const isAuthenticated = await checkAuthentication();
-  
-  if (!isAuthenticated) {
-    // La función showLoginScreen ya se ejecutó en checkAuthentication
-    return;
+  try {
+    // Inicializar módulos primero
+    await initializeModules();
+    
+    // Verificar autenticación antes de continuar
+    const isAuthenticated = await checkAuthentication();
+    
+    if (!isAuthenticated) {
+      // La función showLoginScreen ya se ejecutó en checkAuthentication
+      return;
+    }
+
+    // Cachear elementos DOM
+    cacheElements();
+
+    // Configurar event listeners
+    setupEventListeners();
+
+    // Renderizar UI (los datos ya se cargaron en checkAuthentication)
+    renderContent();
+  } catch (error) {
+    logger.error('[Panel] Critical initialization error:', error);
+    
+    // Mostrar error en la UI
+    const errorHtml = `
+      <div class="error-screen">
+        <div class="error-container">
+          <div class="error-icon">⚠️</div>
+          <h2>Error de Sistema</h2>
+          <p>No se pudo cargar el módulo de autenticación.</p>
+          <details>
+            <summary>Detalles técnicos</summary>
+            <pre>${error.message}\n${error.stack}</pre>
+          </details>
+          <button class="btn btn-primary" onclick="location.reload()">
+            🔄 Recargar Extensión
+          </button>
+        </div>
+      </div>
+    `;
+    
+    SecureDOM.setHTML(document.body, errorHtml);
   }
-
-  // Cachear elementos DOM
-  cacheElements();
-
-  // Configurar event listeners
-  setupEventListeners();
-
-  // Renderizar UI (los datos ya se cargaron en checkAuthentication)
-  renderContent();
 });
 
 /**

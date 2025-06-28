@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Kit IA Emprendedor [DEV]",
-  "version": "1.0.1-dev",
+  "version": "1.0.1",
   "description": "Tu asistente personal para acceder rápidamente a los mejores GPTs oficiales de OpenAI - DEVELOPMENT VERSION",
   
   "permissions": [
