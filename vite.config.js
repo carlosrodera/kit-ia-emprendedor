@@ -58,6 +58,10 @@ export default defineConfig(({ mode }) => {
           'module-loader': resolve(__dirname, 'src/sidepanel/modules/module-loader.js'),
           'favorites-module': resolve(__dirname, 'src/sidepanel/modules/favorites.js'),
           
+          // Plan System
+          'plan-manager': resolve(__dirname, 'src/shared/plan-manager.js'),
+          'plan-ui': resolve(__dirname, 'src/sidepanel/components/plan-ui.js'),
+          
           // Shared Modules
           'auth': resolve(__dirname, 'src/shared/auth.js'),
           'chrome-auth': resolve(__dirname, 'src/shared/chrome-auth.js'),
@@ -94,6 +98,13 @@ export default defineConfig(({ mode }) => {
             }
             if (chunkInfo.name === 'favorites-module') {
               return 'sidepanel/modules/favorites.js';
+            }
+            // Plan system
+            if (chunkInfo.name === 'plan-manager') {
+              return 'shared/plan-manager.js';
+            }
+            if (chunkInfo.name === 'plan-ui') {
+              return 'sidepanel/components/plan-ui.js';
             }
             // Shared modules
             if (['auth', 'chrome-auth', 'config', 'constants', 'logger', 'storage'].includes(chunkInfo.name)) {

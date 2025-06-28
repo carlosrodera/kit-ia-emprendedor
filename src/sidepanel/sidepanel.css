@@ -3,6 +3,9 @@
  * Diseño moderno, limpio y profesional
  */
 
+/* Import plan UI styles */
+@import './styles/plan-ui.css';
+
 :root {
   /* Dark mode con acentos verdes */
   --bg-primary: #0d0d0d;

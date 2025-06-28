@@ -11,6 +11,8 @@
 let favoritesManager = null;
 let moduleLoader = null;
 let authModule = null;
+let planManager = null;
+let planUI = null;
 
 // Estado de la aplicación
 const state = {
@@ -94,6 +96,24 @@ async function initializeModules() {
     
     // Inicializar favoritos
     await favoritesManager.init();
+    
+    // Cargar plan manager y UI
+    try {
+      const planManagerPath = chrome.runtime.getURL('shared/plan-manager.js');
+      const planManagerModule = await import(planManagerPath);
+      planManager = planManagerModule.default;
+      
+      const planUIPath = chrome.runtime.getURL('sidepanel/components/plan-ui.js');
+      const planUIModule = await import(planUIPath);
+      planUI = planUIModule.default;
+      
+      // Inicializar plan manager
+      await planManager.initialize();
+      console.log('[Panel] Plan Manager initialized');
+    } catch (planError) {
+      console.error('[Panel] Failed to load plan system:', planError);
+      // No es crítico, continuar sin sistema de planes
+    }
     
     state.modulesLoaded = true;
     console.log('[Panel] Modules loaded successfully');
@@ -202,6 +222,9 @@ async function checkAuthentication() {
     
     // Actualizar avatar del usuario
     updateUserAvatar();
+    
+    // Mostrar badge del plan
+    displayPlanBadge();
     
     // Cargar datos después de verificar autenticación
     loadInitialData();
@@ -2125,6 +2148,66 @@ function updateUserAvatar() {
     const initials = getUserInitials(state.currentUser.email);
     elements.userInitials.textContent = initials;
   }
+}
+
+/**
+ * Muestra el badge del plan en el header
+ */
+function displayPlanBadge() {
+  if (!planUI || !planManager) {
+    console.warn('[Panel] Plan system not loaded');
+    return;
+  }
+  
+  const container = document.getElementById('plan-badge-container');
+  if (!container) {
+    console.warn('[Panel] Plan badge container not found');
+    return;
+  }
+  
+  // Crear y mostrar el badge
+  const badge = planUI.createPlanBadge();
+  container.innerHTML = '';
+  container.appendChild(badge);
+  
+  // Añadir click handler para mostrar info del plan
+  badge.addEventListener('click', showPlanInfo);
+}
+
+/**
+ * Muestra información detallada del plan
+ */
+function showPlanInfo() {
+  if (!planUI || !planManager) return;
+  
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+  modal.style.display = 'block';
+  
+  const planInfo = planUI.createPlanInfoPanel();
+  const modalContent = document.createElement('div');
+  modalContent.className = 'modal-content';
+  modalContent.style.maxWidth = '500px';
+  
+  const modalHeader = document.createElement('div');
+  modalHeader.className = 'modal-header';
+  modalHeader.innerHTML = `
+    <h2>Tu Plan Actual</h2>
+    <button class="modal-close">&times;</button>
+  `;
+  
+  modalContent.appendChild(modalHeader);
+  modalContent.appendChild(planInfo);
+  modal.appendChild(modalContent);
+  
+  document.body.appendChild(modal);
+  
+  // Event listeners
+  const closeBtn = modalHeader.querySelector('.modal-close');
+  closeBtn.addEventListener('click', () => modal.remove());
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) modal.remove();
+  });
 }
 
 /**

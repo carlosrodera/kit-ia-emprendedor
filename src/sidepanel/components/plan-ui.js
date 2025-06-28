@@ -30,8 +30,6 @@ export function createPlanBadge() {
       </svg>
       <span>LITE</span>
     `;
-  } else {
-    badge.innerHTML = `<span>GRATIS</span>`;
   }
   
   return badge;
@@ -75,22 +73,18 @@ export function createUpgradeCTA(context = 'generic') {
   const cta = document.createElement('div');
   cta.className = 'upgrade-cta';
   
-  // Determinar el plan objetivo
-  const targetPlan = currentPlan.id === 'free' ? PLANS.lite : PLANS.premium;
+  // Solo hay LITE y PREMIUM, así que el objetivo siempre es PREMIUM
+  const targetPlan = PLANS.premium;
   
-  // Mensajes contextuales
+  // Mensajes contextuales (solo para LITE -> PREMIUM)
   const messages = {
     generic: {
-      title: currentPlan.id === 'free' ? '🚀 Desbloquea más funciones' : '⭐ Hazte Premium',
-      subtitle: currentPlan.id === 'free' 
-        ? 'Accede a más GPTs y características avanzadas' 
-        : 'Acceso ilimitado a todos los GPTs y funciones'
+      title: '⭐ Hazte Premium',
+      subtitle: 'Acceso ilimitado a todos los GPTs premium y funciones avanzadas'
     },
     gpt_locked: {
-      title: '🔒 GPT Bloqueado',
-      subtitle: currentPlan.id === 'free'
-        ? 'Hazte LITE para desbloquear este GPT por solo $4.99'
-        : 'Este GPT requiere el plan Premium'
+      title: '🔒 GPT Premium',
+      subtitle: 'Este GPT requiere el plan Premium - Pago único de $47'
     },
     limit_reached: {
       title: '⚠️ Límite alcanzado',

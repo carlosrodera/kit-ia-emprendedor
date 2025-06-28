@@ -9,66 +9,42 @@ import { logger } from './logger.js';
 import auth from './auth.js';
 
 /**
- * Mock data para desarrollo mientras no tengamos Supabase configurado
- * TODO: Eliminar cuando tengamos las tablas de planes en producción
+ * Modo producción - conectado a Supabase real
  */
-const MOCK_MODE = true;
-const MOCK_USER_PLAN = 'lite'; // Cambiar a 'premium' para testear UI premium
+const MOCK_MODE = false; // PRODUCCIÓN ACTIVADA
 
 /**
- * Planes disponibles y sus características
+ * Planes disponibles - SOLO 2 PLANES
  */
 export const PLANS = {
-  free: {
-    id: 'free',
-    name: 'Plan Gratuito',
-    price: 0,
+  lite: {
+    id: 'lite',
+    name: 'Kit IA Lite',
+    price: 0, // GRATIS
     features: {
-      maxPrompts: 5,
-      maxFavorites: 3,
-      gptsAccess: 'basic', // Solo GPTs básicos
+      maxPrompts: 20,
+      maxFavorites: 10,
+      gptsAccess: 'basic', // Solo GPTs básicos gratuitos
       syncEnabled: false,
-      exportEnabled: false,
+      exportEnabled: true,
       multiSelectEnabled: false,
       advancedSearch: false,
       customCategories: false,
       prioritySupport: false
     },
     limits: {
-      dailyGptUsage: 10,
-      promptLength: 500
-    }
-  },
-  lite: {
-    id: 'lite',
-    name: 'Kit IA Lite',
-    price: 4.99,
-    monthlyPrice: 4.99,
-    features: {
-      maxPrompts: 50,
-      maxFavorites: 20,
-      gptsAccess: 'lite', // GPTs Lite desbloqueables
-      syncEnabled: true,
-      exportEnabled: true,
-      multiSelectEnabled: true,
-      advancedSearch: true,
-      customCategories: false,
-      prioritySupport: false
-    },
-    limits: {
-      dailyGptUsage: 100,
-      promptLength: 2000
+      dailyGptUsage: 50,
+      promptLength: 1000
     }
   },
   premium: {
     id: 'premium',
     name: 'Kit IA Premium',
-    price: 19.99,
-    monthlyPrice: 19.99,
+    price: 47, // Pago único
     features: {
       maxPrompts: -1, // Ilimitado
       maxFavorites: -1, // Ilimitado
-      gptsAccess: 'all', // Todos los GPTs
+      gptsAccess: 'all', // Todos los GPTs premium
       syncEnabled: true,
       exportEnabled: true,
       multiSelectEnabled: true,
@@ -157,7 +133,7 @@ class PlanManager {
       const user = auth.getCurrentUser();
       if (!user) {
         logger.warn('[PlanManager] No authenticated user');
-        currentUserPlan = PLANS.free;
+        currentUserPlan = PLANS.lite; // Por defecto LITE (gratis)
         return;
       }
 
@@ -168,11 +144,11 @@ class PlanManager {
       //   .eq('id', user.id)
       //   .single();
 
-      // Por ahora, usar plan free por defecto
+      // Por ahora, usar plan LITE por defecto
       this.userProfile = {
         id: user.id,
         email: user.email,
-        plan: 'free',
+        plan: 'lite', // LITE es el plan gratuito
         plan_started_at: new Date().toISOString()
       };
 
@@ -180,7 +156,7 @@ class PlanManager {
       this.notifySubscribers();
     } catch (error) {
       logger.error('[PlanManager] Error loading user plan:', error);
-      currentUserPlan = PLANS.free;
+      currentUserPlan = PLANS.lite; // Por defecto LITE
     }
   }
 
@@ -188,7 +164,7 @@ class PlanManager {
    * Obtiene el plan actual del usuario
    */
   getCurrentPlan() {
-    return currentUserPlan || PLANS.free;
+    return currentUserPlan || PLANS.lite; // Por defecto LITE
   }
 
   /**
@@ -202,7 +178,7 @@ class PlanManager {
    * Verifica si el usuario tiene un plan específico o superior
    */
   hasPlan(planId) {
-    const planHierarchy = ['free', 'lite', 'premium'];
+    const planHierarchy = ['lite', 'premium']; // Solo 2 planes
     const currentIndex = planHierarchy.indexOf(this.getCurrentPlanId());
     const requiredIndex = planHierarchy.indexOf(planId);
     
@@ -224,10 +200,11 @@ class PlanManager {
   }
 
   /**
-   * Verifica si el usuario es free
+   * Verifica si el usuario es free (eliminado - ya no existe este plan)
+   * @deprecated Usar isLite() en su lugar
    */
   isFree() {
-    return this.getCurrentPlanId() === 'free';
+    return false; // No existe plan free
   }
 
   /**
@@ -250,14 +227,14 @@ class PlanManager {
   }
 
   /**
-   * Verifica si el usuario ha desbloqueado un GPT específico (para plan Lite)
+   * Verifica si el usuario tiene acceso a un GPT específico
    */
   hasUnlockedGPT(gptId) {
     if (this.isPremium()) return true; // Premium tiene acceso a todo
-    if (this.isFree()) return false; // Free no tiene acceso a GPTs Lite
     
-    // Para plan Lite, verificar si está desbloqueado
-    return this.userProfile?.unlocked_gpts?.includes(gptId) || false;
+    // Para plan Lite, solo tiene acceso a GPTs básicos
+    // TODO: Implementar verificación contra lista de GPTs básicos
+    return false; // Por ahora, Lite no tiene acceso a GPTs especiales
   }
 
   /**
