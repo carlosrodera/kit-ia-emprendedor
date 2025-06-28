@@ -7,6 +7,11 @@
  * @since 2025-01-21
  */
 
+// Importar utilidades de seguridad
+import SecureDOM from '../utils/secure-dom.js';
+import logger from '../utils/logger.js';
+import configManager from '../utils/config-manager.js';
+
 // Módulos globales
 let favoritesManager = null;
 let moduleLoader = null;
@@ -45,7 +50,7 @@ const elements = {};
  */
 async function initializeModules() {
   try {
-    console.log('[Panel] Loading modules...');
+    logger.debug('[Panel] Loading modules...');
     
     // Cargar module loader usando ruta absoluta
     const moduleLoaderPath = chrome.runtime.getURL('sidepanel/modules/module-loader.js');
@@ -55,36 +60,29 @@ async function initializeModules() {
     // Inicializar module loader
     await moduleLoader.init();
     
-    // Cargar módulo de autenticación directamente
+    // Cargar módulo de autenticación Chrome-specific
     try {
-      console.log('[Panel] Loading auth module from path...');
-      const authPath = chrome.runtime.getURL('shared/auth.js');
-      console.log('[Panel] Auth path:', authPath);
+      logger.debug('[Panel] Loading Chrome auth module...');
+      const authPath = chrome.runtime.getURL('shared/chrome-auth.js');
+      logger.debug('[Panel] Chrome auth path:', authPath);
       
       const authImport = await import(authPath);
-      console.log('[Panel] Auth module imported:', { hasAuth: !!authImport.auth, keys: Object.keys(authImport) });
+      logger.debug('[Panel] Chrome auth module imported:', { hasAuth: !!authImport.auth, keys: Object.keys(authImport) });
       
       authModule = authImport.auth;
       
       // Verificar que el módulo se cargó correctamente
       if (!authModule) {
-        throw new Error('Auth module not found in import');
+        throw new Error('Chrome auth module not found in import');
       }
       
-      console.log('[Panel] Starting auth initialization with timeout...');
-      
-      // Añadir timeout para detectar bloqueos
-      const initPromise = authModule.initialize();
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Auth initialization timeout after 10 seconds')), 10000);
-      });
-      
-      await Promise.race([initPromise, timeoutPromise]);
-      
-      console.log('[Panel] Auth module loaded successfully');
+      // Inicializar sin timeout - chrome-auth.js maneja esto correctamente
+      logger.debug('[Panel] Initializing Chrome auth...');
+      await authModule.initialize();
+      logger.debug('[Panel] Chrome auth module loaded successfully');
     } catch (authError) {
-      console.error('[Panel] Failed to load auth module:', authError);
-      console.error('[Panel] Auth error details:', authError.stack);
+      logger.error('[Panel] Failed to load Chrome auth module:', authError);
+      logger.error('[Panel] Auth error details:', authError.stack);
       // No continuar sin auth - es crítico
       throw authError;
     }
@@ -108,19 +106,19 @@ async function initializeModules() {
       
       // Inicializar plan manager
       await planManager.initialize();
-      console.log('[Panel] Plan Manager initialized');
+      logger.debug('[Panel] Plan Manager initialized');
     } catch (planError) {
-      console.error('[Panel] Failed to load plan system:', planError);
+      logger.error('[Panel] Failed to load plan system:', planError);
       // No es crítico, continuar sin sistema de planes
     }
     
     state.modulesLoaded = true;
-    console.log('[Panel] Modules loaded successfully');
+    logger.debug('[Panel] Modules loaded successfully');
     
     return true;
     
   } catch (error) {
-    console.error('[Panel] Failed to load modules:', error);
+    logger.error('[Panel] Failed to load modules:', error);
     
     // Fallback: usar implementación simple en línea
     await initializeFallbackFavorites();
@@ -136,7 +134,7 @@ async function initializeModules() {
  * @async
  */
 async function initializeFallbackFavorites() {
-  console.log('[Panel] Using fallback favorites implementation');
+  logger.debug('[Panel] Using fallback favorites implementation');
   
   // Implementación mínima inline
   const favorites = new Set();
@@ -148,7 +146,7 @@ async function initializeFallbackFavorites() {
       result.favorites.forEach(id => favorites.add(id));
     }
   } catch (error) {
-    console.error('[Panel] Fallback favorites load failed:', error);
+    logger.error('[Panel] Fallback favorites load failed:', error);
   }
   
   // Crear objeto compatible con API de FavoritesManager
@@ -164,7 +162,7 @@ async function initializeFallbackFavorites() {
       try {
         await chrome.storage.local.set({ favorites: Array.from(favorites) });
       } catch (error) {
-        console.error('[Panel] Fallback save failed:', error);
+        logger.error('[Panel] Fallback save failed:', error);
       }
       
       return favorites.has(id);
@@ -185,7 +183,7 @@ async function checkAuthentication() {
   const DEV_MODE = false;
   
   if (DEV_MODE) {
-    console.warn('[Panel] 🔧 DEVELOPMENT MODE - Auth bypassed temporalmente');
+    logger.warn('[Panel] 🔧 DEVELOPMENT MODE - Auth bypassed temporalmente');
     state.isAuthenticated = true;
     state.currentUser = {
       email: 'dev@kitiaemprendedor.com',
@@ -200,7 +198,7 @@ async function checkAuthentication() {
   }
   
   if (!authModule) {
-    console.error('[Panel] Auth module not loaded - BLOCKING ACCESS');
+    logger.error('[Panel] Auth module not loaded - BLOCKING ACCESS');
     showAuthRequiredScreen();
     return false; // BLOQUEAR acceso sin auth
   }
@@ -209,7 +207,7 @@ async function checkAuthentication() {
     const isAuthenticated = authModule.isAuthenticated();
     const user = authModule.getCurrentUser();
     
-    console.log('[Panel] Auth status:', { isAuthenticated, user: user?.email });
+    logger.debug('[Panel] Auth status:', { isAuthenticated, user: user?.email });
     
     state.isAuthenticated = isAuthenticated;
     state.currentUser = user;
@@ -230,7 +228,7 @@ async function checkAuthentication() {
     
     return true;
   } catch (error) {
-    console.error('[Panel] Error checking authentication:', error);
+    logger.error('[Panel] Error checking authentication:', error);
     showAuthRequiredScreen();
     return false; // BLOQUEAR acceso en caso de error
   }
@@ -261,8 +259,8 @@ function showAuthRequiredScreen() {
             <button id="reload-extension-btn" class="btn-primary">
               🔄 Recargar Extensión
             </button>
-            <button id="open-login-page-btn" class="btn-secondary">
-              🔑 Abrir Login
+            <button id="show-login-btn" class="btn-secondary">
+              🔑 Mostrar Login
             </button>
           </div>
         </div>
@@ -275,16 +273,15 @@ function showAuthRequiredScreen() {
   
   // Configurar event listeners
   const reloadBtn = document.getElementById('reload-extension-btn');
-  const openLoginBtn = document.getElementById('open-login-page-btn');
+  const showLoginBtn = document.getElementById('show-login-btn');
   
   if (reloadBtn) {
     reloadBtn.addEventListener('click', () => location.reload());
   }
   
-  if (openLoginBtn) {
-    openLoginBtn.addEventListener('click', () => {
-      const loginUrl = chrome.runtime.getURL('auth/login.html');
-      chrome.tabs.create({ url: loginUrl });
+  if (showLoginBtn) {
+    showLoginBtn.addEventListener('click', () => {
+      showLoginScreen();
     });
   }
 }
@@ -400,7 +397,7 @@ function showLoginScreen() {
   `;
   
   // Reemplazar todo el contenido del panel
-  document.body.innerHTML = loginHtml;
+  SecureDOM.setHTML(document.body, loginHtml);
   
   // Configurar event listeners para login/activación
   setupLoginEventListeners();
@@ -472,7 +469,7 @@ async function handleRegister(e) {
     }
     
   } catch (error) {
-    console.error('[Panel] Registration error:', error);
+    logger.error('[Panel] Registration error:', error);
     showToast(error.message || 'Error al crear cuenta', 'error');
   }
 }
@@ -514,7 +511,7 @@ async function handleLogin(e) {
     }
     
   } catch (error) {
-    console.error('[Panel] Login error:', error);
+    logger.error('[Panel] Login error:', error);
     showToast(error.message || 'Error al iniciar sesión', 'error');
   }
 }
@@ -531,7 +528,7 @@ async function checkUserAccess(email) {
     
     return result.success && result.data.hasAccess;
   } catch (error) {
-    console.error('[Panel] Error checking user access:', error);
+    logger.error('[Panel] Error checking user access:', error);
     return false;
   }
 }
@@ -597,7 +594,7 @@ function showPremiumScreen() {
     </div>
   `;
   
-  document.body.innerHTML = premiumHtml;
+  SecureDOM.setHTML(document.body, premiumHtml);
   
   // Configurar event listener para el botón de volver
   const backBtn = document.getElementById('back-to-login-btn');
@@ -680,7 +677,7 @@ function showRegisterScreen() {
     </div>
   `;
   
-  document.body.innerHTML = registerHtml;
+  SecureDOM.setHTML(document.body, registerHtml);
   setupRegisterEventListeners();
 }
 
@@ -731,22 +728,15 @@ async function handleEmailRegister(e) {
       showLoginScreen();
     }, 1500);
   } catch (error) {
-    console.error('[Panel] Email register error:', error);
+    logger.error('[Panel] Email register error:', error);
     showToast(error.message || 'Error al crear cuenta', 'error');
   }
 }
 
-/**
- * Abre la página de login completa
- */
-function handleOpenLoginPage() {
-  const loginUrl = chrome.runtime.getURL('auth/login.html');
-  chrome.tabs.create({ url: loginUrl });
-}
 
 // Inicialización principal
 document.addEventListener('DOMContentLoaded', async () => {
-  console.log('[Panel] Initializing...');
+  logger.debug('[Panel] Initializing...');
 
   // Inicializar módulos primero
   await initializeModules();
@@ -828,7 +818,7 @@ async function loadInitialData() {
   try {
     // Obtener GPTs
     const gptsResponse = await chrome.runtime.sendMessage({ type: 'GET_GPTS' });
-    console.log('[Panel] GPTs loaded:', gptsResponse);
+    logger.debug('[Panel] GPTs loaded:', gptsResponse);
     if (gptsResponse.success) {
       state.gpts = gptsResponse.data;
       // Actualizar opciones de categorías después de cargar GPTs
@@ -838,9 +828,9 @@ async function loadInitialData() {
     // Obtener favoritos del manager
     try {
       state.favorites = favoritesManager.getAll();
-      console.log('[Panel] Current favorites:', state.favorites);
+      logger.debug('[Panel] Current favorites:', state.favorites);
     } catch (error) {
-      console.warn('[Panel] Error getting favorites:', error);
+      logger.warn('[Panel] Error getting favorites:', error);
       state.favorites = [];
     }
 
@@ -861,7 +851,7 @@ async function loadInitialData() {
     // Renderizar el contenido después de cargar los datos
     renderContent();
   } catch (error) {
-    console.error('[Panel] Error loading data:', error);
+    logger.error('[Panel] Error loading data:', error);
     state.isLoading = false;
     // Renderizar incluso en caso de error para mostrar empty state
     renderContent();
@@ -930,13 +920,13 @@ function getFilteredItems() {
 
   // Aplicar filtro de categoría (solo para GPTs)
   if (state.currentTab !== 'prompts' && state.currentCategory !== 'all') {
-    console.log('[Panel] Filtering by category:', state.currentCategory);
-    console.log('[Panel] Items before filter:', items.length);
+    logger.debug('[Panel] Filtering by category:', state.currentCategory);
+    logger.debug('[Panel] Items before filter:', items.length);
     items = items.filter(item => {
       // Solo filtrar GPTs por categoría
       return item.itemType !== 'gpt' || item.category === state.currentCategory;
     });
-    console.log('[Panel] Items after filter:', items.length);
+    logger.debug('[Panel] Items after filter:', items.length);
   }
 
   // Aplicar ordenamiento
@@ -994,7 +984,7 @@ function sortItems(items) {
  * Renderiza favoritos mixtos (GPTs y Prompts) en vista de lista
  */
 function renderMixedFavorites(items) {
-  console.log('[Panel] Rendering mixed favorites in list view:', items.length);
+  logger.debug('[Panel] Rendering mixed favorites in list view:', items.length);
   
   const container = document.createElement('div');
   container.className = 'gpts-list'; // Usar gpts-list que tiene estilos
@@ -1011,7 +1001,7 @@ function renderMixedFavorites(items) {
     container.appendChild(element);
   });
   
-  elements.content.innerHTML = '';
+  SecureDOM.clear(elements.content);
   elements.content.appendChild(container);
 }
 
@@ -1019,7 +1009,7 @@ function renderMixedFavorites(items) {
  * Renderiza GPTs
  */
 function renderGPTs(gpts) {
-  console.log('[Panel] Rendering GPTs in list view, count:', gpts.length);
+  logger.debug('[Panel] Rendering GPTs in list view, count:', gpts.length);
   
   const container = document.createElement('div');
   container.className = 'gpts-list';
@@ -1029,7 +1019,7 @@ function renderGPTs(gpts) {
     container.appendChild(element);
   });
   
-  elements.content.innerHTML = '';
+  SecureDOM.clear(elements.content);
   elements.content.appendChild(container);
 }
 
@@ -1040,11 +1030,11 @@ function renderGPTs(gpts) {
 function createGPTListItem(gpt) {
   // Verificar estado actual del favorito directamente del manager
   const isFavorite = favoritesManager.isFavorite(gpt.id);
-  console.log(`[Panel] Creating list item for ${gpt.id}, isFavorite: ${isFavorite}, manager has: ${favoritesManager.getAll().join(', ')}`);
+  logger.debug(`[Panel] Creating list item for ${gpt.id}, isFavorite: ${isFavorite}, manager has: ${favoritesManager.getAll().join(', ')}`);
 
   const item = document.createElement('div');
   item.className = 'gpt-list-item';
-  item.innerHTML = `
+  SecureDOM.setHTML(item, `
     <div class="gpt-list-content">
       <h3 class="gpt-list-title">${escapeHtml(gpt.name)}</h3>
       <p class="gpt-list-description">${escapeHtml(gpt.description)}</p>
@@ -1066,7 +1056,7 @@ function createGPTListItem(gpt) {
         </svg>
       </button>
     </div>
-  `;
+  `);
 
   // Event listeners - Usar delegación mejorada
   const favoriteBtn = item.querySelector('.favorite-btn');
@@ -1105,7 +1095,7 @@ function createPromptListItem(prompt) {
     item.classList.add('selected');
   }
   
-  item.innerHTML = `
+  SecureDOM.setHTML(item, `
     ${state.isSelectMode ? `
       <input type="checkbox" 
              class="prompt-checkbox" 
@@ -1150,7 +1140,7 @@ function createPromptListItem(prompt) {
         </svg>
       </button>
     </div>
-  `;
+  `);
 
   // Event listener para checkbox
   const checkbox = item.querySelector('.prompt-checkbox');
@@ -1182,7 +1172,7 @@ function createPromptListItem(prompt) {
  * Renderiza prompts en vista de lista
  */
 function renderPrompts(prompts) {
-  console.log('[Panel] Rendering prompts in list view, count:', prompts.length);
+  logger.debug('[Panel] Rendering prompts in list view, count:', prompts.length);
   
   const container = document.createElement('div');
   container.className = 'prompts-list';
@@ -1198,10 +1188,10 @@ function renderPrompts(prompts) {
   // Botón flotante para añadir prompt
   const addBtn = document.createElement('button');
   addBtn.className = 'add-prompt-btn';
-  addBtn.innerHTML = '+';
+  SecureDOM.setText(addBtn, '+');
   addBtn.addEventListener('click', () => showPromptModal());
 
-  elements.content.innerHTML = '';
+  SecureDOM.clear(elements.content);
   elements.content.appendChild(container);
   elements.content.appendChild(addBtn);
 }
@@ -1213,7 +1203,7 @@ function renderPrompts(prompts) {
 function createMultiSelectToolbar() {
   const toolbar = document.createElement('div');
   toolbar.className = 'multi-select-toolbar' + (state.isSelectMode ? ' active' : '');
-  toolbar.innerHTML = `
+  SecureDOM.setHTML(toolbar, `
     <div class="multi-select-controls">
       ${!state.isSelectMode ? `
         <button class="btn btn-select-mode" id="toggle-select-mode">
@@ -1281,7 +1271,7 @@ function createMultiSelectToolbar() {
         </div>
       `}
     </div>
-  `;
+  `);
 
   // Event listeners
   const toggleBtn = toolbar.querySelector('#toggle-select-mode');
@@ -1342,7 +1332,7 @@ function renderEmptyState() {
       emoji = '🔍';
   }
 
-  elements.content.innerHTML = `
+  SecureDOM.setHTML(elements.content, `
     <div class="empty-state">
       <div class="empty-state-icon">${emoji}</div>
       <h3>${message}</h3>
@@ -1351,7 +1341,7 @@ function renderEmptyState() {
     : '<p>Intenta con otros filtros</p>'
 }
     </div>
-  `;
+  `);
 
   // Añadir event listener si es la pestaña de prompts
   if (state.currentTab === 'prompts') {
@@ -1366,7 +1356,7 @@ function renderEmptyState() {
 
 async function handleSearch(e) {
   state.searchQuery = e.target.value.trim();
-  console.log('[Panel] Search query:', state.searchQuery);
+  logger.debug('[Panel] Search query:', state.searchQuery);
   renderContent();
 }
 
@@ -1457,7 +1447,7 @@ function updateCategoryOptions() {
   };
   
   // Limpiar opciones existentes
-  elements.categoryOptions.innerHTML = '';
+  elements.SecureDOM.clear(categoryOptions);
   
   // Añadir opción "Todas las categorías"
   const allOption = document.createElement('div');
@@ -1530,15 +1520,15 @@ function updateAllFavoriteButtons(gptId, isFavorite) {
   // Buscar TODOS los botones de favorito para este GPT
   const favoriteButtons = document.querySelectorAll(`button.favorite-btn[data-gpt-id="${gptId}"]`);
   
-  console.log(`[Panel] Updating ${favoriteButtons.length} favorite buttons for GPT ${gptId}`);
+  logger.debug(`[Panel] Updating ${favoriteButtons.length} favorite buttons for GPT ${gptId}`);
   
   favoriteButtons.forEach(button => {
     if (isFavorite) {
       button.classList.add('active');
-      console.log(`[Panel] Added active class to button for ${gptId}`);
+      logger.debug(`[Panel] Added active class to button for ${gptId}`);
     } else {
       button.classList.remove('active');
-      console.log(`[Panel] Removed active class from button for ${gptId}`);
+      logger.debug(`[Panel] Removed active class from button for ${gptId}`);
     }
   });
 }
@@ -1552,7 +1542,7 @@ function updateAllPromptFavoriteButtons(promptId, isFavorite) {
   // Buscar TODOS los botones de favorito para este Prompt
   const favoriteButtons = document.querySelectorAll(`button.prompt-favorite[data-prompt-id="${promptId}"]`);
   
-  console.log(`[Panel] Updating ${favoriteButtons.length} favorite buttons for Prompt ${promptId}`);
+  logger.debug(`[Panel] Updating ${favoriteButtons.length} favorite buttons for Prompt ${promptId}`);
   
   favoriteButtons.forEach(button => {
     if (isFavorite) {
@@ -1576,11 +1566,11 @@ async function handleFavoriteClick(e) {
   const gptId = button.dataset.gptId;
   
   if (!gptId) {
-    console.error('[Panel] No GPT ID found on button');
+    logger.error('[Panel] No GPT ID found on button');
     return;
   }
   
-  console.log('[Panel] Favorite clicked:', gptId);
+  logger.debug('[Panel] Favorite clicked:', gptId);
   
   // Desactivar TODOS los botones de este GPT temporalmente
   const allButtons = document.querySelectorAll(`button.favorite-btn[data-gpt-id="${gptId}"]`);
@@ -1588,7 +1578,7 @@ async function handleFavoriteClick(e) {
   
   try {
     // Debug state ANTES del toggle
-    console.log('[Panel] BEFORE toggle:', {
+    logger.debug('[Panel] BEFORE toggle:', {
       gptId,
       wasFavorite: favoritesManager.isFavorite(gptId),
       buttonClass: button.className
@@ -1598,7 +1588,7 @@ async function handleFavoriteClick(e) {
     const isFavorite = await favoritesManager.toggle(gptId);
     
     // Debug state DESPUÉS del toggle
-    console.log('[Panel] AFTER toggle:', {
+    logger.debug('[Panel] AFTER toggle:', {
       gptId,
       isNowFavorite: isFavorite,
       managerConfirms: favoritesManager.isFavorite(gptId)
@@ -1609,7 +1599,7 @@ async function handleFavoriteClick(e) {
     
     // Si estamos en favoritos y se eliminó, re-renderizar para quitar el item
     if (state.currentTab === 'favorites' && !isFavorite) {
-      console.log('[Panel] Re-rendering favorites because item was removed');
+      logger.debug('[Panel] Re-rendering favorites because item was removed');
       // Usar setTimeout para dar tiempo a que se actualice el storage
       setTimeout(() => renderContent(), 100);
     } else {
@@ -1621,7 +1611,7 @@ async function handleFavoriteClick(e) {
     showToast(isFavorite ? '⭐ Añadido a favoritos' : '💫 Eliminado de favoritos');
     
   } catch (error) {
-    console.error('[Panel] Error toggling favorite:', error);
+    logger.error('[Panel] Error toggling favorite:', error);
     showToast('Error al actualizar favorito', 'error');
   } finally {
     // Re-habilitar TODOS los botones
@@ -1640,11 +1630,11 @@ async function handlePromptFavoriteClick(e) {
   const promptId = button.dataset.promptId;
   
   if (!promptId) {
-    console.error('[Panel] No Prompt ID found on button');
+    logger.error('[Panel] No Prompt ID found on button');
     return;
   }
   
-  console.log('[Panel] Prompt favorite clicked:', promptId);
+  logger.debug('[Panel] Prompt favorite clicked:', promptId);
   
   // Desactivar el botón temporalmente
   button.disabled = true;
@@ -1658,7 +1648,7 @@ async function handlePromptFavoriteClick(e) {
     
     if (response.success) {
       const updatedPrompt = response.data;
-      console.log('[Panel] Prompt favorite toggled:', updatedPrompt);
+      logger.debug('[Panel] Prompt favorite toggled:', updatedPrompt);
       
       // Actualizar el prompt en el estado local
       const promptIndex = state.prompts.findIndex(p => p.id === promptId);
@@ -1673,7 +1663,7 @@ async function handlePromptFavoriteClick(e) {
       showToast(updatedPrompt.favorite ? '⭐ Prompt añadido a favoritos' : '💫 Prompt eliminado de favoritos');
     }
   } catch (error) {
-    console.error('[Panel] Error toggling prompt favorite:', error);
+    logger.error('[Panel] Error toggling prompt favorite:', error);
     showToast('Error al actualizar favorito', 'error');
   } finally {
     // Re-habilitar el botón
@@ -1702,7 +1692,7 @@ async function handlePromptAction(action, promptId) {
           await navigator.clipboard.writeText(prompt.content);
           showToast('Prompt copiado al portapapeles');
         } catch (error) {
-          console.error('Error copiando:', error);
+          logger.error('Error copiando:', error);
         }
       }
       break;
@@ -1728,7 +1718,7 @@ async function handlePromptAction(action, promptId) {
             showToast('Prompt eliminado');
           }
         } catch (error) {
-          console.error('[Panel] Error deleting prompt:', error);
+          logger.error('[Panel] Error deleting prompt:', error);
         }
       }
       break;
@@ -1829,7 +1819,7 @@ function copySelectedPrompts() {
       deselectAllPrompts();
     })
     .catch(err => {
-      console.error('[Panel] Error copiando:', err);
+      logger.error('[Panel] Error copiando:', err);
       showToast('Error al copiar prompts', 'error');
     });
 }
@@ -1919,7 +1909,7 @@ async function deleteSelectedPrompts() {
     renderContent();
     
   } catch (error) {
-    console.error('[Panel] Error deleting prompts:', error);
+    logger.error('[Panel] Error deleting prompts:', error);
     showToast('Error al eliminar prompts', 'error');
   }
 }
@@ -1978,7 +1968,7 @@ async function handlePromptSubmit(e) {
       showToast(promptId ? 'Prompt actualizado' : 'Prompt creado');
     }
   } catch (error) {
-    console.error('[Panel] Error saving prompt:', error);
+    logger.error('[Panel] Error saving prompt:', error);
     showToast('Error al guardar prompt', 'error');
   }
 }
@@ -1991,7 +1981,7 @@ async function handleNotifications() {
       showNotificationsModal(response.data.notifications);
     }
   } catch (error) {
-    console.error('[Panel] Error getting notifications:', error);
+    logger.error('[Panel] Error getting notifications:', error);
     showToast('Error al cargar notificaciones');
   }
 }
@@ -2116,7 +2106,7 @@ async function handleLogout() {
     // Recargar la página para mostrar login
     location.reload();
   } catch (error) {
-    console.error('[Panel] Logout error:', error);
+    logger.error('[Panel] Logout error:', error);
     showToast('Error al cerrar sesión', 'error');
   }
 }
@@ -2150,19 +2140,19 @@ function updateUserAvatar() {
  */
 function displayPlanBadge() {
   if (!planUI || !planManager) {
-    console.warn('[Panel] Plan system not loaded');
+    logger.warn('[Panel] Plan system not loaded');
     return;
   }
   
   const container = document.getElementById('plan-badge-container');
   if (!container) {
-    console.warn('[Panel] Plan badge container not found');
+    logger.warn('[Panel] Plan badge container not found');
     return;
   }
   
   // Crear y mostrar el badge
   const badge = planUI.createPlanBadge();
-  container.innerHTML = '';
+  SecureDOM.clear(container);
   container.appendChild(badge);
   
   // Añadir click handler para mostrar info del plan
@@ -2186,10 +2176,10 @@ function showPlanInfo() {
   
   const modalHeader = document.createElement('div');
   modalHeader.className = 'modal-header';
-  modalHeader.innerHTML = `
+  SecureDOM.setHTML(modalHeader, `
     <h2>Tu Plan Actual</h2>
     <button class="modal-close">&times;</button>
-  `;
+  `);
   
   modalContent.appendChild(modalHeader);
   modalContent.appendChild(planInfo);
@@ -2239,7 +2229,7 @@ function showNotificationsModal(notifications) {
   modal.className = 'modal';
   modal.style.display = 'block';
 
-  modal.innerHTML = `
+  SecureDOM.setHTML(modal, `
     <div class="modal-content">
       <div class="modal-header">
         <h2>Notificaciones</h2>
@@ -2260,11 +2250,11 @@ function showNotificationsModal(notifications) {
                   </div>
                 </div>
               `).join('')
-}
+          }
         </div>
       </div>
     </div>
-  `;
+  `);
 
   // Añadir event listener para el botón de cerrar
   const closeBtn = modal.querySelector('.notification-modal-close');
@@ -2354,7 +2344,7 @@ window.showPromptModal = showPromptModal;
 // Listener para cambios en storage (sincronización entre pestañas)
 chrome.storage.onChanged.addListener((changes, areaName) => {
   if (areaName === 'local' && changes.favorites) {
-    console.log('[Panel] Favorites changed externally');
+    logger.debug('[Panel] Favorites changed externally');
     // Solo actualizar si el cambio viene de otra pestaña/ventana
     // para evitar re-render innecesario cuando cambiamos favoritos localmente
     const currentFavorites = favoritesManager.getAll();

@@ -2,6 +2,8 @@
  * Ejemplo de uso del módulo de autenticación
  * Este archivo muestra cómo integrar el módulo auth en la extensión
  */
+import logger from '../utils/logger.js';
+
 
 import auth, { setupAutoRefresh, stopAutoRefresh } from './auth.js';
 import { CUSTOM_EVENTS } from './constants.js';
@@ -19,38 +21,38 @@ export async function initializeAuthInServiceWorker() {
 
     // Escuchar cambios de autenticación
     const unsubscribe = auth.onAuthStateChange((event, session) => {
-      console.log('Auth state changed:', event);
+      logger.debug('Auth state changed:', event);
 
       switch (event) {
         case 'SIGNED_IN':
-          console.log('User signed in:', session.user.email);
+          logger.debug('User signed in:', session.user.email);
           // Sincronizar GPTs, cargar preferencias, etc.
           break;
 
         case 'SIGNED_OUT':
-          console.log('User signed out');
+          logger.debug('User signed out');
           // Limpiar UI, resetear estado, etc.
           break;
 
         case 'TOKEN_REFRESHED':
-          console.log('Token refreshed successfully');
+          logger.debug('Token refreshed successfully');
           break;
       }
     });
 
     // Verificar si hay sesión activa
     if (auth.isAuthenticated()) {
-      console.log('User already authenticated:', auth.getCurrentUser());
+      logger.debug('User already authenticated:', auth.getCurrentUser());
 
       // Verificar suscripción
       const hasSubscription = await auth.hasActiveSubscription();
       if (!hasSubscription) {
-        console.log('User has no active subscription');
+        logger.debug('User has no active subscription');
         // Mostrar mensaje o limitar funcionalidades
       }
     }
   } catch (error) {
-    console.error('Error initializing auth:', error);
+    logger.error('Error initializing auth:', error);
   }
 }
 
@@ -65,7 +67,7 @@ export async function handleLoginInPopup() {
     // Intentar login con Google
     const result = await auth.loginWithOAuth('google');
 
-    console.log('Login successful:', result.user);
+    logger.debug('Login successful:', result.user);
 
     // Actualizar UI
     updateUIForAuthenticatedUser(result.user);
@@ -73,7 +75,7 @@ export async function handleLoginInPopup() {
     // Navegar al dashboard
     window.location.href = '/dashboard.html';
   } catch (error) {
-    console.error('Login failed:', error);
+    logger.error('Login failed:', error);
     showError('Error al iniciar sesión. Por favor, intenta de nuevo.');
   } finally {
     showLoading(false);
@@ -105,7 +107,7 @@ export async function handleLogoutInSidebar() {
     // Redirigir al login
     window.location.href = '/login.html';
   } catch (error) {
-    console.error('Logout failed:', error);
+    logger.error('Logout failed:', error);
     showError('Error al cerrar sesión.');
   } finally {
     showLoading(false);
@@ -144,7 +146,7 @@ export async function savePromptWithAuthCheck(promptData) {
     await savePrompt(promptData);
     showSuccess('Prompt guardado correctamente');
   } catch (error) {
-    console.error('Error saving prompt:', error);
+    logger.error('Error saving prompt:', error);
     showError('Error al guardar el prompt');
   }
 }
@@ -157,7 +159,7 @@ export function setupAuthListenerInContentScript() {
   window.addEventListener(CUSTOM_EVENTS.AUTH_STATE_CHANGED, (event) => {
     const { detail } = event;
 
-    console.log('Auth state changed in content script:', detail);
+    logger.debug('Auth state changed in content script:', detail);
 
     if (detail.isAuthenticated) {
       // Mostrar botón de sidebar
@@ -201,7 +203,7 @@ export async function fetchUserGPTs() {
 
     return await response.json();
   } catch (error) {
-    console.error('Error fetching GPTs:', error);
+    logger.error('Error fetching GPTs:', error);
     throw error;
   }
 }

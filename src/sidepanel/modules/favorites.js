@@ -23,6 +23,8 @@
  * const allFavorites = favorites.getAll();
  * ```
  */
+import logger from '../../utils/logger.js';
+
 
 /**
  * Configuración del módulo de favoritos
@@ -420,7 +422,7 @@ export class FavoritesManager {
    * @param {...any} args - Argumentos a loggear
    */
   log(...args) {
-    console.log(FAVORITES_CONFIG.LOG_PREFIX, ...args);
+    logger.debug(FAVORITES_CONFIG.LOG_PREFIX, ...args);
   }
 
   /**
@@ -430,7 +432,7 @@ export class FavoritesManager {
    * @param {...any} args - Argumentos a loggear
    */
   error(...args) {
-    console.error(FAVORITES_CONFIG.LOG_PREFIX, ...args);
+    logger.error(FAVORITES_CONFIG.LOG_PREFIX, ...args);
   }
 
   /**

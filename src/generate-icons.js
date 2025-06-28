@@ -1,3 +1,4 @@
+import logger from './utils/logger.js';
 // Generador de iconos para Kit IA Emprendedor
 const fs = require('fs');
 const path = require('path');
@@ -59,7 +60,7 @@ const sizes = [16, 32, 48, 128];
 sizes.forEach(size => {
   const buffer = generateIcon(size);
   fs.writeFileSync(path.join(assetsDir, `icon-${size}.png`), buffer);
-  console.log(`✅ Generado icon-${size}.png`);
+  logger.debug(`✅ Generado icon-${size}.png`);
 });
 
-console.log('✨ Todos los iconos generados exitosamente');
+logger.debug('✨ Todos los iconos generados exitosamente');

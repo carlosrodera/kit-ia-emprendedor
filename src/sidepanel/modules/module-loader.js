@@ -15,6 +15,8 @@
  * const manager = new favoritesModule.FavoritesManager();
  * ```
  */
+import logger from '../../utils/logger.js';
+
 
 /**
  * Configuración del module loader
@@ -427,21 +429,13 @@ export class ModuleLoader {
    * @async
    */
   async validateModuleAccess() {
-    try {
-      // Verificar que podemos acceder al directorio de módulos
-      const testPath = chrome.runtime.getURL(MODULE_LOADER_CONFIG.BASE_PATH);
-      
-      // Intentar hacer fetch para verificar acceso
-      const response = await fetch(testPath, { method: 'HEAD' });
-      
-      if (!response.ok && response.status !== 404) {
-        throw new Error(`Cannot access modules directory: ${response.status}`);
-      }
-      
-    } catch (error) {
-      this.log('Module access validation warning:', error.message);
-      // No throw - puede ser normal en algunos entornos
+    // En Chrome Extensions no podemos hacer HEAD a directorios
+    // Solo verificamos que tenemos el runtime disponible
+    if (!chrome?.runtime?.getURL) {
+      throw new Error('Chrome runtime API not available');
     }
+    
+    this.log('Module access validation passed');
   }
 
   /**
@@ -480,7 +474,7 @@ export class ModuleLoader {
    * @param {...any} args - Argumentos a loggear
    */
   log(...args) {
-    console.log(MODULE_LOADER_CONFIG.LOG_PREFIX, ...args);
+    logger.debug(MODULE_LOADER_CONFIG.LOG_PREFIX, ...args);
   }
 
   /**
@@ -490,7 +484,7 @@ export class ModuleLoader {
    * @param {...any} args - Argumentos a loggear
    */
   error(...args) {
-    console.error(MODULE_LOADER_CONFIG.LOG_PREFIX, ...args);
+    logger.error(MODULE_LOADER_CONFIG.LOG_PREFIX, ...args);
   }
 }
 

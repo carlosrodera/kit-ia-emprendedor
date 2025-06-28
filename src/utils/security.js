@@ -7,6 +7,8 @@
     /**
      * Escapa caracteres HTML para prevenir XSS
      */
+import logger from './logger.js';
+
     escapeHtml(text) {
       if (typeof text !== 'string') {
         return '';
@@ -157,7 +159,7 @@
         try {
           return handler(e);
         } catch (error) {
-          console.error('Error in event handler:', error);
+          logger.error('Error in event handler:', error);
           return false;
         }
       };
@@ -184,7 +186,7 @@
           return this.fallbackCopyToClipboard(text);
         }
       } catch (error) {
-        console.warn('Clipboard API failed, using fallback:', error);
+        logger.warn('Clipboard API failed, using fallback:', error);
         return this.fallbackCopyToClipboard(text);
       }
     },
@@ -207,7 +209,7 @@
         document.body.removeChild(textArea);
         return result;
       } catch (error) {
-        console.error('Fallback copy failed:', error);
+        logger.error('Fallback copy failed:', error);
         return false;
       }
     },
@@ -309,11 +311,11 @@
       };
 
       if (level === 'error') {
-        console.error('[SECURITY]', logEntry);
+        logger.error('[SECURITY]', logEntry);
       } else if (level === 'warn') {
-        console.warn('[SECURITY]', logEntry);
+        logger.warn('[SECURITY]', logEntry);
       } else {
-        console.log('[SECURITY]', logEntry);
+        logger.debug('[SECURITY]', logEntry);
       }
     }
   };

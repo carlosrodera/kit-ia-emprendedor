@@ -2,6 +2,9 @@
  * Service Worker - Kit IA Emprendedor v1.0
  * Centraliza toda la lógica de negocio
  */
+import logger from '../utils/logger.js';
+import subscriptionManager from '../shared/subscription-manager.js';
+
 
 // Por ahora importamos funciones básicas - luego añadiremos módulos
 let authState = {
@@ -109,7 +112,7 @@ const OFFICIAL_GPTS = [
 
 // Inicialización
 chrome.runtime.onInstalled.addListener(async ({ reason, previousVersion }) => {
-  console.log('[SW] Extension installed:', reason, 'Previous version:', previousVersion);
+  logger.debug('[SW] Extension installed:', reason, 'Previous version:', previousVersion);
 
   if (reason === 'install') {
     // Inicializar datos por defecto
@@ -122,22 +125,22 @@ chrome.runtime.onInstalled.addListener(async ({ reason, previousVersion }) => {
         defaultView: 'grid'
       }
     });
-    console.log('[SW] Initial data set');
+    logger.debug('[SW] Initial data set');
   } else if (reason === 'update') {
     // Verificar y limpiar datos en actualizaciones
     const data = await chrome.storage.local.get(['favorites', 'gpts', 'prompts']);
-    console.log('[SW] Current storage data:', data);
+    logger.debug('[SW] Current storage data:', data);
     
     // Asegurar que favorites es un array
     if (!Array.isArray(data.favorites)) {
       await chrome.storage.local.set({ favorites: [] });
-      console.log('[SW] Reset favorites to empty array');
+      logger.debug('[SW] Reset favorites to empty array');
     }
     
     // Asegurar que GPTs existen
     if (!data.gpts || !Array.isArray(data.gpts)) {
       await chrome.storage.local.set({ gpts: OFFICIAL_GPTS });
-      console.log('[SW] Reset GPTs to defaults');
+      logger.debug('[SW] Reset GPTs to defaults');
     }
   }
 });
@@ -145,30 +148,30 @@ chrome.runtime.onInstalled.addListener(async ({ reason, previousVersion }) => {
 // Configurar comportamiento del Side Panel
 chrome.sidePanel
   .setPanelBehavior({ openPanelOnActionClick: true })
-  .catch((error) => console.error('Error setting panel behavior:', error));
+  .catch((error) => logger.error('Error setting panel behavior:', error));
 
 // Message Handler con validación de seguridad
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   // Validar origen del mensaje
   if (sender.id !== chrome.runtime.id) {
-    console.error('[SW] Mensaje rechazado - origen no válido:', sender);
+    logger.error('[SW] Mensaje rechazado - origen no válido:', sender);
     sendResponse({ success: false, error: 'Origen no autorizado' });
     return false;
   }
 
   // Validar estructura del mensaje
   if (!request || typeof request !== 'object' || !request.type || typeof request.type !== 'string') {
-    console.error('[SW] Mensaje rechazado - estructura inválida:', request);
+    logger.error('[SW] Mensaje rechazado - estructura inválida:', request);
     sendResponse({ success: false, error: 'Estructura de mensaje inválida' });
     return false;
   }
 
-  console.log('[SW] Message received:', request.type);
+  logger.debug('[SW] Message received:', request.type);
 
   handleMessage(request)
     .then(sendResponse)
     .catch(error => {
-      console.error('[SW] Error:', error);
+      logger.error('[SW] Error:', error);
       sendResponse({ success: false, error: error.message });
     });
 
@@ -199,23 +202,23 @@ async function handleMessage(request) {
       
       // Asegurar que es un array
       if (!Array.isArray(favs)) {
-        console.warn('[SW] Favorites was not an array, resetting');
+        logger.warn('[SW] Favorites was not an array, resetting');
         favs = [];
       }
       
       const index = favs.indexOf(request.gptId);
-      console.log('[SW] Toggle favorite:', request.gptId, 'Current index:', index);
+      logger.debug('[SW] Toggle favorite:', request.gptId, 'Current index:', index);
 
       if (index > -1) {
         favs.splice(index, 1);
-        console.log('[SW] Removed from favorites');
+        logger.debug('[SW] Removed from favorites');
       } else {
         favs.push(request.gptId);
-        console.log('[SW] Added to favorites');
+        logger.debug('[SW] Added to favorites');
       }
 
       await chrome.storage.local.set({ favorites: favs });
-      console.log('[SW] Updated favorites:', favs);
+      logger.debug('[SW] Updated favorites:', favs);
       return { success: true, data: favs };
 
     case 'GET_PROMPTS':
@@ -263,7 +266,7 @@ async function handleMessage(request) {
       if (promptIndex > -1) {
         promptList[promptIndex].favorite = !promptList[promptIndex].favorite;
         await chrome.storage.local.set({ prompts: promptList });
-        console.log('[SW] Toggled prompt favorite:', request.promptId, promptList[promptIndex].favorite);
+        logger.debug('[SW] Toggled prompt favorite:', request.promptId, promptList[promptIndex].favorite);
         return { success: true, data: promptList[promptIndex] };
       }
       
@@ -274,12 +277,8 @@ async function handleMessage(request) {
       return { success: true, data: authState };
 
     case 'AUTH_LOGIN':
-      // TODO: Implementar con Supabase
-      authState = {
-        isAuthenticated: true,
-        user: { email: request.data.email }
-      };
-      return { success: true, data: authState };
+      // Auth handled by auth module in sidepanel
+      return { success: false, error: 'Auth should be handled in sidepanel' };
 
     case 'AUTH_LOGOUT':
       authState = {
@@ -298,7 +297,7 @@ async function handleMessage(request) {
       // Sincronizar favoritos desde el panel
       if (Array.isArray(request.favorites)) {
         await chrome.storage.local.set({ favorites: request.favorites });
-        console.log('[SW] Favorites synced:', request.favorites);
+        logger.debug('[SW] Favorites synced:', request.favorites);
         return { success: true };
       }
       throw new Error('Invalid favorites data');
@@ -308,7 +307,7 @@ async function handleMessage(request) {
 
     case 'AUTH_SUCCESS':
       // Manejar autenticación exitosa desde callback
-      console.log('[SW] Authentication successful:', request.user?.email);
+      logger.debug('[SW] Authentication successful:', request.user?.email);
       
       authState = {
         isAuthenticated: true,
@@ -324,7 +323,7 @@ async function handleMessage(request) {
         });
       } catch (error) {
         // No hay problemas si no hay listeners
-        console.log('[SW] No listeners for auth state change');
+        logger.debug('[SW] No listeners for auth state change');
       }
       
       return { success: true, data: authState };
@@ -337,56 +336,17 @@ async function handleMessage(request) {
 // Sistema de notificaciones
 async function getNotifications(userId) {
   try {
-    // Por ahora simulamos notificaciones locales
-    // TODO: Conectar con Supabase cuando esté configurado
-    const mockNotifications = [
-      {
-        id: 'welcome',
-        title: '¡Bienvenido a Kit IA Emprendedor!',
-        message: 'Descubre los mejores GPTs oficiales para potenciar tu negocio',
-        type: 'info',
-        icon: '🎉',
-        action_url: 'https://kitiaemprendedor.com/docs',
-        action_text: 'Ver guía de inicio',
-        created_at: new Date().toISOString()
-      },
-      {
-        id: 'new-gpts',
-        title: 'Nuevos GPTs disponibles',
-        message: 'Hemos añadido 5 nuevos GPTs especializados en marketing y ventas',
-        type: 'success',
-        icon: '✨',
-        created_at: new Date(Date.now() - 3600000).toISOString()
-      },
-      {
-        id: 'update',
-        title: 'Actualización importante',
-        message: 'La extensión se ha actualizado con mejoras de rendimiento y nuevas funciones',
-        type: 'warning',
-        icon: '⚡',
-        action_url: 'https://kitiaemprendedor.com/changelog',
-        action_text: 'Ver cambios',
-        created_at: new Date(Date.now() - 86400000).toISOString()
-      }
-    ];
-
-    // Obtener notificaciones leídas
-    const { readNotifications = [] } = await chrome.storage.local.get('readNotifications');
-
-    // Filtrar no leídas
-    const unreadNotifications = mockNotifications.filter(
-      n => !readNotifications.includes(n.id)
-    );
-
+    // TODO: Implementar sistema real de notificaciones desde Supabase
+    // Por ahora retornar array vacío
     return {
       success: true,
       data: {
-        notifications: mockNotifications,
-        unread: unreadNotifications.length
+        notifications: [],
+        unread: 0
       }
     };
   } catch (error) {
-    console.error('[SW] Error getting notifications:', error);
+    logger.error('[SW] Error getting notifications:', error);
     return { success: false, error: error.message };
   }
 }
@@ -402,7 +362,7 @@ async function markNotificationRead(userId, notificationId) {
 
     return { success: true };
   } catch (error) {
-    console.error('[SW] Error marking notification as read:', error);
+    logger.error('[SW] Error marking notification as read:', error);
     return { success: false, error: error.message };
   }
 }
@@ -410,33 +370,34 @@ async function markNotificationRead(userId, notificationId) {
 // Sistema de verificación de acceso del usuario
 async function checkUserAccess(email) {
   try {
-    console.log('[SW] Checking user access for:', email);
+    logger.debug('[SW] Checking user access for:', email);
 
-    // Lista de emails con acceso (simulación)
-    // TODO: Conectar con Supabase para verificación real en user_subscriptions
-    const premiumUsers = [
-      'carlos@carlosrodera.com',
-      'test@kitiaemprendedor.com',
-      'demo@example.com'
-    ];
+    // Obtener el ID del usuario actual
+    const userId = authState.user?.id;
+    if (!userId) {
+      logger.debug('[SW] No user ID found, returning LITE access');
+      return {
+        success: true,
+        data: {
+          hasAccess: false,
+          licenseType: 'lite',
+          expiresAt: null
+        }
+      };
+    }
 
-    // Por ahora, simulamos acceso basado en emails específicos
-    // En producción: consultar tabla user_subscriptions en Supabase
-    const hasAccess = premiumUsers.includes(email.toLowerCase());
+    // Usar el subscription manager para verificar acceso real
+    const subscriptionData = await subscriptionManager.checkUserAccess(userId);
     
-    console.log('[SW] User access result:', { email, hasAccess });
+    logger.debug('[SW] User access result:', { email, ...subscriptionData });
     
     return {
       success: true,
-      data: {
-        hasAccess: hasAccess,
-        licenseType: hasAccess ? 'premium' : 'none',
-        expiresAt: null // Null = sin expiración
-      }
+      data: subscriptionData
     };
 
   } catch (error) {
-    console.error('[SW] Error checking user access:', error);
+    logger.error('[SW] Error checking user access:', error);
     return {
       success: false,
       error: 'Error verificando acceso del usuario'

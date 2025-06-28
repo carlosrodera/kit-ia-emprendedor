@@ -1,7 +1,6 @@
 /**
  * Sistema de logging para la extensión
  */
-
 import { DEV_CONFIG, isDevelopment } from './config.js';
 
 class Logger {
@@ -60,10 +59,10 @@ class Logger {
     if (!this.enabled || !this.shouldLog('debug')) return;
 
     const formattedMessage = this.formatMessage('debug', message, data);
-    console.log(formattedMessage);
+    logger.debug(formattedMessage);
 
     if (data) {
-      console.log('Data:', data);
+      logger.debug('Data:', data);
     }
   }
 
@@ -74,10 +73,10 @@ class Logger {
     if (!this.enabled || !this.shouldLog('info')) return;
 
     const formattedMessage = this.formatMessage('info', message, data);
-    console.info(formattedMessage);
+    logger.info(formattedMessage);
 
     if (data) {
-      console.info('Data:', data);
+      logger.info('Data:', data);
     }
   }
 
@@ -88,15 +87,15 @@ class Logger {
     if (!this.enabled || !this.shouldLog('warn')) return;
 
     const formattedMessage = this.formatMessage('warn', message, data);
-    console.warn(formattedMessage);
+    logger.warn(formattedMessage);
 
     if (data) {
-      console.warn('Data:', data);
+      logger.warn('Data:', data);
     }
 
     const stack = this.getStackTrace();
     if (stack) {
-      console.warn('Stack:', stack);
+      logger.warn('Stack:', stack);
     }
   }
 
@@ -106,17 +105,17 @@ class Logger {
   error(message, error = null, data = null) {
     // Los errores siempre se loguean, incluso en producción
     const formattedMessage = this.formatMessage('error', message, data);
-    console.error(formattedMessage);
+    logger.error(formattedMessage);
 
     if (error) {
-      console.error('Error:', error);
+      logger.error('Error:', error);
       if (error.stack) {
-        console.error('Stack:', error.stack);
+        logger.error('Stack:', error.stack);
       }
     }
 
     if (data && isDevelopment) {
-      console.error('Additional data:', data);
+      logger.error('Additional data:', data);
     }
 
     // En producción, reportar errores para monitoreo

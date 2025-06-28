@@ -72,9 +72,7 @@ export default defineConfig(({ mode }) => {
           
           // HTML pages
           'popup-html': resolve(__dirname, 'src/popup/popup.html'),
-          'sidepanel-html': resolve(__dirname, 'src/sidepanel/index.html'),
-          'auth-login': resolve(__dirname, 'src/auth/login.html'),
-          'auth-callback': resolve(__dirname, 'src/auth/callback.html')
+          'sidepanel-html': resolve(__dirname, 'src/sidepanel/index.html')
         },
         output: {
           // ES modules para compatibilidad con Chrome Extensions modernas

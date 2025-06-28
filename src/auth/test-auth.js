@@ -58,12 +58,12 @@ function showResult(element, message, type = 'info') {
 // Test: Verificar estado
 document.getElementById('checkStatus').addEventListener('click', async () => {
   try {
-    console.log('Verificando estado de autenticación...');
+    logger.debug('Verificando estado de autenticación...');
     await auth.initialize();
     const isAuth = await auth.isAuthenticated();
     showResult(statusResult, `Autenticado: ${isAuth}`, isAuth ? 'success' : 'warning');
   } catch (error) {
-    console.error('Error verificando estado:', error);
+    logger.error('Error verificando estado:', error);
     showResult(statusResult, `Error: ${error.message}`, 'error');
   }
 });
@@ -71,7 +71,7 @@ document.getElementById('checkStatus').addEventListener('click', async () => {
 // Test: Obtener sesión
 document.getElementById('getSession').addEventListener('click', async () => {
   try {
-    console.log('Obteniendo sesión...');
+    logger.debug('Obteniendo sesión...');
     const session = await auth.getSession();
     if (session) {
       showResult(statusResult, `Sesión encontrada:\n${JSON.stringify(session, null, 2)}`, 'success');
@@ -79,7 +79,7 @@ document.getElementById('getSession').addEventListener('click', async () => {
       showResult(statusResult, 'No hay sesión activa', 'warning');
     }
   } catch (error) {
-    console.error('Error obteniendo sesión:', error);
+    logger.error('Error obteniendo sesión:', error);
     showResult(statusResult, `Error: ${error.message}`, 'error');
   }
 });
@@ -87,7 +87,7 @@ document.getElementById('getSession').addEventListener('click', async () => {
 // Test: Obtener usuario
 document.getElementById('getUser').addEventListener('click', async () => {
   try {
-    console.log('Obteniendo usuario...');
+    logger.debug('Obteniendo usuario...');
     const user = await auth.getUser();
     if (user) {
       showResult(statusResult, `Usuario:\n${JSON.stringify(user, null, 2)}`, 'success');
@@ -95,7 +95,7 @@ document.getElementById('getUser').addEventListener('click', async () => {
       showResult(statusResult, 'No hay usuario autenticado', 'warning');
     }
   } catch (error) {
-    console.error('Error obteniendo usuario:', error);
+    logger.error('Error obteniendo usuario:', error);
     showResult(statusResult, `Error: ${error.message}`, 'error');
   }
 });
@@ -106,13 +106,13 @@ document.getElementById('loginEmail').addEventListener('click', async () => {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
     
-    console.log(`Intentando login con email: ${email}`);
+    logger.debug(`Intentando login con email: ${email}`);
     const result = await auth.signInWithEmail(email, password);
     
-    console.log('Login exitoso:', result);
+    logger.debug('Login exitoso:', result);
     showResult(emailResult, `Login exitoso!\nUsuario: ${result.user.email}`, 'success');
   } catch (error) {
-    console.error('Error en login con email:', error);
+    logger.error('Error en login con email:', error);
     showResult(emailResult, `Error: ${error.message}`, 'error');
   }
 });
@@ -120,15 +120,15 @@ document.getElementById('loginEmail').addEventListener('click', async () => {
 // Test: Login con Google
 document.getElementById('loginGoogle').addEventListener('click', async () => {
   try {
-    console.log('Iniciando login con Google...');
+    logger.debug('Iniciando login con Google...');
     showResult(oauthResult, 'Abriendo ventana de Google...', 'info');
     
     const result = await auth.signInWithOAuth('google');
     
-    console.log('Login con Google exitoso:', result);
+    logger.debug('Login con Google exitoso:', result);
     showResult(oauthResult, `Login exitoso!\nUsuario: ${result.user.email}`, 'success');
   } catch (error) {
-    console.error('Error en login con Google:', error);
+    logger.error('Error en login con Google:', error);
     showResult(oauthResult, `Error: ${error.message}`, 'error');
   }
 });
@@ -136,15 +136,15 @@ document.getElementById('loginGoogle').addEventListener('click', async () => {
 // Test: Login con GitHub
 document.getElementById('loginGithub').addEventListener('click', async () => {
   try {
-    console.log('Iniciando login con GitHub...');
+    logger.debug('Iniciando login con GitHub...');
     showResult(oauthResult, 'Abriendo ventana de GitHub...', 'info');
     
     const result = await auth.signInWithOAuth('github');
     
-    console.log('Login con GitHub exitoso:', result);
+    logger.debug('Login con GitHub exitoso:', result);
     showResult(oauthResult, `Login exitoso!\nUsuario: ${result.user.email}`, 'success');
   } catch (error) {
-    console.error('Error en login con GitHub:', error);
+    logger.error('Error en login con GitHub:', error);
     showResult(oauthResult, `Error: ${error.message}`, 'error');
   }
 });
@@ -152,13 +152,13 @@ document.getElementById('loginGithub').addEventListener('click', async () => {
 // Test: Logout
 document.getElementById('logout').addEventListener('click', async () => {
   try {
-    console.log('Cerrando sesión...');
+    logger.debug('Cerrando sesión...');
     await auth.signOut();
     
-    console.log('Sesión cerrada exitosamente');
+    logger.debug('Sesión cerrada exitosamente');
     showResult(logoutResult, 'Sesión cerrada exitosamente', 'success');
   } catch (error) {
-    console.error('Error cerrando sesión:', error);
+    logger.error('Error cerrando sesión:', error);
     showResult(logoutResult, `Error: ${error.message}`, 'error');
   }
 });
@@ -173,14 +173,14 @@ document.getElementById('clearLogs').addEventListener('click', () => {
 // Inicializar auth al cargar
 window.addEventListener('load', async () => {
   try {
-    console.log('Inicializando módulo de autenticación...');
+    logger.debug('Inicializando módulo de autenticación...');
     await auth.initialize();
-    console.log('Módulo de autenticación inicializado');
+    logger.debug('Módulo de autenticación inicializado');
     
     // Verificar estado inicial
     const isAuth = await auth.isAuthenticated();
-    console.log(`Estado inicial: ${isAuth ? 'Autenticado' : 'No autenticado'}`);
+    logger.debug(`Estado inicial: ${isAuth ? 'Autenticado' : 'No autenticado'}`);
   } catch (error) {
-    console.error('Error inicializando auth:', error);
+    logger.error('Error inicializando auth:', error);
   }
 });

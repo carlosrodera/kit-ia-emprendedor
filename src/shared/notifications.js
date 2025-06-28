@@ -1,3 +1,6 @@
+import SecureDOM from '../utils/secure-dom.js';
+import logger from '../utils/logger.js';
+
 /**
  * Sistema de Notificaciones - Kit IA Emprendedor
  * @module NotificationManager
@@ -405,7 +408,7 @@ class NotificationManager {
     const closeBtn = document.createElement('button');
     closeBtn.className = 'kitia-notification-close';
     closeBtn.setAttribute('aria-label', 'Cerrar notificación');
-    closeBtn.innerHTML = '×';
+    SecureDOM.setText(closeBtn, '×');
     closeBtn.addEventListener('click', () => this.dismiss(notification.id));
     element.appendChild(closeBtn);
 
@@ -536,7 +539,7 @@ class NotificationManager {
           await chrome.action.setBadgeText({ text: '' });
         }
       } catch (error) {
-        console.error('Error updating badge:', error);
+        logger.error('Error updating badge:', error);
       }
     }
   }
@@ -588,7 +591,7 @@ class NotificationManager {
       const recent = stored.slice(-50);
       localStorage.setItem('kitia-notifications', JSON.stringify(recent));
     } catch (error) {
-      console.error('Error saving notification:', error);
+      logger.error('Error saving notification:', error);
     }
   }
 
@@ -601,7 +604,7 @@ class NotificationManager {
       const stored = localStorage.getItem('kitia-notifications');
       return stored ? JSON.parse(stored) : [];
     } catch (error) {
-      console.error('Error loading notifications:', error);
+      logger.error('Error loading notifications:', error);
       return [];
     }
   }
@@ -616,7 +619,7 @@ class NotificationManager {
       const filtered = stored.filter(n => n.id !== id);
       localStorage.setItem('kitia-notifications', JSON.stringify(filtered));
     } catch (error) {
-      console.error('Error removing notification:', error);
+      logger.error('Error removing notification:', error);
     }
   }
 
@@ -629,7 +632,7 @@ class NotificationManager {
       const stored = localStorage.getItem('kitia-notifications-read');
       return stored ? JSON.parse(stored) : [];
     } catch (error) {
-      console.error('Error loading read notifications:', error);
+      logger.error('Error loading read notifications:', error);
       return [];
     }
   }
@@ -642,7 +645,7 @@ class NotificationManager {
       const readArray = Array.from(this.readNotifications);
       localStorage.setItem('kitia-notifications-read', JSON.stringify(readArray));
     } catch (error) {
-      console.error('Error saving read notifications:', error);
+      logger.error('Error saving read notifications:', error);
     }
   }
 
@@ -682,7 +685,7 @@ class NotificationManager {
       this.readNotifications = new Set(cleanedRead);
       this.saveReadNotifications();
     } catch (error) {
-      console.error('Error cleaning notifications:', error);
+      logger.error('Error cleaning notifications:', error);
     }
   }
 

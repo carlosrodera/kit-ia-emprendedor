@@ -1,8 +1,9 @@
+import logger from '../utils/logger.js';
 // Chrome API Polyfill para compatibilidad
 // Este archivo asegura que chrome API esté disponible globalmente
 
 if (typeof chrome === 'undefined') {
-  console.error('Chrome API not available');
+  logger.error('Chrome API not available');
   window.chrome = {
     runtime: {
       sendMessage: () => Promise.reject('Chrome API not available'),

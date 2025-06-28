@@ -2,6 +2,8 @@
  * @fileoverview Ejemplo de uso del módulo de validación
  * Este archivo muestra cómo integrar las validaciones en el proyecto
  */
+import logger from '../utils/logger.js';
+
 
 import {
   validatePromptTitle,
@@ -244,7 +246,7 @@ export const examples = {
     };
 
     const result = validatePromptData(promptData);
-    console.log('Validación de prompt:', result);
+    logger.debug('Validación de prompt:', result);
   },
 
   // Ejemplo de búsqueda
@@ -258,7 +260,7 @@ export const examples = {
 
     searches.forEach(term => {
       const result = processSearch(term);
-      console.log(`Búsqueda "${term}":`, result);
+      logger.debug(`Búsqueda "${term}":`, result);
     });
   },
 
@@ -272,6 +274,6 @@ export const examples = {
     };
 
     const result = validateSettingsForm(formData);
-    console.log('Validación de formulario:', result);
+    logger.debug('Validación de formulario:', result);
   }
 };

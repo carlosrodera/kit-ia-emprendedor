@@ -6,7 +6,8 @@
  */
 
 import { planManager, PLANS } from '../../shared/plan-manager.js';
-import { logger } from '../../shared/logger.js';
+import SecureDOM from '../../utils/secure-dom.js';
+import logger from '../../utils/logger.js';
 
 /**
  * Crea el badge del plan actual
@@ -17,19 +18,19 @@ export function createPlanBadge() {
   badge.className = `plan-badge plan-badge-${plan.id}`;
   
   if (plan.id === 'premium') {
-    badge.innerHTML = `
+    SecureDOM.setHTML(badge, `
       <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
         <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
       </svg>
       <span>PREMIUM</span>
-    `;
+    `);
   } else if (plan.id === 'lite') {
-    badge.innerHTML = `
+    SecureDOM.setHTML(badge, `
       <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
         <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
       </svg>
       <span>LITE</span>
-    `;
+    `);
   }
   
   return badge;
@@ -46,7 +47,7 @@ export function createUsageIndicator(feature, current, limit) {
   const percentage = isUnlimited ? 0 : (current / limit) * 100;
   const isNearLimit = percentage >= 80;
   
-  indicator.innerHTML = `
+  SecureDOM.setHTML(indicator, `
     <div class="usage-label">
       <span>${feature}</span>
       <span class="usage-count">${current}${isUnlimited ? '' : `/${limit}`}</span>
@@ -56,7 +57,7 @@ export function createUsageIndicator(feature, current, limit) {
         <div class="usage-progress ${isNearLimit ? 'near-limit' : ''}" style="width: ${percentage}%"></div>
       </div>
     ` : '<div class="usage-unlimited">Ilimitado</div>'}
-  `;
+  `);
   
   return indicator;
 }
@@ -98,7 +99,7 @@ export function createUpgradeCTA(context = 'generic') {
   
   const message = messages[context] || messages.generic;
   
-  cta.innerHTML = `
+  SecureDOM.setHTML(cta, `
     <div class="upgrade-cta-content">
       <div class="upgrade-cta-icon">
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="url(#gradient-premium)" stroke-width="2">
@@ -120,7 +121,7 @@ export function createUpgradeCTA(context = 'generic') {
         <span class="price">${targetPlan.price === 0 ? 'GRATIS' : `$${targetPlan.price} (pago único)`}</span>
       </button>
     </div>
-  `;
+  `);
   
   // Event listener para el botón
   const upgradeBtn = cta.querySelector('.btn-upgrade');
@@ -139,7 +140,7 @@ export function createLockedOverlay(type = 'gpt', requiredPlan = 'lite') {
   const plan = PLANS[requiredPlan];
   const icon = type === 'gpt' ? '🤖' : '🔐';
   
-  overlay.innerHTML = `
+  SecureDOM.setHTML(overlay, `
     <div class="locked-content">
       <div class="locked-icon">${icon}</div>
       <h3>Contenido Bloqueado</h3>
@@ -148,7 +149,7 @@ export function createLockedOverlay(type = 'gpt', requiredPlan = 'lite') {
         ${plan.price === 0 ? 'Plan Gratuito' : `Desbloquear por $${plan.price}`}
       </button>
     </div>
-  `;
+  `);
   
   const unlockBtn = overlay.querySelector('.btn-unlock');
   unlockBtn.addEventListener('click', () => handleUpgradeClick(requiredPlan));
@@ -166,7 +167,7 @@ export function createPlanInfoPanel() {
   
   // Obtener estadísticas de uso
   planManager.getUsageStats().then(stats => {
-    panel.innerHTML = `
+    SecureDOM.setHTML(panel, `
       <div class="plan-info-header">
         <h3>Tu Plan: ${currentPlan.name}</h3>
         ${createPlanBadge().outerHTML}
@@ -194,7 +195,7 @@ export function createPlanInfoPanel() {
           ${createUpgradeCTA().outerHTML}
         </div>
       ` : ''}
-    `;
+    `);
   });
   
   return panel;
@@ -208,13 +209,13 @@ export function createPlanTooltip(requiredPlan) {
   const tooltip = document.createElement('div');
   tooltip.className = 'plan-tooltip';
   
-  tooltip.innerHTML = `
+  SecureDOM.setHTML(tooltip, `
     <div class="tooltip-arrow"></div>
     <div class="tooltip-content">
       <strong>Requiere ${plan.name}</strong>
       <p>${plan.price === 0 ? 'GRATIS' : `$${plan.price} (pago único)`}</p>
     </div>
-  `;
+  `);
   
   return tooltip;
 }
@@ -276,16 +277,6 @@ function getFeaturesList(plan) {
 
 function handleUpgradeClick(targetPlan) {
   logger.info('[PlanUI] Upgrade clicked:', targetPlan);
-  
-  // En desarrollo, cambiar el plan mock
-  if (planManager.updateUserPlan) {
-    planManager.updateUserPlan(targetPlan);
-    showToast(`✅ Plan actualizado a ${PLANS[targetPlan].name} (MODO DESARROLLO)`, 'success');
-    
-    // Recargar la página para aplicar cambios
-    setTimeout(() => location.reload(), 1500);
-    return;
-  }
   
   // En producción, abrir página de upgrade
   const upgradeUrl = `https://iaemprendedor.com/kit-ia-extension-premium?from=extension&plan=${targetPlan}`;

@@ -41,6 +41,8 @@
   },
   
   "host_permissions": [
-    "*://*/*"
+    "https://*.supabase.co/*",
+    "https://chatgpt.com/*",
+    "https://chat.openai.com/*"
   ]
 }

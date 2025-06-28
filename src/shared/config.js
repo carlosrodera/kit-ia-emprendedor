@@ -4,6 +4,10 @@
  * IMPORTANTE: No commitear credenciales reales a Git
  * Usar variables de entorno en producción
  */
+import logger from '../utils/logger.js';
+
+
+import configManager from '../utils/config-manager.js';
 
 // Detectar entorno
 const isDevelopment = import.meta.env.DEV || 
@@ -14,14 +18,8 @@ const isDevelopment = import.meta.env.DEV ||
  * Proyecto: EVO (Kit IA Emprendedor)
  */
 export const SUPABASE_CONFIG = {
-  url: import.meta.env.VITE_SUPABASE_URL || 'https://nktqqsbebhoedgookfzu.supabase.co',
-  // Esta key es pública y segura de exponer en el cliente
-  // IMPORTANTE: Configurar VITE_SUPABASE_ANON_KEY en .env antes de producción
-  anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY || (() => {
-    // Fallback con la key real para desarrollo
-    console.warn('[Config] ⚠️ Using fallback Supabase key');
-    return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5rdHFxc2JlYmhvZWRnb29rZnp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzNzYyMTEsImV4cCI6MjA2NTk1MjIxMX0.YmsU1VKwHkuFHFLCBW56KlGinvToSzHXtwSmkl5uhK4';
-  })(),
+  url: configManager.get('VITE_SUPABASE_URL'),
+  anonKey: configManager.get('VITE_SUPABASE_ANON_KEY'),
   options: {
     auth: {
       autoRefreshToken: true,
@@ -44,10 +42,6 @@ export const SUPABASE_CONFIG = {
  * URLs de la aplicación
  */
 export const URLS = {
-  // OAuth callbacks
-  authCallback: chrome.runtime.getURL('auth/callback.html'),
-  loginPage: chrome.runtime.getURL('auth/login.html'),
-
   // External URLs
   website: 'https://kitiaemprendedor.com',
   support: 'https://kitiaemprendedor.com/support',
@@ -169,8 +163,11 @@ export function validateConfig() {
     errors.push('Supabase URL is required');
   }
 
-  if (!SUPABASE_CONFIG.anonKey || SUPABASE_CONFIG.anonKey === 'YOUR_ANON_KEY_HERE') {
-    errors.push('Supabase anon key is not configured');
+  try {
+    // Validar usando ConfigManager
+    configManager.validate();
+  } catch (error) {
+    errors.push(error.message);
   }
 
   if (STORAGE_CONFIG.maxPrompts > 1000) {
@@ -178,7 +175,7 @@ export function validateConfig() {
   }
 
   if (errors.length > 0) {
-    console.error('Configuration errors:', errors);
+    logger.error('Configuration errors:', errors);
     return false;
   }
 

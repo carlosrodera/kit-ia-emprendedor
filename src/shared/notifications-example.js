@@ -2,6 +2,8 @@
  * Ejemplos de uso del sistema de notificaciones
  * Kit IA Emprendedor
  */
+import logger from '../utils/logger.js';
+
 
 import notificationManager, { info, success, warning, error } from './notifications.js';
 
@@ -32,7 +34,7 @@ function showErrorExample() {
         label: 'Reintentar',
         primary: true,
         callback: () => {
-          console.log('Reintentando conexión...');
+          logger.debug('Reintentando conexión...');
           // Lógica de reintento
         }
       },
@@ -82,14 +84,14 @@ function showMultiActionNotification() {
         label: 'Guardar',
         primary: true,
         callback: () => {
-          console.log('Guardando GPT...');
+          logger.debug('Guardando GPT...');
           success('GPT guardado', 'El GPT se ha añadido a tu colección');
         }
       },
       {
         label: 'Ver detalles',
         callback: () => {
-          console.log('Mostrando detalles...');
+          logger.debug('Mostrando detalles...');
           // No cierra la notificación
         },
         dismiss: false
@@ -97,7 +99,7 @@ function showMultiActionNotification() {
       {
         label: 'Ignorar',
         callback: () => {
-          console.log('GPT ignorado');
+          logger.debug('GPT ignorado');
         }
       }
     ]
@@ -162,7 +164,7 @@ export function setupSidebarNotifications() {
 // Ejemplo 11: Manejo de notificaciones no leídas
 function checkUnreadNotifications() {
   const unreadCount = notificationManager.getUnreadCount();
-  console.log(`Tienes ${unreadCount} notificaciones no leídas`);
+  logger.debug(`Tienes ${unreadCount} notificaciones no leídas`);
 }
 
 // Ejemplo 12: Limpiar todas las notificaciones

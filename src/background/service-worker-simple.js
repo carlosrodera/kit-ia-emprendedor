@@ -1,3 +1,4 @@
+import logger from '../utils/logger.js';
 // Service Worker simplificado para Kit IA Emprendedor
 // Sin imports ES6 para compatibilidad con Chrome Extensions
 
@@ -19,9 +20,9 @@
 
   // Logger simple
   const logger = {
-    info: (...args) => console.log('[SW]', ...args),
-    error: (...args) => console.error('[SW]', ...args),
-    warn: (...args) => console.warn('[SW]', ...args),
+    info: (...args) => logger.debug('[SW]', ...args),
+    error: (...args) => logger.error('[SW]', ...args),
+    warn: (...args) => logger.warn('[SW]', ...args),
     debug: (...args) => console.debug('[SW]', ...args)
   };
 

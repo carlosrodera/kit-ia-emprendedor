@@ -1,3 +1,6 @@
+import SecureDOM from '../utils/secure-dom.js';
+import logger from '../utils/logger.js';
+
 // Componente de gestión de dispositivos
 (function () {
   'use strict';
@@ -18,7 +21,7 @@
 
       const isLimitExceeded = !deviceInfo.authorized && deviceInfo.reason === 'DEVICE_LIMIT_EXCEEDED';
 
-      modal.innerHTML = `
+      SecureDOM.setHTML(modal, `
         <div class="device-modal">
           <div class="device-modal-header">
             <h2 class="device-modal-title">
@@ -33,7 +36,7 @@
           
           <div class="device-modal-content">
             ${isLimitExceeded
-    ? `
+    ? `)
               <div class="device-limit-warning">
                 <p>Has alcanzado el límite de <strong>${deviceInfo.limit} dispositivos</strong> para tu plan <strong>${deviceInfo.plan || 'Free'}</strong>.</p>
                 <p>Para usar la extensión en este dispositivo, debes:</p>
@@ -130,18 +133,18 @@
         const deviceListEl = document.getElementById('device-list');
 
         if (!response.success) {
-          deviceListEl.innerHTML = '<p class="error-message">Error al cargar dispositivos</p>';
+          SecureDOM.setHTML(deviceListEl, '<p class="error-message">Error al cargar dispositivos</p>');
           return;
         }
 
         const devices = response.data || [];
 
         if (devices.length === 0) {
-          deviceListEl.innerHTML = '<p class="no-devices">No hay dispositivos registrados</p>';
+          SecureDOM.setHTML(deviceListEl, '<p class="no-devices">No hay dispositivos registrados</p>');
           return;
         }
 
-        deviceListEl.innerHTML = devices.map(device => `
+        SecureDOM.setHTML(deviceListEl, devices.map(device => `
           <div class="device-item ${device.isCurrent ? 'current-device' : ''}">
             <div class="device-info">
               <div class="device-name">
@@ -163,7 +166,7 @@
             `
     : ''}
           </div>
-        `).join('');
+        `).join(''));
 
         // Agregar event listeners a botones de eliminar
         deviceListEl.querySelectorAll('.btn-remove-device').forEach(btn => {
@@ -175,9 +178,9 @@
           });
         });
       } catch (error) {
-        console.error('Error loading device list:', error);
+        logger.error('Error loading device list:', error);
         const deviceListEl = document.getElementById('device-list');
-        deviceListEl.innerHTML = '<p class="error-message">Error al cargar dispositivos</p>';
+        SecureDOM.setHTML(deviceListEl, '<p class="error-message">Error al cargar dispositivos</p>');
       }
     },
 
@@ -226,7 +229,7 @@
           }
         }
       } catch (error) {
-        console.error('Error removing device:', error);
+        logger.error('Error removing device:', error);
         if (window.showToast) {
           window.showToast('Error al eliminar dispositivo', 'error');
         }

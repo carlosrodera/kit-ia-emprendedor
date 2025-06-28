@@ -4,6 +4,8 @@
  * Migration Runner for Kit IA Emprendedor
  * Executes SQL migrations in order on Supabase
  */
+import logger from '../../utils/logger.js';
+
 
 import { createClient } from '@supabase/supabase-js';
 import { readFileSync, readdirSync } from 'fs';
@@ -18,8 +20,8 @@ const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://nktqqsbebhoedgook
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY; // Need service role key for migrations
 
 if (!SUPABASE_SERVICE_KEY) {
-  console.error('❌ SUPABASE_SERVICE_KEY environment variable is required');
-  console.error('   Get it from: https://app.supabase.com/project/nktqqsbebhoedgookfzu/settings/api');
+  logger.error('❌ SUPABASE_SERVICE_KEY environment variable is required');
+  logger.error('   Get it from: https://app.supabase.com/project/nktqqsbebhoedgookfzu/settings/api');
   process.exit(1);
 }
 
@@ -111,17 +113,17 @@ async function executeSqlFile(filepath) {
       
       if (error) {
         // If exec_sql doesn't exist, we need to create it or use alternative
-        console.warn(`⚠️  Statement execution warning: ${error.message}`);
-        console.log('   Attempting alternative execution method...');
+        logger.warn(`⚠️  Statement execution warning: ${error.message}`);
+        logger.debug('   Attempting alternative execution method...');
         
         // For now, log the statement that needs manual execution
-        console.log('\n📋 Execute manually in Supabase SQL Editor:');
-        console.log('─'.repeat(50));
-        console.log(statement + ';');
-        console.log('─'.repeat(50));
+        logger.debug('\n📋 Execute manually in Supabase SQL Editor:');
+        logger.debug('─'.repeat(50));
+        logger.debug(statement + ';');
+        logger.debug('─'.repeat(50));
       }
     } catch (err) {
-      console.error(`❌ Failed to execute statement: ${err.message}`);
+      logger.error(`❌ Failed to execute statement: ${err.message}`);
       throw err;
     }
   }
@@ -131,25 +133,25 @@ async function executeSqlFile(filepath) {
  * Main migration runner
  */
 async function runMigrations() {
-  console.log('🚀 Kit IA Emprendedor - Migration Runner');
-  console.log('─'.repeat(50));
+  logger.debug('🚀 Kit IA Emprendedor - Migration Runner');
+  logger.debug('─'.repeat(50));
   
   try {
     // Create migrations table if not exists
-    console.log('📊 Ensuring migrations table exists...');
+    logger.debug('📊 Ensuring migrations table exists...');
     await executeSqlFile(join(__dirname, 'create-migrations-table.sql'));
     
     // Get migration files
     const migrationFiles = getMigrationFiles();
-    console.log(`\n📁 Found ${migrationFiles.length} migration files`);
+    logger.debug(`\n📁 Found ${migrationFiles.length} migration files`);
     
     // Process each migration
     for (const file of migrationFiles) {
-      console.log(`\n🔄 Processing: ${file}`);
+      logger.debug(`\n🔄 Processing: ${file}`);
       
       // Check if already executed
       if (await isMigrationExecuted(file)) {
-        console.log('   ✓ Already executed, skipping...');
+        logger.debug('   ✓ Already executed, skipping...');
         continue;
       }
       
@@ -159,18 +161,18 @@ async function runMigrations() {
       const checksum = calculateChecksum(content);
       
       // Execute migration
-      console.log('   ⚡ Executing migration...');
+      logger.debug('   ⚡ Executing migration...');
       await executeSqlFile(filepath);
       
       // Record execution
       await recordMigration(file, checksum);
-      console.log('   ✅ Migration completed successfully!');
+      logger.debug('   ✅ Migration completed successfully!');
     }
     
-    console.log('\n✨ All migrations completed!');
+    logger.debug('\n✨ All migrations completed!');
     
   } catch (error) {
-    console.error('\n❌ Migration failed:', error.message);
+    logger.error('\n❌ Migration failed:', error.message);
     process.exit(1);
   }
 }
@@ -191,27 +193,27 @@ $$;
 `;
 
 // Note about manual execution
-console.log('\n📌 IMPORTANT: This script shows the SQL that needs to be executed.');
-console.log('   For security reasons, you may need to run these migrations manually');
-console.log('   in the Supabase SQL Editor:');
-console.log('   https://app.supabase.com/project/nktqqsbebhoedgookfzu/editor\n');
+logger.debug('\n📌 IMPORTANT: This script shows the SQL that needs to be executed.');
+logger.debug('   For security reasons, you may need to run these migrations manually');
+logger.debug('   in the Supabase SQL Editor:');
+logger.debug('   https://app.supabase.com/project/nktqqsbebhoedgookfzu/editor\n');
 
 // Show migration files
 const files = getMigrationFiles();
-console.log('📋 Migration files to execute in order:');
+logger.debug('📋 Migration files to execute in order:');
 files.forEach((f, i) => {
-  console.log(`   ${i + 1}. ${f}`);
+  logger.debug(`   ${i + 1}. ${f}`);
 });
 
-console.log('\n💡 To execute manually:');
-console.log('   1. Go to Supabase SQL Editor');
-console.log('   2. Copy and paste each migration file content');
-console.log('   3. Execute in order\n');
+logger.debug('\n💡 To execute manually:');
+logger.debug('   1. Go to Supabase SQL Editor');
+logger.debug('   2. Copy and paste each migration file content');
+logger.debug('   3. Execute in order\n');
 
 // Optionally run if --execute flag is passed
 if (process.argv.includes('--execute')) {
   runMigrations();
 } else {
-  console.log('🔸 Run with --execute flag to attempt automatic execution');
-  console.log('   node run-migrations.js --execute\n');
+  logger.debug('🔸 Run with --execute flag to attempt automatic execution');
+  logger.debug('   node run-migrations.js --execute\n');
 }

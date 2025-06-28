@@ -1,3 +1,6 @@
+import SecureDOM from '../utils/secure-dom.js';
+import logger from '../utils/logger.js';
+
 // Content Script para Kit IA Emprendedor
 (function () {
   'use strict';
@@ -62,11 +65,11 @@
 
     const button = document.createElement('button');
     button.id = 'kitia-floating-button';
-    button.innerHTML = `
+    SecureDOM.setHTML(button, `
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M3 12H21M3 6H21M3 18H21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
       </svg>
-    `;
+    `);
 
     button.style.cssText = `
       position: fixed;
@@ -115,11 +118,11 @@
       // Actualizar botón
       if (sidebarState.floatingButton) {
         sidebarState.floatingButton.style.backgroundColor = '#EF4444';
-        sidebarState.floatingButton.innerHTML = `
+        SecureDOM.setHTML(sidebarState.floatingButton, `
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M6 18L18 6M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           </svg>
-        `;
+        `);
       }
     } else {
       sidebarState.container.style.right = `-${SIDEBAR_CONFIG.WIDTH}px`;
@@ -130,11 +133,11 @@
       if (sidebarState.floatingButton) {
         sidebarState.floatingButton.style.backgroundColor = '#4F46E5';
         sidebarState.floatingButton.style.display = 'flex'; // Asegurar que permanezca visible
-        sidebarState.floatingButton.innerHTML = `
+        SecureDOM.setHTML(sidebarState.floatingButton, `
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M3 12H21M3 6H21M3 18H21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           </svg>
-        `;
+        `);
       }
 
       // Si no existe el botón flotante, recrearlo
@@ -200,7 +203,7 @@
 
   // Escuchar mensajes del background/popup
   chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    console.log('Content script received message:', request);
+    logger.debug('Content script received message:', request);
 
     switch (request.type) {
       case 'TOGGLE_SIDEBAR':
@@ -269,9 +272,9 @@
         textarea.focus();
       }
 
-      console.log('Prompt insertado en ChatGPT');
+      logger.debug('Prompt insertado en ChatGPT');
     } else {
-      console.warn('No se encontró el textarea de ChatGPT');
+      logger.warn('No se encontró el textarea de ChatGPT');
     }
   }
 
@@ -288,11 +291,11 @@
 
   // Inicializar
   function init() {
-    console.log('Kit IA Emprendedor content script loaded');
+    logger.debug('Kit IA Emprendedor content script loaded');
 
     // Prevenir inyecciones duplicadas
     if (document.getElementById('kitia-sidebar-container')) {
-      console.warn('Sidebar already injected, skipping initialization');
+      logger.warn('Sidebar already injected, skipping initialization');
       return;
     }
 

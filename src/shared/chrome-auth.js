@@ -6,7 +6,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { SUPABASE_CONFIG } from './config.js';
-import { logger } from './logger.js';
+import logger from '../utils/logger.js';
 import { STORAGE_KEYS } from './constants.js';
 
 /**
@@ -320,8 +320,19 @@ export const auth = {
   loginWithOAuth: (provider) => chromeAuth.signInWithOAuth(provider),
   logout: () => chromeAuth.signOut(),
   hasActiveSubscription: async () => {
-    // Por ahora retornar true, implementar lógica de suscripción después
-    return true;
+    try {
+      const user = await chromeAuth.getUser();
+      if (!user) return false;
+      
+      // Importar dinámicamente para evitar dependencias circulares
+      const { default: subscriptionManager } = await import('./subscription-manager.js');
+      const subscription = await subscriptionManager.checkUserAccess(user.id);
+      
+      return subscription.licenseType === 'premium';
+    } catch (error) {
+      logger.error('[ChromeAuth] Error checking subscription:', error);
+      return false;
+    }
   },
   onAuthStateChange: (callback) => {
     // Implementar listener si es necesario

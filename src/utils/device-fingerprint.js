@@ -8,6 +8,8 @@
      * Genera un fingerprint único del dispositivo
      * Usa múltiples factores para crear un ID estable
      */
+import logger from './logger.js';
+
     async generate() {
       try {
         const factors = [];
@@ -79,7 +81,7 @@
           }
         };
       } catch (error) {
-        console.error('Error generating device fingerprint:', error);
+        logger.error('Error generating device fingerprint:', error);
         // Fallback: usar timestamp + random
         return {
           deviceId: `fallback-${Date.now().toString(36)}${Math.random().toString(36).substr(2, 9)}`,
@@ -212,7 +214,7 @@
           newDevice: true
         };
       } catch (error) {
-        console.error('Error checking device authorization:', error);
+        logger.error('Error checking device authorization:', error);
         return {
           authorized: false,
           reason: 'ERROR',
@@ -274,7 +276,7 @@
           remainingDevices: updatedDevices.length
         };
       } catch (error) {
-        console.error('Error removing device:', error);
+        logger.error('Error removing device:', error);
         return {
           success: false,
           error: error.message
@@ -300,7 +302,7 @@
           isCurrent: device.deviceId === deviceId
         }));
       } catch (error) {
-        console.error('Error getting user devices:', error);
+        logger.error('Error getting user devices:', error);
         return [];
       }
     }

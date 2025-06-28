@@ -1,3 +1,6 @@
+import SecureDOM from '../utils/secure-dom.js';
+import logger from '../utils/logger.js';
+
 // Sidebar JavaScript seguro para Kit IA Emprendedor
 (function() {
   'use strict';
@@ -24,7 +27,7 @@
   let elements = {};
 
   document.addEventListener('DOMContentLoaded', function() {
-    console.log('Secure sidebar loaded');
+    logger.debug('Secure sidebar loaded');
     
     // Cachear elementos DOM
     elements = {
@@ -156,7 +159,7 @@
       // Todo OK, cargar datos
       loadInitialData();
     } catch (error) {
-      console.error('Error checking device:', error);
+      logger.error('Error checking device:', error);
       showError('Error al verificar dispositivo');
     }
   }
@@ -201,7 +204,7 @@
 
       renderContent();
     } catch (error) {
-      console.error('Error loading data:', error);
+      logger.error('Error loading data:', error);
       showError('Error al cargar los datos');
     }
   }
@@ -209,7 +212,7 @@
   function renderContent() {
     // Limpiar contenido
     if (elements.content) {
-      elements.content.innerHTML = '';
+      elements.SecureDOM.clear(content);
     } else {
       SecurityUtils.safeLog('error', 'Content element not found');
       return;
@@ -918,7 +921,7 @@
         showNotification('Error al actualizar favoritos', 'error');
       }
     } catch (error) {
-      console.error('Error toggling favorite:', error);
+      logger.error('Error toggling favorite:', error);
       showNotification('Error al actualizar favoritos', 'error');
     }
   }
@@ -994,7 +997,7 @@
         showNotification('Error al abrir GPT', 'error');
       }
     } catch (error) {
-      console.error('Error opening GPT:', error);
+      logger.error('Error opening GPT:', error);
       showNotification('Error al abrir GPT', 'error');
     }
   }
@@ -1063,7 +1066,7 @@
         showNotification('Error al copiar prompt', 'error');
       }
     } catch (error) {
-      console.error('Error copying prompt:', error);
+      logger.error('Error copying prompt:', error);
       showNotification('Error al copiar prompt', 'error');
     }
   }
@@ -1255,7 +1258,7 @@
   function showError(message) {
     // Limpiar contenido actual
     if (elements.content) {
-      elements.content.innerHTML = '';
+      elements.SecureDOM.clear(content);
     }
     
     // Crear elementos de forma segura
@@ -1282,7 +1285,7 @@
 
   function showLoginPrompt() {
     if (elements.content) {
-      elements.content.innerHTML = '';
+      elements.SecureDOM.clear(content);
     }
     
     const loginDiv = SecurityUtils.createElement('div', { className: 'login-prompt' });
@@ -1346,7 +1349,7 @@
         showNotification('Error al eliminar prompt', 'error');
       }
     } catch (error) {
-      console.error('Error deleting prompt:', error);
+      logger.error('Error deleting prompt:', error);
       showNotification('Error al eliminar prompt', 'error');
     }
   }
@@ -1473,11 +1476,11 @@ if (!document.getElementById('kit-ia-notifications-styles')) {
         'title': isFavorite ? 'Quitar de favoritos' : 'Añadir a favoritos'
       }
     });
-    favoriteBtn.innerHTML = `
+    SecureDOM.setHTML(favoriteBtn, `
       <svg viewBox="0 0 24 24" fill="${isFavorite ? 'currentColor' : 'none'}" width="18" height="18">
         <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
       </svg>
-    `;
+    `);
     badges.appendChild(favoriteBtn);
     
     header.appendChild(icon);
@@ -1518,12 +1521,12 @@ if (!document.getElementById('kit-ia-notifications-styles')) {
         'title': 'Abrir en esta pestaña'
       }
     });
-    useBtn.innerHTML = `
+    SecureDOM.setHTML(useBtn, `
       <svg viewBox="0 0 24 24" fill="none" width="16" height="16">
         <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
       Usar
-    `;
+    `);
     
     const newBtn = SecurityUtils.createElement('button', { 
       className: 'action-btn secondary',
@@ -1533,11 +1536,11 @@ if (!document.getElementById('kit-ia-notifications-styles')) {
         'title': 'Abrir en nueva pestaña'
       }
     });
-    newBtn.innerHTML = `
+    SecureDOM.setHTML(newBtn, `
       <svg viewBox="0 0 24 24" fill="none" width="16" height="16">
         <path d="M15 3H21V9M21 3L9 15M10 5H7C5.89543 5 5 5.89543 5 7V17C5 18.1046 5.89543 19 7 19H17C18.1046 19 19 18.1046 19 17V14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
-    `;
+    `);
     
     actions.appendChild(useBtn);
     actions.appendChild(newBtn);
@@ -1619,11 +1622,11 @@ if (!document.getElementById('kit-ia-notifications-styles')) {
         'title': isFavorite ? 'Quitar de favoritos' : 'Añadir a favoritos'
       }
     });
-    favoriteBtn.innerHTML = `
+    SecureDOM.setHTML(favoriteBtn, `
       <svg viewBox="0 0 24 24" fill="${isFavorite ? 'currentColor' : 'none'}" width="16" height="16">
         <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
       </svg>
-    `;
+    `);
     
     // Botones de acción
     const useBtn = SecurityUtils.createElement('button', { 
@@ -1634,11 +1637,11 @@ if (!document.getElementById('kit-ia-notifications-styles')) {
         'title': 'Abrir en esta pestaña'
       }
     });
-    useBtn.innerHTML = `
+    SecureDOM.setHTML(useBtn, `
       <svg viewBox="0 0 24 24" fill="none" width="16" height="16">
         <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
-    `;
+    `);
     
     const newBtn = SecurityUtils.createElement('button', { 
       className: 'action-btn-icon secondary',
@@ -1648,11 +1651,11 @@ if (!document.getElementById('kit-ia-notifications-styles')) {
         'title': 'Abrir en nueva pestaña'
       }
     });
-    newBtn.innerHTML = `
+    SecureDOM.setHTML(newBtn, `
       <svg viewBox="0 0 24 24" fill="none" width="16" height="16">
         <path d="M15 3H21V9M21 3L9 15M10 5H7C5.89543 5 5 5.89543 5 7V17C5 18.1046 5.89543 19 7 19H17C18.1046 19 19 18.1046 19 17V14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
-    `;
+    `);
     
     actions.appendChild(favoriteBtn);
     actions.appendChild(useBtn);
@@ -1667,7 +1670,7 @@ if (!document.getElementById('kit-ia-notifications-styles')) {
   }
 
   function renderCategoriesAndTags() {
-    elements.content.innerHTML = '';
+    elements.SecureDOM.clear(content);
     
     const container = SecurityUtils.createElement('div', { className: 'filters-container' });
     
@@ -1781,7 +1784,7 @@ if (!document.getElementById('kit-ia-notifications-styles')) {
   }
 
   function renderPrompts() {
-    elements.content.innerHTML = '';
+    elements.SecureDOM.clear(content);
     
     if (state.prompts.length === 0) {
       showEmptyState('No tienes prompts guardados', 'Crear Prompt');
@@ -1845,12 +1848,12 @@ if (!document.getElementById('kit-ia-notifications-styles')) {
         'data-prompt-id': prompt.id
       }
     });
-    editBtn.innerHTML = `
+    SecureDOM.setHTML(editBtn, `
       <svg viewBox="0 0 24 24" fill="none" width="16" height="16">
         <path d="M11 4H4C2.89543 4 2 4.89543 2 6V20C2 21.1046 2.89543 22 4 22H18C19.1046 22 20 21.1046 20 20V13" stroke="currentColor" stroke-width="2"/>
         <path d="M18.5 2.5C19.3284 1.67157 20.6716 1.67157 21.5 2.5C22.3284 3.32843 22.3284 4.67157 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke="currentColor" stroke-width="2"/>
       </svg>
-    `;
+    `);
     
     // Botón copiar
     const copyBtn = SecurityUtils.createElement('button', { 
@@ -1860,12 +1863,12 @@ if (!document.getElementById('kit-ia-notifications-styles')) {
         'data-prompt-id': prompt.id
       }
     });
-    copyBtn.innerHTML = `
+    SecureDOM.setHTML(copyBtn, `
       <svg viewBox="0 0 24 24" fill="none" width="16" height="16">
         <rect x="9" y="9" width="13" height="13" rx="2" ry="2" stroke="currentColor" stroke-width="2"/>
         <path d="M5 15H4C2.89543 15 2 14.1046 2 13V4C2 2.89543 2.89543 2 4 2H13C14.1046 2 15 2.89543 15 4V5" stroke="currentColor" stroke-width="2"/>
       </svg>
-    `;
+    `);
     
     // Botón eliminar
     const deleteBtn = SecurityUtils.createElement('button', { 
@@ -1875,12 +1878,12 @@ if (!document.getElementById('kit-ia-notifications-styles')) {
         'data-prompt-id': prompt.id
       }
     });
-    deleteBtn.innerHTML = `
+    SecureDOM.setHTML(deleteBtn, `
       <svg viewBox="0 0 24 24" fill="none" width="16" height="16">
         <path d="M3 6H5H21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
         <path d="M8 6V4C8 3.44772 8.44772 3 9 3H15C15.5523 3 16 3.44772 16 4V6M19 6V20C19 21.1046 18.1046 22 17 22H7C5.89543 22 6 21.1046 6 20V6H19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
       </svg>
-    `;
+    `);
     
     actions.appendChild(editBtn);
     actions.appendChild(copyBtn);
@@ -1920,7 +1923,7 @@ if (!document.getElementById('kit-ia-notifications-styles')) {
 
   function showError(message) {
     // Limpiar contenido actual
-    elements.content.innerHTML = '';
+    elements.SecureDOM.clear(content);
     
     // Crear elementos de forma segura
     const errorDiv = SecurityUtils.createElement('div', { className: 'error-state' });
@@ -2072,7 +2075,7 @@ if (!document.getElementById('kit-ia-notifications-styles')) {
         showToast('Error al actualizar favoritos', 'error');
       }
     } catch (error) {
-      console.error('Error toggling favorite:', error);
+      logger.error('Error toggling favorite:', error);
       showToast('Error al actualizar favoritos', 'error');
     }
   }
@@ -2095,11 +2098,11 @@ if (!document.getElementById('kit-ia-notifications-styles')) {
     const header = SecurityUtils.createElement('div', { className: 'modal-header' });
     const title = SecurityUtils.createElement('h3', { textContent: 'Crear Nuevo Prompt' });
     const closeBtn = SecurityUtils.createElement('button', { className: 'modal-close' });
-    closeBtn.innerHTML = `
+    SecureDOM.setHTML(closeBtn, `
       <svg viewBox="0 0 24 24" fill="none" width="20" height="20">
         <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
       </svg>
-    `;
+    `);
     
     header.appendChild(title);
     header.appendChild(closeBtn);
@@ -2204,11 +2207,11 @@ if (!document.getElementById('kit-ia-notifications-styles')) {
     const header = SecurityUtils.createElement('div', { className: 'modal-header' });
     const title = SecurityUtils.createElement('h3', { textContent: 'Editar Prompt' });
     const closeBtn = SecurityUtils.createElement('button', { className: 'modal-close' });
-    closeBtn.innerHTML = `
+    SecureDOM.setHTML(closeBtn, `
       <svg viewBox="0 0 24 24" fill="none" width="20" height="20">
         <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
       </svg>
-    `;
+    `);
     
     header.appendChild(title);
     header.appendChild(closeBtn);
@@ -2334,7 +2337,7 @@ if (!document.getElementById('kit-ia-notifications-styles')) {
         showToast('Error al crear el prompt', 'error');
       }
     } catch (error) {
-      console.error('Error creating prompt:', error);
+      logger.error('Error creating prompt:', error);
       showToast('Error al crear el prompt', 'error');
     }
   }
@@ -2383,7 +2386,7 @@ if (!document.getElementById('kit-ia-notifications-styles')) {
         }
       }
     } catch (error) {
-      console.error('Error updating prompt:', error);
+      logger.error('Error updating prompt:', error);
       showToast('Error al actualizar el prompt', 'error');
     }
   }
@@ -2401,7 +2404,7 @@ if (!document.getElementById('kit-ia-notifications-styles')) {
         showToast('Prompt eliminado', 'success');
       }
     } catch (error) {
-      console.error('Error eliminando prompt:', error);
+      logger.error('Error eliminando prompt:', error);
       showError('Error al eliminar el prompt');
     }
   }
@@ -2469,7 +2472,7 @@ if (!document.getElementById('kit-ia-notifications-styles')) {
         style: 'background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 2px; border-radius: 4px; transition: all 0.2s;'
       }
     });
-    closeBtn.innerHTML = '<svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>';
+    SecureDOM.setHTML(closeBtn, '<svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>');
     
     notification.appendChild(iconDiv);
     notification.appendChild(contentDiv);
@@ -2516,19 +2519,19 @@ if (!document.getElementById('kit-ia-notifications-styles')) {
 
   // Función para mostrar mensaje de login (segura)
   function showLoginPrompt() {
-    elements.content.innerHTML = '';
+    elements.SecureDOM.clear(content);
     
     const loginDiv = SecurityUtils.createElement('div', { className: 'login-prompt' });
     
     const iconDiv = SecurityUtils.createElement('div', { className: 'login-icon' });
-    iconDiv.innerHTML = `
+    SecureDOM.setHTML(iconDiv, `
       <svg viewBox="0 0 24 24" width="64" height="64" fill="none">
         <path d="M12 14C14.2091 14 16 12.2091 16 10C16 7.79086 14.2091 6 12 6C9.79086 6 8 7.79086 8 10C8 12.2091 9.79086 14 12 14Z" 
               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         <path d="M20 21C20 19.1435 19.2625 17.363 17.9497 16.0503C16.637 14.7375 14.8565 14 13 14H11C9.14348 14 7.36301 14.7375 6.05025 16.0503C4.7375 17.363 4 19.1435 4 21" 
               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
-    `;
+    `);
     
     const title = SecurityUtils.createElement('h2', { textContent: 'Inicia Sesión' });
     const desc = SecurityUtils.createElement('p', { textContent: 'Para acceder a tus GPTs y prompts guardados' });
@@ -2552,17 +2555,17 @@ if (!document.getElementById('kit-ia-notifications-styles')) {
 
   // Función para mostrar modal de límite de dispositivos (segura)
   function showDeviceLimitModal(deviceInfo) {
-    elements.content.innerHTML = '';
+    elements.SecureDOM.clear(content);
     
     const blockDiv = SecurityUtils.createElement('div', { className: 'device-limit-block' });
     
     const iconDiv = SecurityUtils.createElement('div', { className: 'device-limit-icon' });
-    iconDiv.innerHTML = `
+    SecureDOM.setHTML(iconDiv, `
       <svg viewBox="0 0 24 24" width="64" height="64" fill="none">
         <path d="M12 9V13M12 17H12.01M5 19H19C20.1046 19 21 18.1046 21 17V7C21 5.89543 20.1046 5 19 5H5C3.89543 5 3 5.89543 3 7V17C3 18.1046 3.89543 19 5 19Z" 
               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
-    `;
+    `);
     
     const title = SecurityUtils.createElement('h2', { 
       className: 'device-limit-title',
@@ -2572,7 +2575,7 @@ if (!document.getElementById('kit-ia-notifications-styles')) {
     const desc1 = SecurityUtils.createElement('p', { 
       className: 'device-limit-desc'
     });
-    desc1.innerHTML = `Has alcanzado el límite de <strong>${SecurityUtils.escapeHtml(deviceInfo.limit)} dispositivos</strong> para tu plan ${SecurityUtils.escapeHtml(deviceInfo.plan || 'Free')}.`;
+    SecureDOM.setHTML(desc1, `Has alcanzado el límite de <strong>${SecurityUtils.escapeHtml(deviceInfo.limit)} dispositivos</strong> para tu plan ${SecurityUtils.escapeHtml(deviceInfo.plan || 'Free')}.`);
     
     const desc2 = SecurityUtils.createElement('p', { 
       className: 'device-limit-desc',
@@ -2784,7 +2787,7 @@ if (!document.getElementById('kit-ia-notifications-styles')) {
   function renderFilters() {
     if (!elements.filterContent) return;
     
-    elements.filterContent.innerHTML = '';
+    elements.SecureDOM.clear(filterContent);
     
     // Sección de categorías
     const categoriesSection = SecurityUtils.createElement('div', { className: 'filter-section' });
