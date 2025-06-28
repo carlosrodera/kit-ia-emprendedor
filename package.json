@@ -1,6 +1,6 @@
 {
   "name": "kit-ia-emprendedor-extension",
-  "version": "0.1.0",
+  "version": "1.0.1",
   "description": "Chrome Extension lite para gestionar GPTs oficiales del Kit IA Emprendedor",
   "private": true,
   "type": "module",
