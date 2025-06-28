@@ -194,7 +194,7 @@ export default {
   dev: DEV_CONFIG,
   features: FEATURES,
   isDevelopment,
-  version: chrome.runtime.getManifest().version
+  version: chrome?.runtime?.getManifest?.()?.version || '0.0.0'
 };
 
 // Exportar isDevelopment como export nombrado también

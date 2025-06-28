@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Confirma el cambio de correo en KIT IA EMPRENDEDOR</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #202123; color: #ececf1;">
+<table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; margin: 40px auto; background-color: #2a2b32; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
+<tr>
+<td align="center" style="padding: 40px 30px 0 30px;">
+<h1 style="color: #10a37f; font-size: 28px; margin: 0 0 20px 0;">Confirma el Cambio de Correo</h1>
+</td>
+</tr>
+<tr>
+<td style="padding: 20px 30px 30px 30px;">
+<p style="font-size: 16px; line-height: 1.5; margin-bottom: 25px; color: #ececf1;">Has solicitado cambiar tu dirección de correo electrónico en KIT IA EMPRENDEDOR de <strong>{{ .Email }}</strong> a <strong>{{ .NewEmail }}</strong>.</p>
+<p style="font-size: 16px; line-height: 1.5; margin-bottom: 25px; color: #ececf1;">Para confirmar este cambio, por favor haz clic en el siguiente botón:</p>
+<div style="text-align: center; margin: 30px 0;">
+<a href="{{ .SiteURL }}/auth/auth-callback.html?token={{ .TokenHash }}&type=email_change" style="background-color: #10a37f; color: #ffffff; text-decoration: none; padding: 14px 30px; border-radius: 6px; font-weight: bold; display: inline-block; font-size: 16px;">Confirmar Cambio de Correo</a>
+</div>
+<p style="font-size: 16px; line-height: 1.5; margin-bottom: 25px; color: #ececf1;">Si no has realizado esta solicitud, por favor ignora este mensaje o contacta con nuestro equipo de soporte inmediatamente.</p>
+<p style="font-size: 16px; line-height: 1.5; margin-bottom: 25px; color: #ececf1;">¿Tienes problemas con el botón? Copia y pega el siguiente enlace en tu navegador:</p>
+<p style="font-size: 14px; word-break: break-all; background-color: #343541; padding: 10px; border-radius: 4px; border: 1px solid #444; color: #f59e0b;">{{ .SiteURL }}/auth/auth-callback.html?token={{ .TokenHash }}&type=email_change</p>
+</td>
+</tr>
+<tr>
+<td style="padding: 20px 30px; background-color: #202123; border-radius: 0 0 8px 8px; text-align: center;">
+<p style="font-size: 14px; color: #ececf1; margin: 0;">© 2025 KIT IA EMPRENDEDOR • Creado por Carlos Rodera</p>
+<p style="font-size: 14px; color: #ececf1; margin: 10px 0 0 0;">¿Necesitas ayuda? Contacta con nuestro <a href="https://iaemprendedor.com/soporte" style="color: #10a37f; text-decoration: none;">equipo de soporte</a></p>
+</td>
+</tr>
+</table>
+</body>
+</html>

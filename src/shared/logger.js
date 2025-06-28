@@ -143,21 +143,23 @@ class Logger {
         : null,
       data,
       userAgent: navigator.userAgent,
-      extensionVersion: chrome.runtime.getManifest().version
+      extensionVersion: chrome?.runtime?.getManifest?.()?.version || '0.0.0'
     };
 
     // Guardar últimos 10 errores
-    chrome.storage.local.get(['error_logs'], (result) => {
-      const logs = result.error_logs || [];
-      logs.unshift(errorReport);
+    if (chrome?.storage?.local) {
+      chrome.storage.local.get(['error_logs'], (result) => {
+        const logs = result.error_logs || [];
+        logs.unshift(errorReport);
 
-      // Mantener solo los últimos 10
-      if (logs.length > 10) {
-        logs.splice(10);
-      }
+        // Mantener solo los últimos 10
+        if (logs.length > 10) {
+          logs.splice(10);
+        }
 
-      chrome.storage.local.set({ error_logs: logs });
-    });
+        chrome.storage.local.set({ error_logs: logs });
+      });
+    }
   }
 
   /**

@@ -1,12 +1,12 @@
 # 📊 ESTADO ACTUAL - Kit IA Emprendedor
 
-## 🔄 Última actualización: 26 de Enero 2025 - v1.0.0
+## 🔄 Última actualización: 28 de Enero 2025 - v1.0.1
 
-## 🎯 Estado General: FUNCIONAL - RELEASE v1.0.0
+## 🎯 Estado General: FUNCIONAL - FIX CRÍTICO AUTH
 
-### 📌 Versión Actual: 1.0.0
-- **Fecha Release**: 26/01/2025
-- **Estado**: Producción - Arquitectura limpia con Chrome Side Panel API
+### 📌 Versión Actual: 1.0.1
+- **Fecha Release**: 28/01/2025
+- **Estado**: Producción - Fix crítico en auth storage
 - **Tipo**: Extension LITE profesional (GPTs oficiales)
 - **Bundle Size**: ~45KB (optimizado)
 
@@ -178,7 +178,14 @@ Estado: Actualizado
 
 ## 🔄 Historial de Versiones
 
-### v1.0.0 (26/01/2025) - RELEASE ACTUAL
+### v1.0.1 (28/01/2025) - FIX CRÍTICO AUTH
+- **Fix**: TypeError "i.set is not a function" en módulo auth
+- **Causa**: Storage adapter de Supabase mal implementado
+- **Solución**: Implementación directa de chrome.storage API
+- **Mejoras**: Manejo robusto de errores en storage
+- **Testing**: Validación chrome runtime en entornos test
+
+### v1.0.0 (26/01/2025) - RELEASE INICIAL
 - Arquitectura limpia con Chrome Side Panel API
 - Refactorización completa del código
 - Eliminación de archivos redundantes
@@ -214,6 +221,6 @@ El proyecto está listo para la siguiente fase de autenticación y features prem
 
 ---
 
-**Última actualización**: 26 de Enero 2025, 02:15
+**Última actualización**: 28 de Enero 2025, 11:58
 **Por**: Claude AI Assistant
-**Estado**: 🎉 v1.0.0 RELEASE - PROYECTO FUNCIONAL
+**Estado**: 🔧 v1.0.1 - FIX CRÍTICO AUTH COMPLETADO

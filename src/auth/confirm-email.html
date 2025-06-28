@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirmar Email - KIT IA EMPRENDEDOR</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #202123;
+            color: #ececf1;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 600px;
+            width: 100%;
+            background-color: #2a2b32;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            padding: 30px;
+            margin: 20px;
+        }
+        h1 {
+            color: #10a37f;
+            font-size: 28px;
+            margin: 0 0 20px 0;
+            text-align: center;
+        }
+        .logo {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        p {
+            font-size: 16px;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+        button {
+            background-color: #10a37f;
+            color: #ffffff;
+            border: none;
+            padding: 14px 20px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #0d8c6d;
+        }
+        .error {
+            color: #f87171;
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+            background-color: rgba(248, 113, 113, 0.1);
+            display: none;
+        }
+        .success {
+            color: #34d399;
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+            background-color: rgba(52, 211, 153, 0.1);
+            display: none;
+        }
+        .loading {
+            text-align: center;
+            margin-top: 20px;
+            display: none;
+        }
+        .loading-spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #10a37f;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .extension-prompt {
+            margin-top: 40px;
+            padding: 20px;
+            background-color: #343541;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .extension-prompt a {
+            color: #10a37f;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .extension-prompt a:hover {
+            text-decoration: underline;
+        }
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 14px;
+            color: #9ca3af;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <h1>KIT IA EMPRENDEDOR</h1>
+        </div>
+        
+        <div id="initialScreen">
+            <h1>Confirmación de Email</h1>
+            <p>Estamos verificando tu dirección de email...</p>
+            
+            <div id="manualConfirm" style="display: none;">
+                <p>Si la confirmación no se realiza automáticamente, haz clic en el botón:</p>
+                <button id="confirmButton">Confirmar Email</button>
+            </div>
+        </div>
+        
+        <div id="loadingScreen" class="loading">
+            <div class="loading-spinner"></div>
+            <span>Procesando, por favor espera...</span>
+        </div>
+        
+        <div id="successScreen" class="success">
+            <p>¡Tu email ha sido confirmado correctamente!</p>
+            <p>Ya puedes comenzar a utilizar KIT IA EMPRENDEDOR con todas sus funcionalidades.</p>
+            <button id="goToExtension">Abrir Extensión</button>
+        </div>
+        
+        <div id="errorScreen" class="error">
+            <p id="errorMessage">Ha ocurrido un error al procesar tu solicitud. Por favor, intenta de nuevo más tarde.</p>
+            <button id="retryButton">Reintentar</button>
+        </div>
+        
+        <div id="extensionPrompt" class="extension-prompt">
+            <p>Para una mejor experiencia, recomendamos utilizar la extensión KIT IA EMPRENDEDOR.</p>
+            <a href="https://chrome.google.com/webstore" target="_blank">Instalar KIT IA EMPRENDEDOR en Chrome</a>
+        </div>
+        
+        <div class="footer">
+            <p>&copy; 2025 KIT IA EMPRENDEDOR • Creado por Carlos Rodera</p>
+        </div>
+    </div>
+
+    <script>
+        // Elementos del DOM
+        const initialScreen = document.getElementById('initialScreen');
+        const manualConfirm = document.getElementById('manualConfirm');
+        const loadingScreen = document.getElementById('loadingScreen');
+        const successScreen = document.getElementById('successScreen');
+        const errorScreen = document.getElementById('errorScreen');
+        const extensionPrompt = document.getElementById('extensionPrompt');
+        const errorMessage = document.getElementById('errorMessage');
+        const confirmButton = document.getElementById('confirmButton');
+        const retryButton = document.getElementById('retryButton');
+        const goToExtensionButton = document.getElementById('goToExtension');
+        
+        // Configuración de Supabase (usar las mismas credenciales que la extensión)
+        const SUPABASE_URL = 'https://nktqqsbebhoedgookfzu.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5rdHFxc2JlYmhvZWRnb29rZnp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzNzYyMTEsImV4cCI6MjA2NTk1MjIxMX0.YmsU1VKwHkuFHFLCBW56KlGinvToSzHXtwSmkl5uhK4';
+        
+        // Función para extraer parámetros de la URL
+        function getTokenData() {
+            const queryParams = new URLSearchParams(window.location.search);
+            const hashParams = new URLSearchParams(window.location.hash.substring(1));
+            
+            if (queryParams.has('token')) {
+                return {
+                    token: queryParams.get('token'),
+                    type: queryParams.get('type') || 'signup',
+                    source: 'query'
+                };
+            }
+            
+            if (hashParams.has('access_token')) {
+                return {
+                    token: hashParams.get('access_token'),
+                    refreshToken: hashParams.get('refresh_token'),
+                    type: hashParams.get('type') || 'signup',
+                    source: 'hash'
+                };
+            }
+            
+            return { token: null, type: null, source: null };
+        }
+        
+        // Función para mostrar/ocultar pantallas
+        function showScreen(screen) {
+            initialScreen.style.display = 'none';
+            loadingScreen.style.display = 'none';
+            successScreen.style.display = 'none';
+            errorScreen.style.display = 'none';
+            extensionPrompt.style.display = 'none';
+            
+            screen.style.display = 'block';
+        }
+        
+        // Función para mostrar error
+        function showError(message) {
+            errorMessage.textContent = message;
+            showScreen(errorScreen);
+            extensionPrompt.style.display = 'block';
+        }
+        
+        // Función para confirmar email directamente con Supabase
+        async function confirmEmailWithSupabase(token, type) {
+            try {
+                const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                
+                const { data, error } = await supabase.auth.verifyOtp({
+                    token_hash: token,
+                    type: type || 'signup'
+                });
+                
+                if (error) {
+                    console.error('Error confirmando email:', error);
+                    return { 
+                        success: false, 
+                        message: error.message || 'Error al confirmar email' 
+                    };
+                }
+                
+                return { 
+                    success: true, 
+                    user: data?.user,
+                    message: 'Email confirmado correctamente' 
+                };
+                
+            } catch (error) {
+                console.error('Error al confirmar email:', error);
+                return { 
+                    success: false,
+                    message: error.message || 'Error inesperado durante la confirmación' 
+                };
+            }
+        }
+        
+        // Función para procesar la confirmación
+        async function processEmailConfirmation(tokenData) {
+            showScreen(loadingScreen);
+            
+            try {
+                const response = await confirmEmailWithSupabase(tokenData.token, tokenData.type);
+                
+                if (response.success) {
+                    showScreen(successScreen);
+                    extensionPrompt.style.display = 'block';
+                } else {
+                    showError(response.message || 'No se pudo confirmar el email');
+                }
+            } catch (error) {
+                console.error('Error procesando confirmación:', error);
+                showError('Error al confirmar el email: ' + error.message);
+            }
+        }
+        
+        // Función de inicialización
+        async function init() {
+            try {
+                const tokenData = getTokenData();
+                
+                if (!tokenData || !tokenData.token) {
+                    showError('No se encontró un token válido en la URL. Por favor, solicita un nuevo enlace de confirmación.');
+                    return;
+                }
+                
+                showScreen(initialScreen);
+                
+                // Intentar confirmar automáticamente
+                setTimeout(async () => {
+                    await processEmailConfirmation(tokenData);
+                }, 1000);
+                
+                // Mostrar botón manual después de un tiempo
+                setTimeout(() => {
+                    manualConfirm.style.display = 'block';
+                }, 3000);
+                
+                // Configurar manejador para el botón manual
+                confirmButton.addEventListener('click', async () => {
+                    await processEmailConfirmation(tokenData);
+                });
+            } catch (error) {
+                console.error('Error en inicialización:', error);
+                showError('Error al inicializar: ' + error.message);
+            }
+        }
+        
+        // Event listeners
+        retryButton.addEventListener('click', () => {
+            init();
+        });
+        
+        goToExtensionButton.addEventListener('click', () => {
+            // Si estamos en contexto de extensión, cerrar la ventana
+            if (window.location.protocol === 'chrome-extension:') {
+                window.close();
+            } else {
+                // Si estamos en web, intentar cerrar o mostrar mensaje
+                const closed = window.close();
+                if (!closed) {
+                    alert('Por favor, cierra esta ventana y vuelve a la extensión Kit IA Emprendedor.');
+                }
+            }
+        });
+        
+        // Iniciar cuando el DOM esté listo
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

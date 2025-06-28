@@ -254,7 +254,7 @@ function showAuthRequiredScreen() {
 }
 
 /**
- * Muestra la pantalla de login
+ * Muestra la pantalla de login/activación
  */
 function showLoginScreen() {
   const loginHtml = `
@@ -263,50 +263,100 @@ function showLoginScreen() {
         <div class="login-header">
           <img src="../assets/icons/icon-128.svg" alt="Kit IA Emprendedor" width="64" height="64">
           <h1>Kit IA Emprendedor</h1>
-          <p>Accede a tu cuenta premium</p>
+          <p>Tu asistente de IA para emprender</p>
         </div>
         
         <div class="login-content">
-          <form id="login-form" class="auth-form">
-            <div class="form-group">
-              <label for="email">Email</label>
-              <input 
-                type="email" 
-                id="email" 
-                name="email" 
-                placeholder="tu@email.com"
-                required
-                autocomplete="email"
-              />
+          <!-- Registro/Login -->
+          <div class="auth-section" id="auth-section">
+            <div class="auth-tabs">
+              <button type="button" class="tab-btn active" id="register-tab">Crear cuenta</button>
+              <button type="button" class="tab-btn" id="login-tab">Iniciar sesión</button>
             </div>
             
-            <div class="form-group">
-              <label for="password">Contraseña</label>
-              <input 
-                type="password" 
-                id="password" 
-                name="password" 
-                placeholder="••••••••"
-                required
-                autocomplete="current-password"
-              />
-            </div>
+            <!-- Registro -->
+            <form id="register-form" class="auth-form">
+              <div class="form-group">
+                <label for="register-email">Email</label>
+                <input 
+                  type="email" 
+                  id="register-email" 
+                  name="email" 
+                  placeholder="tu@email.com"
+                  required
+                  autocomplete="email"
+                />
+              </div>
+              
+              <div class="form-group">
+                <label for="register-password">Contraseña</label>
+                <input 
+                  type="password" 
+                  id="register-password" 
+                  name="password" 
+                  placeholder="Mínimo 6 caracteres"
+                  required
+                  autocomplete="new-password"
+                  minlength="6"
+                />
+              </div>
+              
+              <button type="submit" class="btn btn-primary" id="register-btn">
+                Crear cuenta
+              </button>
+            </form>
             
-            <button type="submit" class="btn btn-primary" id="login-btn">
-              Iniciar Sesión
-            </button>
-          </form>
-          
-          <div class="auth-divider">
-            <span>¿No tienes cuenta?</span>
+            <!-- Login -->
+            <form id="login-form" class="auth-form" style="display: none;">
+              <div class="form-group">
+                <label for="login-email">Email</label>
+                <input 
+                  type="email" 
+                  id="login-email" 
+                  name="email" 
+                  placeholder="tu@email.com"
+                  required
+                  autocomplete="email"
+                />
+              </div>
+              
+              <div class="form-group">
+                <label for="login-password">Contraseña</label>
+                <input 
+                  type="password" 
+                  id="login-password" 
+                  name="password" 
+                  placeholder="••••••••"
+                  required
+                  autocomplete="current-password"
+                />
+              </div>
+              
+              <button type="submit" class="btn btn-primary" id="login-btn">
+                Iniciar Sesión
+              </button>
+            </form>
           </div>
           
-          <button id="show-register-btn" class="btn btn-secondary">
-            Crear Cuenta
-          </button>
+          <div class="auth-actions">
+            <button id="toggle-login-btn" class="btn-text" style="display: none;">
+              ¿Ya tienes cuenta? Iniciar sesión
+            </button>
+          </div>
+          
+          <!-- Comprar producto -->
+          <div class="purchase-section">
+            <div class="purchase-card">
+              <h3>¿No tienes el Kit IA Emprendedor?</h3>
+              <p>Únete al kit de los emprendedores que están revolucionando sus negocios con inteligencia artificial</p>
+              <a href="https://iaemprendedor.com/" target="_blank" class="btn btn-cta">
+                Comprar Kit IA Emprendedor
+              </a>
+            </div>
+          </div>
           
           <div class="auth-footer">
-            <a href="#" id="forgot-password-link">¿Olvidaste tu contraseña?</a>
+            <a href="https://carlosrodera.com/soporte" target="_blank">¿Problemas? Contactar soporte</a>
           </div>
         </div>
       </div>
@@ -316,42 +366,89 @@ function showLoginScreen() {
   // Reemplazar todo el contenido del panel
   document.body.innerHTML = loginHtml;
   
-  // Configurar event listeners para login
+  // Configurar event listeners para login/activación
   setupLoginEventListeners();
 }
 
 /**
- * Configura event listeners para la pantalla de login
+ * Configura event listeners para la pantalla de login/activación
  */
 function setupLoginEventListeners() {
+  const registerForm = document.getElementById('register-form');
   const loginForm = document.getElementById('login-form');
-  const showRegisterBtn = document.getElementById('show-register-btn');
-  const forgotPasswordLink = document.getElementById('forgot-password-link');
+  const registerTab = document.getElementById('register-tab');
+  const loginTab = document.getElementById('login-tab');
   
+  // Registro
+  if (registerForm) {
+    registerForm.addEventListener('submit', handleRegister);
+  }
+  
+  // Login
   if (loginForm) {
-    loginForm.addEventListener('submit', handleEmailLogin);
+    loginForm.addEventListener('submit', handleLogin);
   }
   
-  if (showRegisterBtn) {
-    showRegisterBtn.addEventListener('click', showRegisterScreen);
+  // Tabs para cambiar entre registro y login
+  if (registerTab) {
+    registerTab.addEventListener('click', () => showAuthTab('register'));
   }
   
-  if (forgotPasswordLink) {
-    forgotPasswordLink.addEventListener('click', (e) => {
-      e.preventDefault();
-      showToast('Función de recuperación próximamente', 'info');
-    });
+  if (loginTab) {
+    loginTab.addEventListener('click', () => showAuthTab('login'));
   }
 }
 
 /**
- * Maneja login con email y password
+ * Maneja el registro de nuevo usuario
  */
-async function handleEmailLogin(e) {
+async function handleRegister(e) {
   e.preventDefault();
   
-  const email = document.getElementById('email').value;
-  const password = document.getElementById('password').value;
+  const email = document.getElementById('register-email').value;
+  const password = document.getElementById('register-password').value;
+  
+  if (!authModule) {
+    showToast('Sistema de autenticación no disponible', 'error');
+    return;
+  }
+  
+  try {
+    showToast('Creando cuenta...', 'info');
+    
+    // Crear cuenta
+    await authModule.signUpWithEmail(email, password);
+    
+    // TODO: Integrar verificación con Stripe
+    // Por ahora, permitir acceso a todos los usuarios registrados
+    const hasAccess = true; // await checkUserAccess(email);
+    
+    if (hasAccess) {
+      showToast('¡Cuenta creada exitosamente!', 'success');
+      // Actualizar estado
+      state.isAuthenticated = true;
+      state.currentUser = authModule.getCurrentUser();
+      updateUserAvatar();
+      location.reload();
+    } else {
+      // Mostrar pantalla premium
+      showPremiumScreen();
+    }
+    
+  } catch (error) {
+    console.error('[Panel] Registration error:', error);
+    showToast(error.message || 'Error al crear cuenta', 'error');
+  }
+}
+
+/**
+ * Maneja el login de usuario existente
+ */
+async function handleLogin(e) {
+  e.preventDefault();
+  
+  const email = document.getElementById('login-email').value;
+  const password = document.getElementById('login-password').value;
   
   if (!authModule) {
     showToast('Sistema de autenticación no disponible', 'error');
@@ -360,20 +457,122 @@ async function handleEmailLogin(e) {
   
   try {
     showToast('Iniciando sesión...', 'info');
+    
+    // Login
     await authModule.signInWithEmail(email, password);
     
-    // Actualizar estado y avatar
-    state.isAuthenticated = true;
-    state.currentUser = authModule.getCurrentUser();
-    updateUserAvatar();
+    // TODO: Integrar verificación con Stripe
+    // Por ahora, permitir acceso a todos los usuarios registrados
+    const hasAccess = true; // await checkUserAccess(email);
     
-    // Recargar la página después del login exitoso
-    location.reload();
+    if (hasAccess) {
+      showToast('¡Sesión iniciada exitosamente!', 'success');
+      // Actualizar estado
+      state.isAuthenticated = true;
+      state.currentUser = authModule.getCurrentUser();
+      updateUserAvatar();
+      location.reload();
+    } else {
+      // Mostrar pantalla premium
+      showPremiumScreen();
+    }
+    
   } catch (error) {
-    console.error('[Panel] Email login error:', error);
+    console.error('[Panel] Login error:', error);
     showToast(error.message || 'Error al iniciar sesión', 'error');
   }
 }
+
+/**
+ * Verifica si el usuario tiene acceso premium
+ */
+async function checkUserAccess(email) {
+  try {
+    const result = await chrome.runtime.sendMessage({
+      type: 'CHECK_USER_ACCESS',
+      email: email
+    });
+    
+    return result.success && result.data.hasAccess;
+  } catch (error) {
+    console.error('[Panel] Error checking user access:', error);
+    return false;
+  }
+}
+
+/**
+ * Cambia entre tabs de registro y login
+ */
+function showAuthTab(tab) {
+  const registerForm = document.getElementById('register-form');
+  const loginForm = document.getElementById('login-form');
+  const registerTab = document.getElementById('register-tab');
+  const loginTab = document.getElementById('login-tab');
+  
+  if (tab === 'register') {
+    registerForm.style.display = 'block';
+    loginForm.style.display = 'none';
+    registerTab.classList.add('active');
+    loginTab.classList.remove('active');
+  } else {
+    registerForm.style.display = 'none';
+    loginForm.style.display = 'block';
+    registerTab.classList.remove('active');
+    loginTab.classList.add('active');
+  }
+}
+
+/**
+ * Muestra la pantalla premium para usuarios sin acceso
+ */
+function showPremiumScreen() {
+  const premiumHtml = `
+    <div class="premium-screen">
+      <div class="premium-container">
+        <div class="premium-header">
+          <img src="../assets/icons/icon-128.svg" alt="Kit IA Emprendedor" width="64" height="64">
+          <h1>Kit IA Emprendedor</h1>
+          <p class="premium-subtitle">Producto Premium</p>
+        </div>
+        
+        <div class="premium-content">
+          <div class="premium-message">
+            <h2>🚀 Acceso Exclusivo</h2>
+            <p>Esta extensión está reservada para clientes del <strong>Kit IA Emprendedor</strong></p>
+          </div>
+          
+          <div class="premium-cta">
+            <p class="premium-description">Únete al kit de los emprendedores que están revolucionando sus negocios con inteligencia artificial</p>
+            <a href="https://iaemprendedor.com/" target="_blank" class="btn btn-premium">
+              🚀 Comprar Kit IA Emprendedor
+            </a>
+            <p class="cta-subtitle">Acceso inmediato tras la compra</p>
+          </div>
+          
+          <div class="premium-support">
+            <p>¿Ya compraste el Kit? <a href="https://carlosrodera.com/soporte" target="_blank">Contacta soporte</a></p>
+          </div>
+          
+          <button class="btn btn-secondary mt-3" id="back-to-login-btn">
+            ← Volver al inicio
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  document.body.innerHTML = premiumHtml;
+  
+  // Configurar event listener para el botón de volver
+  const backBtn = document.getElementById('back-to-login-btn');
+  if (backBtn) {
+    backBtn.addEventListener('click', () => {
+      location.reload();
+    });
+  }
+}
+
+
 
 /**
  * Muestra pantalla de registro
@@ -1569,7 +1768,7 @@ function handlePromptSelection(promptId, isSelected) {
  * Selecciona todos los prompts visibles
  */
 function selectAllPrompts() {
-  const filteredData = getFilteredData();
+  const filteredData = getFilteredItems();
   
   if (state.currentTab === 'prompts') {
     filteredData.forEach(prompt => {

@@ -58,14 +58,27 @@ function getSupabaseClient() {
           storage: {
             // Usar chrome.storage para persistir sesión
             getItem: async (key) => {
-              const data = await storage.auth.getToken();
-              return data;
+              try {
+                const result = await chrome.storage.local.get(key);
+                return result[key] || null;
+              } catch (error) {
+                logger.error('Error getting auth storage item:', error);
+                return null;
+              }
             },
             setItem: async (key, value) => {
-              await storage.auth.saveToken(value);
+              try {
+                await chrome.storage.local.set({ [key]: value });
+              } catch (error) {
+                logger.error('Error setting auth storage item:', error);
+              }
             },
             removeItem: async (key) => {
-              await storage.auth.removeToken();
+              try {
+                await chrome.storage.local.remove(key);
+              } catch (error) {
+                logger.error('Error removing auth storage item:', error);
+              }
             }
           }
         }
@@ -129,8 +142,8 @@ async function handleSignIn(session) {
   if (!session?.user) return;
 
   try {
-    // Guardar datos del usuario
-    await storage.set({
+    // Guardar datos del usuario usando chrome.storage directamente
+    await chrome.storage.local.set({
       [STORAGE_KEYS.USER_DATA]: {
         id: session.user.id,
         email: session.user.email,
@@ -165,7 +178,7 @@ async function handleSignOut() {
       STORAGE_KEYS.NOTIFICATIONS_READ
     ];
 
-    await storage.remove(keysToRemove);
+    await chrome.storage.local.remove(keysToRemove);
 
     // Limpiar estado en memoria
     authState.user = null;
@@ -188,14 +201,16 @@ async function handleUserUpdate(session) {
 
   try {
     // Actualizar datos del usuario
-    const userData = await storage.get(STORAGE_KEYS.USER_DATA);
+    const storedData = await chrome.storage.local.get(STORAGE_KEYS.USER_DATA);
+    const currentUserData = storedData[STORAGE_KEYS.USER_DATA] || {};
+    
     const updatedData = {
-      ...userData[STORAGE_KEYS.USER_DATA],
+      ...currentUserData,
       ...session.user,
       last_updated: new Date().toISOString()
     };
 
-    await storage.set({
+    await chrome.storage.local.set({
       [STORAGE_KEYS.USER_DATA]: updatedData
     });
 

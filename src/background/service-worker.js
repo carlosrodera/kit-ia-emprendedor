@@ -289,6 +289,32 @@ async function handleMessage(request) {
       }
       throw new Error('Invalid favorites data');
 
+    case 'CHECK_USER_ACCESS':
+      return await checkUserAccess(request.email);
+
+    case 'AUTH_SUCCESS':
+      // Manejar autenticación exitosa desde callback
+      console.log('[SW] Authentication successful:', request.user?.email);
+      
+      authState = {
+        isAuthenticated: true,
+        user: request.user,
+        session: request.session
+      };
+      
+      // Notificar a todas las ventanas/tabs sobre el cambio de estado
+      try {
+        chrome.runtime.sendMessage({
+          type: 'AUTH_STATE_CHANGED',
+          authState: authState
+        });
+      } catch (error) {
+        // No hay problemas si no hay listeners
+        console.log('[SW] No listeners for auth state change');
+      }
+      
+      return { success: true, data: authState };
+
     default:
       throw new Error(`Unknown message type: ${request.type}`);
   }
@@ -364,6 +390,43 @@ async function markNotificationRead(userId, notificationId) {
   } catch (error) {
     console.error('[SW] Error marking notification as read:', error);
     return { success: false, error: error.message };
+  }
+}
+
+// Sistema de verificación de acceso del usuario
+async function checkUserAccess(email) {
+  try {
+    console.log('[SW] Checking user access for:', email);
+
+    // Lista de emails con acceso (simulación)
+    // TODO: Conectar con Supabase para verificación real en user_subscriptions
+    const premiumUsers = [
+      'carlos@carlosrodera.com',
+      'test@kitiaemprendedor.com',
+      'demo@example.com'
+    ];
+
+    // Por ahora, simulamos acceso basado en emails específicos
+    // En producción: consultar tabla user_subscriptions en Supabase
+    const hasAccess = premiumUsers.includes(email.toLowerCase());
+    
+    console.log('[SW] User access result:', { email, hasAccess });
+    
+    return {
+      success: true,
+      data: {
+        hasAccess: hasAccess,
+        licenseType: hasAccess ? 'premium' : 'none',
+        expiresAt: null // Null = sin expiración
+      }
+    };
+
+  } catch (error) {
+    console.error('[SW] Error checking user access:', error);
+    return {
+      success: false,
+      error: 'Error verificando acceso del usuario'
+    };
   }
 }
 
