@@ -25,6 +25,11 @@ class ChromeExtensionAuth {
     if (this.initialized) return;
 
     try {
+      // Verificar configuración
+      if (!SUPABASE_CONFIG.url || SUPABASE_CONFIG.url.includes('placeholder')) {
+        logger.warn('[ChromeAuth] Using placeholder Supabase URL. Configure .env file with real values.');
+      }
+      
       // Crear cliente con storage adapter para Chrome
       this.client = createClient(
         SUPABASE_CONFIG.url,

@@ -67,13 +67,28 @@ async function initializeModules() {
       logger.debug('[Panel] Chrome auth path:', authPath);
       
       const authImport = await import(authPath);
-      logger.debug('[Panel] Chrome auth module imported:', { hasAuth: !!authImport.auth, keys: Object.keys(authImport) });
+      logger.debug('[Panel] Chrome auth module imported:', { 
+        hasDefault: !!authImport.default, 
+        hasAuth: !!authImport.auth, 
+        keys: Object.keys(authImport) 
+      });
       
-      authModule = authImport.auth;
+      // chrome-auth.js exporta como default
+      authModule = authImport.default || authImport.auth;
       
       // Verificar que el módulo se cargó correctamente
       if (!authModule) {
         throw new Error('Chrome auth module not found in import');
+      }
+      
+      // Verificar que tiene el método initialize
+      if (!authModule.initialize || typeof authModule.initialize !== 'function') {
+        logger.error('[Panel] Auth module structure:', {
+          type: typeof authModule,
+          keys: Object.keys(authModule),
+          hasInitialize: !!authModule.initialize
+        });
+        throw new Error('Chrome auth module does not have initialize method');
       }
       
       // Inicializar sin timeout - chrome-auth.js maneja esto correctamente
@@ -83,6 +98,11 @@ async function initializeModules() {
     } catch (authError) {
       logger.error('[Panel] Failed to load Chrome auth module:', authError);
       logger.error('[Panel] Auth error details:', authError.stack);
+      
+      // Mostrar error específico al usuario
+      const errorMessage = authError.message || 'Error desconocido al cargar autenticación';
+      showToast(`Error de autenticación: ${errorMessage}`, 'error');
+      
       // No continuar sin auth - es crítico
       throw authError;
     }

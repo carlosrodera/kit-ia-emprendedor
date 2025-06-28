@@ -176,8 +176,9 @@ export default defineConfig(({ mode }) => {
       viteStaticCopy({
         targets: [
           {
-            src: 'manifest.json',
-            dest: '.'
+            src: isDev ? 'manifest.dev.json' : 'manifest.json',
+            dest: '.',
+            rename: 'manifest.json'
           },
           {
             src: 'assets/icons/*',

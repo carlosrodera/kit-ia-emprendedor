@@ -25,7 +25,10 @@ const REQUIRED_KEYS = [
 const DEVELOPMENT_DEFAULTS = {
   VITE_LOG_LEVEL: 'debug',
   VITE_ENABLE_MOCKS: 'false',
-  VITE_API_TIMEOUT: '10000'
+  VITE_API_TIMEOUT: '10000',
+  // Valores temporales para desarrollo - REEMPLAZAR CON .env
+  VITE_SUPABASE_URL: 'https://placeholder.supabase.co',
+  VITE_SUPABASE_ANON_KEY: 'placeholder-key'
 };
 
 /**

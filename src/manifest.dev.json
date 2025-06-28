@@ -1,0 +1,48 @@
+{
+  "manifest_version": 3,
+  "name": "Kit IA Emprendedor [DEV]",
+  "version": "1.0.1-dev",
+  "description": "Tu asistente personal para acceder rápidamente a los mejores GPTs oficiales de OpenAI - DEVELOPMENT VERSION",
+  
+  "permissions": [
+    "sidePanel",
+    "storage",
+    "tabs",
+    "identity"
+  ],
+  
+  
+  "background": {
+    "service_worker": "background/service-worker.js",
+    "type": "module"
+  },
+  
+  "side_panel": {
+    "default_path": "sidepanel/index.html"
+  },
+  
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "assets/icons/icon-16.png",
+      "48": "assets/icons/icon-48.png",
+      "128": "assets/icons/icon-128.png"
+    }
+  },
+  
+  "icons": {
+    "16": "assets/icons/icon-16.png",
+    "48": "assets/icons/icon-48.png",
+    "128": "assets/icons/icon-128.png"
+  },
+  
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests;"
+  },
+  
+  "host_permissions": [
+    "https://*.supabase.co/*",
+    "https://chatgpt.com/*",
+    "https://chat.openai.com/*"
+  ]
+}
