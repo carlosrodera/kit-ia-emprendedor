@@ -838,9 +838,14 @@ async function loadInitialData() {
     }
 
     state.isLoading = false;
+    
+    // Renderizar el contenido después de cargar los datos
+    renderContent();
   } catch (error) {
     console.error('[Panel] Error loading data:', error);
     state.isLoading = false;
+    // Renderizar incluso en caso de error para mostrar empty state
+    renderContent();
   }
 }
 
