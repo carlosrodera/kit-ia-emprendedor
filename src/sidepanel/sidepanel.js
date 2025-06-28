@@ -17,7 +17,6 @@ let planUI = null;
 // Estado de la aplicación
 const state = {
   currentTab: 'all',
-  currentView: 'grid',
   currentCategory: 'all',
   searchQuery: '',
   gpts: [],
@@ -777,7 +776,7 @@ function cacheElements() {
   elements.searchInput = document.getElementById('search-input');
   elements.content = document.getElementById('content');
   elements.tabs = document.querySelectorAll('.tab');
-  elements.viewButtons = document.querySelectorAll('.view-btn');
+  // View buttons removed - only list view now
   elements.categoryFilterInput = document.getElementById('category-filter-input');
   elements.categoryDropdown = document.getElementById('category-dropdown');
   elements.categorySearch = document.getElementById('category-search');
@@ -802,10 +801,7 @@ function setupEventListeners() {
     tab.addEventListener('click', () => handleTabChange(tab.dataset.tab));
   });
 
-  // Vista
-  elements.viewButtons.forEach(btn => {
-    btn.addEventListener('click', () => handleViewChange(btn.dataset.view));
-  });
+  // View toggle removed - only list view now
 
   // Filtro de categoría con búsqueda
   setupCategoryDropdown();
@@ -995,25 +991,26 @@ function sortItems(items) {
 }
 
 /**
- * Renderiza favoritos mixtos (GPTs y Prompts)
+ * Renderiza favoritos mixtos (GPTs y Prompts) en vista de lista
  */
 function renderMixedFavorites(items) {
-  const isGrid = state.currentView === 'grid';
+  console.log('[Panel] Rendering mixed favorites in list view:', items.length);
+  
   const container = document.createElement('div');
-  container.className = isGrid ? 'gpts-grid' : 'gpts-list';
-
+  container.className = 'gpts-list'; // Usar gpts-list que tiene estilos
+  
   items.forEach(item => {
     let element;
     if (item.itemType === 'prompt') {
-      // Crear tarjeta de prompt
-      element = createPromptCard(item);
+      // Prompts como list item
+      element = createPromptListItem(item);
     } else {
-      // Crear tarjeta de GPT
-      element = isGrid ? createGPTCard(item) : createGPTListItem(item);
+      // GPTs como list item
+      element = createGPTListItem(item);
     }
     container.appendChild(element);
   });
-
+  
   elements.content.innerHTML = '';
   elements.content.appendChild(container);
 }
@@ -1022,82 +1019,20 @@ function renderMixedFavorites(items) {
  * Renderiza GPTs
  */
 function renderGPTs(gpts) {
-  const isGrid = state.currentView === 'grid';
+  console.log('[Panel] Rendering GPTs in list view, count:', gpts.length);
+  
   const container = document.createElement('div');
-  container.className = isGrid ? 'gpts-grid' : 'gpts-list';
-
+  container.className = 'gpts-list';
+  
   gpts.forEach(gpt => {
-    const element = isGrid ? createGPTCard(gpt) : createGPTListItem(gpt);
+    const element = createGPTListItem(gpt);
     container.appendChild(element);
   });
-
+  
   elements.content.innerHTML = '';
   elements.content.appendChild(container);
 }
 
-/**
- * Crea una tarjeta de GPT
- */
-function createGPTCard(gpt) {
-  // Verificar estado actual del favorito directamente del manager
-  const isFavorite = favoritesManager.isFavorite(gpt.id);
-  console.log(`[Panel] Creating card for ${gpt.id}, isFavorite: ${isFavorite}, manager has: ${favoritesManager.getAll().join(', ')}`);
-
-  const card = document.createElement('div');
-  card.className = 'gpt-card';
-  card.innerHTML = `
-    <div class="gpt-card-header">
-      <h3 class="gpt-card-title">${escapeHtml(gpt.name)}</h3>
-      <button class="favorite-btn ${isFavorite ? 'active' : ''}" data-gpt-id="${gpt.id}">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-        </svg>
-      </button>
-    </div>
-    <p class="gpt-card-description">${escapeHtml(gpt.description)}</p>
-    <div class="gpt-card-footer">
-      <span class="gpt-card-badge">${escapeHtml(gpt.category)}</span>
-      <div class="gpt-card-actions">
-        <button class="open-btn open-same-tab" data-gpt-url="${escapeHtml(gpt.url)}" title="Abrir en esta pestaña">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <path d="M13 7L9 11M9 11L13 15M9 11H21M21 11C21 16.5228 16.5228 21 11 21C5.47715 21 1 16.5228 1 11C1 5.47715 5.47715 1 11 1C16.5228 1 21 5.47715 21 11Z" stroke="currentColor" stroke-width="2"/>
-          </svg>
-        </button>
-        <button class="open-btn open-new-tab" data-gpt-url="${escapeHtml(gpt.url)}" title="Abrir en nueva pestaña">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <path d="M10 6H6C4.89543 6 4 6.89543 4 8V18C4 19.1046 4.89543 20 6 20H16C17.1046 20 18 19.1046 18 18V14M14 4H20M20 4V10M20 4L10 14" stroke="currentColor" stroke-width="2"/>
-          </svg>
-        </button>
-      </div>
-    </div>
-  `;
-
-  // Event listeners - Usar delegación mejorada
-  const favoriteBtn = card.querySelector('.favorite-btn');
-  if (favoriteBtn) {
-    favoriteBtn.addEventListener('click', handleFavoriteClick);
-  }
-
-  const openSameTabBtn = card.querySelector('.open-same-tab');
-  if (openSameTabBtn) {
-    openSameTabBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      e.preventDefault();
-      openGPT(gpt.url, false);
-    });
-  }
-
-  const openNewTabBtn = card.querySelector('.open-new-tab');
-  if (openNewTabBtn) {
-    openNewTabBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      e.preventDefault();
-      openGPT(gpt.url, true);
-    });
-  }
-
-  return card;
-}
 
 /**
  * Crea un item de lista de GPT
@@ -1161,18 +1096,103 @@ function createGPTListItem(gpt) {
 }
 
 /**
- * Renderiza prompts
+ * Crea un item de lista de prompt
+ */
+function createPromptListItem(prompt) {
+  const item = document.createElement('div');
+  item.className = 'prompt-list-item';
+  if (state.selectedPrompts.has(prompt.id)) {
+    item.classList.add('selected');
+  }
+  
+  item.innerHTML = `
+    ${state.isSelectMode ? `
+      <input type="checkbox" 
+             class="prompt-checkbox" 
+             data-prompt-id="${prompt.id}"
+             ${state.selectedPrompts.has(prompt.id) ? 'checked' : ''}>
+    ` : ''}
+    <div class="prompt-list-content ${state.isSelectMode ? 'with-checkbox' : ''}">
+      <div class="prompt-list-header">
+        <h3 class="prompt-list-title">${escapeHtml(prompt.name)}</h3>
+        ${prompt.tags && prompt.tags.length > 0 ? `
+          <div class="prompt-list-tags">
+            ${prompt.tags.map(tag => `<span class="prompt-tag">${escapeHtml(tag)}</span>`).join('')}
+          </div>
+        ` : ''}
+      </div>
+      <p class="prompt-list-description">${escapeHtml(prompt.content.substring(0, 120))}${prompt.content.length > 120 ? '...' : ''}</p>
+    </div>
+    <div class="prompt-list-actions">
+      <button class="favorite-btn prompt-favorite ${prompt.favorite ? 'active' : ''}" 
+              title="${prompt.favorite ? 'Quitar de favoritos' : 'Añadir a favoritos'}" 
+              data-prompt-id="${prompt.id}">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+        </svg>
+      </button>
+      <button class="icon-btn" title="Copiar" data-action="copy" data-prompt-id="${prompt.id}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+          <path d="M8 5H6C4.9 5 4 5.9 4 7V19C4 20.1 4.9 21 6 21H16C17.1 21 18 20.1 18 19V17" stroke="currentColor" stroke-width="2"/>
+          <path d="M8 5C8 3.9 8.9 3 10 3H18C19.1 3 20 3.9 20 5V15C20 16.1 19.1 17 18 17H10C8.9 17 8 16.1 8 15V5Z" stroke="currentColor" stroke-width="2"/>
+        </svg>
+      </button>
+      <button class="icon-btn" title="Editar" data-action="edit" data-prompt-id="${prompt.id}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+          <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" stroke-width="2"/>
+          <path d="M18.5 2.50023C18.8978 2.10243 19.4374 1.87891 20 1.87891C20.5626 1.87891 21.1022 2.10243 21.5 2.50023C21.8978 2.89804 22.1213 3.43762 22.1213 4.00023C22.1213 4.56284 21.8978 5.10243 21.5 5.50023L12 15.0002L8 16.0002L9 12.0002L18.5 2.50023Z" stroke="currentColor" stroke-width="2"/>
+        </svg>
+      </button>
+      <button class="icon-btn" title="Eliminar" data-action="delete" data-prompt-id="${prompt.id}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+          <path d="M3 6H5H21" stroke="currentColor" stroke-width="2"/>
+          <path d="M8 6V4C8 3.5 8.5 3 9 3H15C15.5 3 16 3.5 16 4V6M19 6V20C19 20.5 18.5 21 18 21H6C5.5 21 5 20.5 5 20V6H19Z" stroke="currentColor" stroke-width="2"/>
+        </svg>
+      </button>
+    </div>
+  `;
+
+  // Event listener para checkbox
+  const checkbox = item.querySelector('.prompt-checkbox');
+  if (checkbox) {
+    checkbox.addEventListener('change', (e) => {
+      handlePromptSelection(prompt.id, e.target.checked);
+    });
+  }
+
+  // Event listener para el botón de favorito
+  const favoriteBtn = item.querySelector('.prompt-favorite');
+  if (favoriteBtn) {
+    favoriteBtn.addEventListener('click', handlePromptFavoriteClick);
+  }
+  
+  // Event listeners para las demás acciones
+  item.querySelectorAll('.prompt-list-actions button:not(.prompt-favorite)').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const action = btn.dataset.action;
+      const promptId = btn.dataset.promptId;
+      handlePromptAction(action, promptId);
+    });
+  });
+
+  return item;
+}
+
+/**
+ * Renderiza prompts en vista de lista
  */
 function renderPrompts(prompts) {
+  console.log('[Panel] Rendering prompts in list view, count:', prompts.length);
+  
   const container = document.createElement('div');
-  container.className = 'prompts-container';
+  container.className = 'prompts-list';
 
   // Barra de herramientas para multi-selección
   const toolbar = createMultiSelectToolbar();
   container.appendChild(toolbar);
 
   prompts.forEach(prompt => {
-    container.appendChild(createPromptCard(prompt));
+    container.appendChild(createPromptListItem(prompt));
   });
 
   // Botón flotante para añadir prompt
@@ -1186,131 +1206,91 @@ function renderPrompts(prompts) {
   elements.content.appendChild(addBtn);
 }
 
-/**
- * Crea una tarjeta de prompt
- */
-function createPromptCard(prompt) {
-  const card = document.createElement('div');
-  card.className = 'prompt-card';
-  if (state.selectedPrompts.has(prompt.id)) {
-    card.classList.add('selected');
-  }
-  
-  card.innerHTML = `
-    ${state.isSelectMode ? `
-      <input type="checkbox" 
-             class="prompt-checkbox" 
-             data-prompt-id="${prompt.id}"
-             ${state.selectedPrompts.has(prompt.id) ? 'checked' : ''}>
-    ` : ''}
-    <div class="prompt-content-wrapper ${state.isSelectMode ? 'with-checkbox' : ''}">
-      <div class="prompt-header">
-        <h3 class="prompt-title">${escapeHtml(prompt.name)}</h3>
-        <div class="prompt-actions">
-          <button class="favorite-btn prompt-favorite ${prompt.favorite ? 'active' : ''}" 
-                  title="${prompt.favorite ? 'Quitar de favoritos' : 'Añadir a favoritos'}" 
-                  data-prompt-id="${prompt.id}">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-            </svg>
-          </button>
-          <button class="icon-btn" title="Copiar" data-action="copy" data-prompt-id="${prompt.id}">
-            📋
-          </button>
-          <button class="icon-btn" title="Editar" data-action="edit" data-prompt-id="${prompt.id}">
-            ✏️
-          </button>
-          <button class="icon-btn" title="Eliminar" data-action="delete" data-prompt-id="${prompt.id}">
-            🗑️
-          </button>
-        </div>
-      </div>
-      <p class="prompt-content">${escapeHtml(prompt.content)}</p>
-      ${prompt.tags && prompt.tags.length > 0
-      ? `
-        <div class="prompt-tags">
-          ${prompt.tags.map(tag => `<span class="prompt-tag">${escapeHtml(tag)}</span>`).join('')}
-        </div>
-      `
-      : ''}
-    </div>
-  `;
-
-  // Event listener para checkbox
-  const checkbox = card.querySelector('.prompt-checkbox');
-  if (checkbox) {
-    checkbox.addEventListener('change', (e) => {
-      handlePromptSelection(prompt.id, e.target.checked);
-    });
-  }
-
-  // Event listener para el botón de favorito
-  const favoriteBtn = card.querySelector('.prompt-favorite');
-  if (favoriteBtn) {
-    favoriteBtn.addEventListener('click', handlePromptFavoriteClick);
-  }
-  
-  // Event listeners para las demás acciones
-  card.querySelectorAll('.prompt-actions button:not(.prompt-favorite)').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const action = btn.dataset.action;
-      const promptId = btn.dataset.promptId;
-      handlePromptAction(action, promptId);
-    });
-  });
-
-  return card;
-}
 
 /**
  * Crea la barra de herramientas para multi-selección
  */
 function createMultiSelectToolbar() {
   const toolbar = document.createElement('div');
-  toolbar.className = 'multi-select-toolbar';
+  toolbar.className = 'multi-select-toolbar' + (state.isSelectMode ? ' active' : '');
   toolbar.innerHTML = `
-    <div class="multi-select-left">
-      <button class="btn-text ${state.isSelectMode ? 'active' : ''}" id="toggle-select-mode">
-        ${state.isSelectMode ? 'Cancelar selección' : 'Seleccionar múltiples'}
-      </button>
-      ${state.isSelectMode ? `
-        <span class="selection-count">${state.selectedPrompts.size} seleccionados</span>
-      ` : ''}
+    <div class="multi-select-controls">
+      ${!state.isSelectMode ? `
+        <button class="btn btn-select-mode" id="toggle-select-mode">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M9 11L12 14L20 6" stroke="currentColor" stroke-width="2"/>
+            <path d="M20 12V18C20 19.1 19.1 20 18 20H5C3.9 20 3 19.1 3 18V5C3 3.9 3.9 3 5 3H15" stroke="currentColor" stroke-width="2"/>
+          </svg>
+          Selección múltiple
+        </button>
+      ` : `
+        <div class="selection-active-controls">
+          <button class="btn btn-cancel-select" id="toggle-select-mode">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2"/>
+            </svg>
+            Cancelar selección
+          </button>
+          
+          <div class="selection-info">
+            <span class="selection-count">${state.selectedPrompts.size}</span>
+            <span class="selection-label">seleccionados</span>
+          </div>
+          
+          <div class="selection-actions">
+            <div class="selection-group">
+              <button class="btn btn-outline" id="select-all">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                  <path d="M9 11L12 14L20 6M9 11L12 14M20 6L12 14" stroke="currentColor" stroke-width="2"/>
+                </svg>
+                Todo
+              </button>
+              <button class="btn btn-outline" id="deselect-all">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                  <path d="M5 12H19" stroke="currentColor" stroke-width="2"/>
+                </svg>
+                Ninguno
+              </button>
+            </div>
+            
+            <div class="action-group">
+              <button class="btn btn-primary" id="copy-selected" title="Copiar contenido">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                  <path d="M8 5H6C4.9 5 4 5.9 4 7V19C4 20.1 4.9 21 6 21H16C17.1 21 18 20.1 18 19V17" stroke="currentColor" stroke-width="2"/>
+                  <path d="M8 5C8 3.9 8.9 3 10 3H18C19.1 3 20 3.9 20 5V15C20 16.1 19.1 17 18 17H10C8.9 17 8 16.1 8 15V5Z" stroke="currentColor" stroke-width="2"/>
+                </svg>
+                Copiar
+              </button>
+              <button class="btn btn-primary" id="export-selected" title="Exportar a TXT">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                  <path d="M21 15V19C21 20.1 20.1 21 19 21H5C3.9 21 3 20.1 3 19V15" stroke="currentColor" stroke-width="2"/>
+                  <path d="M7 10L12 15L17 10" stroke="currentColor" stroke-width="2"/>
+                  <path d="M12 15V3" stroke="currentColor" stroke-width="2"/>
+                </svg>
+                Exportar
+              </button>
+              <button class="btn btn-danger" id="delete-selected" title="Eliminar seleccionados">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                  <path d="M3 6H5H21" stroke="currentColor" stroke-width="2"/>
+                  <path d="M8 6V4C8 3.5 8.5 3 9 3H15C15.5 3 16 3.5 16 4V6M19 6V20C19 20.5 18.5 21 18 21H6C5.5 21 5 20.5 5 20V6H19Z" stroke="currentColor" stroke-width="2"/>
+                </svg>
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      `}
     </div>
-    ${state.isSelectMode && state.selectedPrompts.size > 0 ? `
-      <div class="multi-select-actions">
-        <button class="btn-text" id="select-all">Todo</button>
-        <button class="btn-text" id="deselect-all">Ninguno</button>
-        <button class="btn btn-secondary" id="copy-selected" title="Copiar contenido">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-            <path d="M8 5H6C4.9 5 4 5.9 4 7V19C4 20.1 4.9 21 6 21H16C17.1 21 18 20.1 18 19V17" stroke="currentColor" stroke-width="2"/>
-            <path d="M8 5C8 3.9 8.9 3 10 3H18C19.1 3 20 3.9 20 5V15C20 16.1 19.1 17 18 17H10C8.9 17 8 16.1 8 15V5Z" stroke="currentColor" stroke-width="2"/>
-          </svg>
-          Copiar
-        </button>
-        <button class="btn btn-secondary" id="export-selected" title="Exportar a TXT">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-            <path d="M21 15V19C21 20.1 20.1 21 19 21H5C3.9 21 3 20.1 3 19V15" stroke="currentColor" stroke-width="2"/>
-            <path d="M7 10L12 15L17 10" stroke="currentColor" stroke-width="2"/>
-            <path d="M12 15V3" stroke="currentColor" stroke-width="2"/>
-          </svg>
-          Exportar
-        </button>
-        <button class="btn btn-danger" id="delete-selected" title="Eliminar seleccionados">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-            <path d="M3 6H5H21" stroke="currentColor" stroke-width="2"/>
-            <path d="M8 6V4C8 3.5 8.5 3 9 3H15C15.5 3 16 3.5 16 4V6M19 6V20C19 20.5 18.5 21 18 21H6C5.5 21 5 20.5 5 20V6H19Z" stroke="currentColor" stroke-width="2"/>
-          </svg>
-          Eliminar
-        </button>
-      </div>
-    ` : ''}
   `;
 
   // Event listeners
   const toggleBtn = toolbar.querySelector('#toggle-select-mode');
   if (toggleBtn) {
-    toggleBtn.addEventListener('click', toggleSelectMode);
+    toggleBtn.addEventListener('click', () => {
+      toggleSelectMode();
+      // Re-renderizar para actualizar el estado
+      renderContent();
+    });
   }
 
   const selectAllBtn = toolbar.querySelector('#select-all');
@@ -1396,17 +1376,6 @@ function handleTabChange(tab) {
   // Actualizar UI
   elements.tabs.forEach(t => t.classList.remove('active'));
   document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
-
-  // Re-renderizar
-  renderContent();
-}
-
-function handleViewChange(view) {
-  state.currentView = view;
-
-  // Actualizar UI
-  elements.viewButtons.forEach(btn => btn.classList.remove('active'));
-  document.querySelector(`[data-view="${view}"]`).classList.add('active');
 
   // Re-renderizar
   renderContent();
@@ -1796,9 +1765,9 @@ function handlePromptSelection(promptId, isSelected) {
   // Actualizar la clase visual
   const checkbox = document.querySelector(`.prompt-checkbox[data-prompt-id="${promptId}"]`);
   if (checkbox) {
-    const card = checkbox.closest('.prompt-card');
-    if (card) {
-      card.classList.toggle('selected', isSelected);
+    const item = checkbox.closest('.prompt-list-item');
+    if (item) {
+      item.classList.toggle('selected', isSelected);
     }
   }
   
@@ -2044,6 +2013,10 @@ function handleUserProfile() {
  */
 function showUserProfileModal() {
   const user = state.currentUser;
+  const currentPlan = planManager ? planManager.getCurrentPlan() : null;
+  
+  // Crear el badge del plan si tenemos planUI
+  const planBadgeHtml = planUI && currentPlan ? planUI.createPlanBadge().outerHTML : '';
   
   const profileHtml = `
     <div class="modal" id="profile-modal">
@@ -2063,8 +2036,30 @@ function showUserProfileModal() {
               <h3>${user?.email || 'Usuario'}</h3>
               <p class="profile-email">${user?.email || 'Sin email'}</p>
               <p class="profile-joined">Miembro desde: ${formatDate(user?.created_at)}</p>
+              ${currentPlan ? `
+                <div class="profile-plan-info">
+                  <p class="profile-plan">Plan actual: <strong>${currentPlan.name}</strong></p>
+                  ${planBadgeHtml}
+                </div>
+              ` : ''}
             </div>
           </div>
+          
+          ${currentPlan && currentPlan.id === 'lite' ? `
+            <div class="profile-upgrade-section">
+              <div class="upgrade-benefits">
+                <h4>🚀 Hazte Premium y desbloquea:</h4>
+                <ul>
+                  <li>✨ Acceso a TODOS los GPTs Premium</li>
+                  <li>💬 Soporte prioritario directo</li>
+                  <li>🎯 Sin anuncios ni promociones</li>
+                </ul>
+                <a href="https://iaemprendedor.com/kit-ia-extension-premium?from=profile" target="_blank" class="btn btn-primary btn-block">
+                  Hazte Premium - $47 (pago único)
+                </a>
+              </div>
+            </div>
+          ` : ''}
           
           <div class="profile-actions">
             <button class="btn btn-danger" id="logout-btn">

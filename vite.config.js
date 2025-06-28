@@ -196,6 +196,10 @@ export default defineConfig(({ mode }) => {
           {
             src: 'sidepanel/sidepanel.css',
             dest: 'sidepanel'
+          },
+          {
+            src: 'sidepanel/styles/plan-ui.css',
+            dest: 'sidepanel/styles'
           }
         ]
       }),

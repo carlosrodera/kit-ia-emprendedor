@@ -21,36 +21,38 @@ export const PLANS = {
     id: 'lite',
     name: 'Kit IA Lite',
     price: 0, // GRATIS
+    monthlyPrice: 0,
     features: {
-      maxPrompts: 20,
-      maxFavorites: 10,
-      gptsAccess: 'basic', // Solo GPTs básicos gratuitos
-      syncEnabled: false,
-      exportEnabled: true,
-      multiSelectEnabled: false,
-      advancedSearch: false,
-      customCategories: false,
+      maxPrompts: -1, // Ilimitado
+      maxFavorites: -1, // Ilimitado
+      gptsAccess: 'basic', // Solo GPTs básicos gratuitos - ÚNICA LIMITACIÓN
+      syncEnabled: false, // No disponible en ningún plan actualmente
+      exportEnabled: true, // Disponible para todos
+      multiSelectEnabled: true, // Disponible para todos
+      advancedSearch: true, // Disponible para todos
+      customCategories: true, // Disponible para todos
       prioritySupport: false
     },
     limits: {
-      dailyGptUsage: 50,
-      promptLength: 1000
+      dailyGptUsage: -1, // Sin límite diario
+      promptLength: 5000 // Mismo que premium
     }
   },
   premium: {
     id: 'premium',
     name: 'Kit IA Premium',
     price: 47, // Pago único
+    monthlyPrice: 47, // Mostrar como pago único
     features: {
       maxPrompts: -1, // Ilimitado
       maxFavorites: -1, // Ilimitado
-      gptsAccess: 'all', // Todos los GPTs premium
-      syncEnabled: true,
+      gptsAccess: 'all', // ACCESO A TODOS LOS GPTs PREMIUM - PRINCIPAL BENEFICIO
+      syncEnabled: false, // No disponible en ningún plan actualmente
       exportEnabled: true,
       multiSelectEnabled: true,
       advancedSearch: true,
       customCategories: true,
-      prioritySupport: true
+      prioritySupport: true // SOPORTE PRIORITARIO
     },
     limits: {
       dailyGptUsage: -1, // Ilimitado

@@ -79,20 +79,20 @@ export function createUpgradeCTA(context = 'generic') {
   // Mensajes contextuales (solo para LITE -> PREMIUM)
   const messages = {
     generic: {
-      title: '⭐ Hazte Premium',
-      subtitle: 'Acceso ilimitado a todos los GPTs premium y funciones avanzadas'
+      title: '🚀 Desbloquea Todo el Potencial',
+      subtitle: '✨ Acceso ilimitado a +50 GPTs Premium especializados para emprendedores'
     },
     gpt_locked: {
-      title: '🔒 GPT Premium',
-      subtitle: 'Este GPT requiere el plan Premium - Pago único de $47'
+      title: '👑 GPT Premium Exclusivo',
+      subtitle: 'Desbloquea este GPT especializado con el Plan Premium - Pago único de $47'
     },
     limit_reached: {
-      title: '⚠️ Límite alcanzado',
-      subtitle: `Has alcanzado el límite de tu plan ${currentPlan.name}`
+      title: '📈 ¡Es hora de crecer!',
+      subtitle: `Maximiza tu productividad con acceso ilimitado a todos los GPTs`
     },
     feature_locked: {
-      title: '🔐 Función Premium',
-      subtitle: 'Esta función requiere un plan superior'
+      title: '💎 Función Premium',
+      subtitle: 'Accede a herramientas avanzadas para llevar tu negocio al siguiente nivel'
     }
   };
   
@@ -101,15 +101,23 @@ export function createUpgradeCTA(context = 'generic') {
   cta.innerHTML = `
     <div class="upgrade-cta-content">
       <div class="upgrade-cta-icon">
-        ${targetPlan.id === 'premium' ? '👑' : '💎'}
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="url(#gradient-premium)" stroke-width="2">
+          <defs>
+            <linearGradient id="gradient-premium" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#FFD700;stop-opacity:1" />
+              <stop offset="100%" style="stop-color:#FF6B00;stop-opacity:1" />
+            </linearGradient>
+          </defs>
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+        </svg>
       </div>
       <div class="upgrade-cta-text">
         <h4>${message.title}</h4>
         <p>${message.subtitle}</p>
       </div>
       <button class="btn btn-upgrade" data-target-plan="${targetPlan.id}">
-        ${targetPlan.id === 'premium' ? 'Upgrade a Premium' : 'Hazte LITE'}
-        <span class="price">$${targetPlan.monthlyPrice}/mes</span>
+        ${targetPlan.id === 'premium' ? '✨ Hazte Premium Ahora' : 'Hazte LITE'}
+        <span class="price">${targetPlan.price === 0 ? 'GRATIS' : `$${targetPlan.price} (pago único)`}</span>
       </button>
     </div>
   `;
@@ -137,7 +145,7 @@ export function createLockedOverlay(type = 'gpt', requiredPlan = 'lite') {
       <h3>Contenido Bloqueado</h3>
       <p>Requiere ${plan.name}</p>
       <button class="btn btn-small btn-unlock" data-plan="${requiredPlan}">
-        Desbloquear por $${plan.monthlyPrice}
+        ${plan.price === 0 ? 'Plan Gratuito' : `Desbloquear por $${plan.price}`}
       </button>
     </div>
   `;
@@ -165,17 +173,17 @@ export function createPlanInfoPanel() {
       </div>
       
       <div class="plan-usage-stats">
-        ${createUsageIndicator('Prompts', stats.prompts.used, stats.prompts.limit).outerHTML}
-        ${createUsageIndicator('Favoritos', stats.favorites.used, stats.favorites.limit).outerHTML}
-        ${createUsageIndicator('Uso diario GPTs', stats.gptUsageToday.used, stats.gptUsageToday.limit).outerHTML}
+        ${stats.prompts.limit !== Infinity ? createUsageIndicator('Prompts', stats.prompts.used, stats.prompts.limit).outerHTML : ''}
+        ${stats.favorites.limit !== Infinity ? createUsageIndicator('Favoritos', stats.favorites.used, stats.favorites.limit).outerHTML : ''}
+        ${stats.gptUsageToday.limit !== Infinity ? createUsageIndicator('Uso diario GPTs', stats.gptUsageToday.used, stats.gptUsageToday.limit).outerHTML : ''}
       </div>
       
       <div class="plan-features">
-        <h4>Características de tu plan:</h4>
+        <h4>${currentPlan.id === 'premium' ? 'Tus beneficios Premium:' : 'Incluido en tu plan:'}</h4>
         <ul class="feature-list">
           ${getFeaturesList(currentPlan).map(feature => `
-            <li class="${feature.available ? 'available' : 'unavailable'}">
-              ${feature.available ? '✓' : '✗'} ${feature.name}
+            <li class="available">
+              ${feature.name}
             </li>
           `).join('')}
         </ul>
@@ -204,7 +212,7 @@ export function createPlanTooltip(requiredPlan) {
     <div class="tooltip-arrow"></div>
     <div class="tooltip-content">
       <strong>Requiere ${plan.name}</strong>
-      <p>$${plan.monthlyPrice}/mes</p>
+      <p>${plan.price === 0 ? 'GRATIS' : `$${plan.price} (pago único)`}</p>
     </div>
   `;
   
@@ -239,16 +247,31 @@ export function applyPlanRestrictions(element, feature) {
  */
 
 function getFeaturesList(plan) {
-  return [
-    { name: 'Sincronización en la nube', available: plan.features.syncEnabled },
-    { name: 'Exportar prompts', available: plan.features.exportEnabled },
-    { name: 'Selección múltiple', available: plan.features.multiSelectEnabled },
-    { name: 'Búsqueda avanzada', available: plan.features.advancedSearch },
-    { name: 'Categorías personalizadas', available: plan.features.customCategories },
-    { name: 'Soporte prioritario', available: plan.features.prioritySupport },
-    { name: `${plan.features.maxPrompts === -1 ? 'Prompts ilimitados' : `Hasta ${plan.features.maxPrompts} prompts`}`, available: true },
-    { name: `${plan.features.maxFavorites === -1 ? 'Favoritos ilimitados' : `Hasta ${plan.features.maxFavorites} favoritos`}`, available: true }
-  ];
+  // Mostrar solo los beneficios del plan actual, no las limitaciones
+  const allFeatures = [];
+  
+  // Características principales según el plan
+  if (plan.id === 'lite') {
+    allFeatures.push(
+      { name: '✓ Prompts ilimitados', available: true },
+      { name: '✓ Favoritos ilimitados', available: true },
+      { name: '✓ Exportar prompts', available: true },
+      { name: '✓ Búsqueda avanzada', available: true },
+      { name: '✓ Categorías personalizadas', available: true },
+      { name: '✓ GPTs básicos gratuitos', available: true }
+    );
+  } else if (plan.id === 'premium') {
+    allFeatures.push(
+      { name: '✓ TODO lo del plan Lite', available: true },
+      { name: '✓ Acceso a TODOS los GPTs Premium', available: true },
+      { name: '✓ Soporte prioritario directo', available: true },
+      { name: '✓ Actualizaciones anticipadas', available: true },
+      { name: '✓ Comunidad exclusiva', available: true },
+      { name: '✓ Sin anuncios ni promociones', available: true }
+    );
+  }
+  
+  return allFeatures;
 }
 
 function handleUpgradeClick(targetPlan) {
@@ -265,7 +288,7 @@ function handleUpgradeClick(targetPlan) {
   }
   
   // En producción, abrir página de upgrade
-  const upgradeUrl = `https://kitiaemprendedor.com/upgrade?plan=${targetPlan}&from=extension`;
+  const upgradeUrl = `https://iaemprendedor.com/kit-ia-extension-premium?from=extension&plan=${targetPlan}`;
   chrome.tabs.create({ url: upgradeUrl });
 }
 

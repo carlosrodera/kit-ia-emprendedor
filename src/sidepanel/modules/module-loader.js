@@ -21,7 +21,7 @@
  * @readonly
  */
 const MODULE_LOADER_CONFIG = {
-  BASE_PATH: '/sidepanel/modules/',
+  BASE_PATH: 'sidepanel/modules/',
   TIMEOUT: 5000, // ms para timeout de carga
   LOG_PREFIX: '[ModuleLoader]',
   RETRY_ATTEMPTS: 3,

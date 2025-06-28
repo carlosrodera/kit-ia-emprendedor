@@ -335,34 +335,7 @@ body {
   display: none;
 }
 
-.view-toggle {
-  display: flex;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-}
-
-.view-btn {
-  background: none;
-  border: none;
-  color: var(--text-secondary);
-  cursor: pointer;
-  padding: var(--spacing-xs) var(--spacing-sm);
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-}
-
-.view-btn:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
-}
-
-.view-btn.active {
-  background: var(--accent-color);
-  color: white;
-}
+/* View toggle removed - only list view now */
 
 /* Sort Dropdown */
 .sort-dropdown-wrapper {
@@ -422,12 +395,6 @@ body {
   to { transform: rotate(360deg); }
 }
 
-/* Grid Layout */
-.gpts-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: var(--spacing-md);
-}
 
 /* GPT Card */
 .gpt-card {
@@ -881,6 +848,37 @@ body {
 .prompt-card.selected {
   border-color: var(--accent-color);
   background: var(--accent-light);
+}
+
+/* Prompts list view */
+.prompts-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.prompt-list-item {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+  transition: all 0.2s;
+  position: relative;
+}
+
+.prompt-list-item:hover {
+  border-color: var(--accent-color);
+  transform: translateX(2px);
+  box-shadow: 0 2px 8px rgba(16, 163, 127, 0.1);
+}
+
+.prompt-list-item.selected {
+  background: var(--accent-light);
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px rgba(16, 163, 127, 0.2);
 }
 
 .prompt-checkbox {
@@ -1434,10 +1432,6 @@ body {
 
 /* Responsive */
 @media (max-width: 480px) {
-  .gpts-grid {
-    grid-template-columns: 1fr;
-  }
-  
   .toolbar {
     flex-direction: column;
     gap: var(--spacing-sm);
@@ -1458,9 +1452,275 @@ body {
   }
 }
 
-/* Multi-select Toolbar */
+/* Profile Plan Information */
+.profile-plan-info {
+  margin-top: var(--spacing-md);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.profile-plan {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.profile-plan strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.profile-upgrade-section {
+  width: 100%;
+  margin-top: var(--spacing-lg);
+  padding: var(--spacing-lg);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--accent-color);
+  border-opacity: 0.3;
+}
+
+.upgrade-benefits h4 {
+  color: var(--text-primary);
+  font-size: 16px;
+  margin-bottom: var(--spacing-md);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.upgrade-benefits ul {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--spacing-lg) 0;
+}
+
+.upgrade-benefits li {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin-bottom: var(--spacing-sm);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.btn-block {
+  width: 100%;
+  display: block;
+  text-align: center;
+  text-decoration: none;
+}
+
+.btn-primary {
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: var(--accent-color);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-primary:hover {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 163, 127, 0.3);
+}
+
+/* =========================
+   Prompts List Styles (Missing)
+   ========================= */
+
+/* Container for prompts list */
+.prompts-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+/* Individual prompt list item */
+.prompt-list-item {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+  transition: all 0.2s;
+  position: relative;
+  min-height: 60px;
+}
+
+.prompt-list-item:hover {
+  border-color: var(--accent-color);
+  box-shadow: 0 2px 8px rgba(16, 163, 127, 0.1);
+  transform: translateY(-1px);
+}
+
+.prompt-list-item.selected {
+  border-color: var(--accent-color);
+  background: var(--accent-light);
+}
+
+/* Checkbox for prompts (when in select mode) */
+.prompt-list-item .prompt-checkbox {
+  position: absolute;
+  top: var(--spacing-md);
+  left: var(--spacing-md);
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: var(--accent-color);
+}
+
+/* Content area */
+.prompt-list-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.prompt-list-content.with-checkbox {
+  margin-left: 36px;
+}
+
+/* Header with title */
+.prompt-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+}
+
+.prompt-list-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  word-break: break-word;
+  line-height: 1.3;
+}
+
+/* Description */
+.prompt-list-description {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.4;
+  word-break: break-word;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* Tags */
+.prompt-list-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-xs);
+}
+
+.prompt-list-tags .prompt-tag {
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* Actions */
+.prompt-list-actions {
+  display: flex;
+  gap: var(--spacing-xs);
+  align-items: flex-start;
+  flex-shrink: 0;
+}
+
+.prompt-list-actions .icon-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: var(--spacing-xs);
+  border-radius: var(--radius-sm);
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+}
+
+.prompt-list-actions .icon-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.prompt-list-actions .favorite-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: var(--spacing-xs);
+  border-radius: var(--radius-sm);
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+}
+
+.prompt-list-actions .favorite-btn:hover {
+  background: var(--favorite-color);
+  color: white;
+  transform: scale(1.1);
+}
+
+.prompt-list-actions .favorite-btn.active {
+  color: var(--favorite-color);
+}
+
+.prompt-list-actions .favorite-btn.active:hover {
+  background: var(--favorite-color);
+  color: white;
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .prompt-list-item {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .prompt-list-actions {
+    align-self: flex-end;
+    margin-top: var(--spacing-sm);
+  }
+  
+  .prompt-list-content.with-checkbox {
+    margin-left: 0;
+    margin-top: 32px;
+  }
+}
+
+/* =========================
+   Multi-select Toolbar Redesigned
+   ========================= */
 .multi-select-toolbar {
   padding: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-color);
   display: flex;
@@ -1734,30 +1994,195 @@ body {
   background: #dc2626;
 }
 
+/* =========================
+   Multi-select Redesigned Styles
+   ========================= */
+
+/* Contenedor principal de controles */
+.multi-select-controls {
+  width: 100%;
+}
+
+/* Botón principal de selección múltiple */
+.btn-select-mode {
+  background: var(--bg-hover);
+  border: 1px solid var(--border-light);
+  color: var(--text-primary);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-select-mode:hover {
+  background: var(--accent-light);
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(16, 163, 127, 0.2);
+}
+
+.btn-select-mode svg {
+  stroke: currentColor;
+}
+
+/* Controles cuando está activa la selección */
+.selection-active-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+  align-items: center;
+  width: 100%;
+}
+
+/* Botón cancelar selección */
+.btn-cancel-select {
+  background: var(--bg-hover);
+  border: 1px solid var(--error-color);
+  color: var(--error-color);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-cancel-select:hover {
+  background: rgba(239, 68, 68, 0.1);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);
+}
+
+/* Info de selección */
+.selection-info {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-md);
+  background: var(--accent-light);
+  border-radius: var(--radius-md);
+  margin-left: auto;
+}
+
+.selection-count {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--accent-color);
+}
+
+.selection-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* Contenedor de acciones */
+.selection-actions {
+  display: flex;
+  gap: var(--spacing-md);
+  flex: 1;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+/* Grupos de botones */
+.selection-group,
+.action-group {
+  display: flex;
+  gap: var(--spacing-xs);
+}
+
+/* Separador visual entre grupos */
+.selection-group {
+  padding-right: var(--spacing-md);
+  border-right: 1px solid var(--border-color);
+}
+
+/* Botones outline */
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-outline:hover {
+  background: var(--bg-hover);
+  border-color: var(--text-primary);
+  color: var(--text-primary);
+}
+
+.btn-outline svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Animación de entrada */
+.multi-select-toolbar.active {
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Responsive Multi-select */
-@media (max-width: 600px) {
-  .multi-select-toolbar {
+@media (max-width: 768px) {
+  .selection-active-controls {
     flex-direction: column;
     align-items: stretch;
   }
   
-  .multi-select-left {
-    margin-bottom: var(--spacing-sm);
+  .selection-info {
+    margin-left: 0;
+    justify-content: center;
   }
   
-  .multi-select-actions {
-    justify-content: stretch;
+  .selection-actions {
+    flex-direction: column;
+    gap: var(--spacing-sm);
   }
   
-  .multi-select-actions .btn {
+  .selection-group,
+  .action-group {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .selection-group {
+    padding-right: 0;
+    border-right: none;
+    padding-bottom: var(--spacing-sm);
+    border-bottom: 1px solid var(--border-color);
+  }
+  
+  .btn-outline,
+  .btn-primary,
+  .btn-danger {
     flex: 1;
-    font-size: 12px;
-    padding: var(--spacing-xs) var(--spacing-sm);
-  }
-  
-  .multi-select-actions .btn svg {
-    width: 14px;
-    height: 14px;
   }
 }
 
